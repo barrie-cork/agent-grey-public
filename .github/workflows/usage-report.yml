@@ -1,0 +1,154 @@
+name: 'API Usage Report'
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Monday 9am
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Generate usage statistics
+        id: stats
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          STATS=$(python .github/scripts/rate_limit_tracker.py stats 2>/dev/null || echo '{}')
+
+          # Parse stats with fallbacks for missing fields
+          LOW_USED=$(echo "$STATS" | jq -r '.low_tier.used // 0')
+          LOW_LIMIT=$(echo "$STATS" | jq -r '.low_tier.limit // 150')
+          HIGH_USED=$(echo "$STATS" | jq -r '.high_tier.used // 0')
+          HIGH_LIMIT=$(echo "$STATS" | jq -r '.high_tier.limit // 50')
+          COPILOT_USED=$(echo "$STATS" | jq -r '.copilot_tier.used // 0')
+          COPILOT_LIMIT=$(echo "$STATS" | jq -r '.copilot_tier.limit // 50')
+          COPILOT_REMAINING=$(echo "$STATS" | jq -r '.copilot_tier.remaining // 0')
+
+          # Calculate usage percentages (avoid division by zero)
+          LOW_PCT=$((LOW_LIMIT > 0 ? LOW_USED * 100 / LOW_LIMIT : 0))
+          HIGH_PCT=$((HIGH_LIMIT > 0 ? HIGH_USED * 100 / HIGH_LIMIT : 0))
+          COPILOT_PCT=$((COPILOT_LIMIT > 0 ? COPILOT_USED * 100 / COPILOT_LIMIT : 0))
+
+          # Generate markdown report
+          cat > usage_report.md <<EOF
+          # GitHub AI Services Usage Report
+
+          **Week Ending**: $(date +%Y-%m-%d)
+
+          ## GitHub Models API Quota
+
+          ### Low Tier (Code Reviews)
+          - **Used**: ${LOW_USED} / ${LOW_LIMIT} requests (${LOW_PCT}%)
+          - **Model**: mistral-ai/ministral-3b
+          - **Purpose**: PR reviews, general bug scans
+
+          ### High Tier (Security Scans)
+          - **Used**: ${HIGH_USED} / ${HIGH_LIMIT} requests (${HIGH_PCT}%)
+          - **Model**: openai/gpt-4o-mini
+          - **Purpose**: Critical security audits
+
+          ## GitHub Copilot Seats
+
+          - **Used**: ${COPILOT_USED} / ${COPILOT_LIMIT} seats (${COPILOT_PCT}%)
+          - **Remaining**: ${COPILOT_REMAINING} seats available
+
+          ## Recommendations
+
+          EOF
+
+          if [ "$LOW_PCT" -gt 90 ]; then
+            echo "- :warning: **Low tier quota >90%**: Consider reducing PR review frequency" >> usage_report.md
+          elif [ "$LOW_PCT" -gt 70 ]; then
+            echo "- :information_source: **Low tier quota >70%**: Monitor closely" >> usage_report.md
+          else
+            echo "- :white_check_mark: **Low tier quota**: Healthy usage" >> usage_report.md
+          fi
+
+          if [ "$HIGH_PCT" -gt 90 ]; then
+            echo "- :warning: **High tier quota >90%**: Limit security scans" >> usage_report.md
+          else
+            echo "- :white_check_mark: **High tier quota**: Healthy usage" >> usage_report.md
+          fi
+
+          if [ "$COPILOT_REMAINING" -lt 5 ] && [ "$COPILOT_LIMIT" -gt 0 ]; then
+            echo "- :warning: **Copilot seats low**: Fewer than 5 seats remaining" >> usage_report.md
+          else
+            echo "- :white_check_mark: **Copilot seats**: Healthy" >> usage_report.md
+          fi
+
+          cat >> usage_report.md <<'EOF'
+
+          ## Next Week Actions
+
+          - [ ] Review and triage new AI-detected issues
+          - [ ] Update prompts based on feedback
+          - [ ] Merge approved fixes
+
+          ---
+
+          *Generated automatically by GitHub Actions*
+          EOF
+
+      - name: Close previous weekly report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'weekly-report',
+              state: 'open',
+              per_page: 10,
+            });
+
+            for (const issue of issues) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              console.log(`Closed previous report: #${issue.number}`);
+            }
+
+      - name: Post report as issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('usage_report.md', 'utf8');
+            const title = 'Weekly AI Usage Report - ' + new Date().toISOString().split('T')[0];
+
+            const { data: issue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: report,
+              labels: ['automation', 'ai-review', 'weekly-report']
+            });
+
+            console.log(`Created report: #${issue.number}`);
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: usage-report-${{ github.run_number }}
+          path: usage_report.md

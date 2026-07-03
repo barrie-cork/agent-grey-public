@@ -1,0 +1,300 @@
+/*
+ * Thesis Grey Design System - Design Tokens
+ * Foundation layer providing all design variables used across the application
+ * This file defines the single source of truth for colors, spacing, typography, and component tokens
+ */
+
+/* =============================================================================
+   Color System - Agent Grey Brand Colors
+   ============================================================================= */
+:root {
+  /* Agent Grey Brand Colors - Based on Updated Style Guide */
+  --ag-color-deep-navy: #0A2D45;
+  --ag-color-deep-navy-rgb: 10, 45, 69;
+  --ag-color-teal-blue: #00A0A0;
+  --ag-color-teal-blue-rgb: 0, 160, 160;
+  --ag-color-amber-gold: #F6A623;
+  --ag-color-amber-gold-rgb: 246, 166, 35;
+  --ag-color-off-white: #F9F9F7;
+  --ag-color-off-white-rgb: 249, 249, 247;
+  --ag-color-cool-grey-light: #E4E6E8;
+  --ag-color-cool-grey-light-rgb: 228, 230, 232;
+  --ag-color-cool-grey-dark: #7B8794;
+  --ag-color-cool-grey-dark-rgb: 123, 135, 148;
+
+  /* Primary Color System - Mapped to Agent Grey Deep Navy */
+  --tg-color-primary: var(--ag-color-deep-navy);
+  --tg-color-primary-rgb: var(--ag-color-deep-navy-rgb);
+  --tg-color-primary-hover: #083244;
+  --tg-color-primary-light: var(--ag-color-teal-blue);
+  --tg-color-primary-dark: #071e2f;
+  --tg-color-primary-subtle: rgba(10, 45, 69, 0.1);
+
+  /* Agent Grey Status Colors - Following Style Guide */
+  --ag-color-status-green: #2E8540;
+  --ag-color-status-green-rgb: 46, 133, 64;
+  --ag-color-status-blue: #0A2D45;
+  --ag-color-status-blue-rgb: 10, 45, 69;
+  --ag-color-error-red: #D72638;
+  --ag-color-error-red-rgb: 215, 38, 56;
+
+  /* Secondary Color System */
+  --tg-color-secondary: #6c757d;
+  --tg-color-secondary-rgb: 108, 117, 125;
+  --tg-color-secondary-hover: #5c636a;
+  --tg-color-secondary-light: #adb5bd;
+  --tg-color-secondary-dark: #495057;
+
+  /* Semantic Colors - Mapped to Agent Grey Status Colors */
+  --tg-color-success: var(--ag-color-status-green);
+  --tg-color-success-rgb: var(--ag-color-status-green-rgb);
+  --tg-color-success-hover: #236a33;
+  --tg-color-success-light: #d4edda;
+
+  --tg-color-warning: var(--ag-color-amber-gold);
+  --tg-color-warning-rgb: var(--ag-color-amber-gold-rgb);
+  --tg-color-warning-hover: #e6961f;
+  --tg-color-warning-light: #fdf5e6;
+
+  --tg-color-danger: var(--ag-color-error-red);
+  --tg-color-danger-rgb: var(--ag-color-error-red-rgb);
+  --tg-color-danger-hover: #c21e2e;
+  --tg-color-danger-light: #f5c6ca;
+
+  --tg-color-info: var(--ag-color-status-blue);
+  --tg-color-info-rgb: var(--ag-color-status-blue-rgb);
+  --tg-color-info-hover: #071e2f;
+  --tg-color-info-light: #e8eff5;
+
+  /* Neutral Colors - Agent Grey Aligned */
+  --tg-color-white: #ffffff;
+  --tg-color-black: #000000;
+  --tg-color-light: var(--ag-color-off-white);
+  --tg-color-dark: var(--ag-color-deep-navy);
+  --tg-color-muted: var(--ag-color-cool-grey-dark);
+
+  /* Gray Scale - Agent Grey Aligned */
+  --tg-color-gray-100: var(--ag-color-off-white);
+  --tg-color-gray-200: #f2f3f4;
+  --tg-color-gray-300: var(--ag-color-cool-grey-light);
+  --tg-color-gray-400: #c5c8cc;
+  --tg-color-gray-500: #a6aab1;
+  --tg-color-gray-600: var(--ag-color-cool-grey-dark);
+  --tg-color-gray-700: #5a6470;
+  --tg-color-gray-800: #3a4650;
+  --tg-color-gray-900: var(--ag-color-deep-navy);
+
+  /* Border Colors */
+  --tg-border-color: var(--ag-color-cool-grey-light);
+  --tg-border-color-rgb: var(--ag-color-cool-grey-light-rgb);
+  --tg-border-color-subtle: rgba(var(--ag-color-cool-grey-light-rgb), 0.125);
+}
+
+/* =============================================================================
+   Typography System
+   ============================================================================= */
+:root {
+  /* Font Families - Agent Grey Style Guide */
+  --tg-font-family-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --tg-font-family-monospace: "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace;
+
+  /* Font Sizes */
+  --tg-font-size-xs: 0.75rem;     /* 12px */
+  --tg-font-size-sm: 0.875rem;    /* 14px */
+  --tg-font-size-base: 1rem;      /* 16px */
+  --tg-font-size-lg: 1.125rem;    /* 18px */
+  --tg-font-size-xl: 1.25rem;     /* 20px */
+  --tg-font-size-2xl: 1.5rem;     /* 24px */
+  --tg-font-size-3xl: 1.875rem;   /* 30px */
+  --tg-font-size-4xl: 2.25rem;    /* 36px */
+
+  /* Font Weights */
+  --tg-font-weight-light: 300;
+  --tg-font-weight-normal: 400;
+  --tg-font-weight-medium: 500;
+  --tg-font-weight-semibold: 600;
+  --tg-font-weight-bold: 700;
+
+  /* Line Heights */
+  --tg-line-height-tight: 1.25;
+  --tg-line-height-normal: 1.5;
+  --tg-line-height-relaxed: 1.625;
+  --tg-line-height-loose: 2;
+}
+
+/* =============================================================================
+   Spacing System - Consistent spacing scale
+   ============================================================================= */
+:root {
+  /* Spacing Scale (based on 0.25rem = 4px) */
+  --tg-space-0: 0;
+  --tg-space-1: 0.25rem;    /* 4px */
+  --tg-space-2: 0.5rem;     /* 8px */
+  --tg-space-3: 0.75rem;    /* 12px */
+  --tg-space-4: 1rem;       /* 16px */
+  --tg-space-5: 1.25rem;    /* 20px */
+  --tg-space-6: 1.5rem;     /* 24px */
+  --tg-space-8: 2rem;       /* 32px */
+  --tg-space-10: 2.5rem;    /* 40px */
+  --tg-space-12: 3rem;      /* 48px */
+  --tg-space-16: 4rem;      /* 64px */
+  --tg-space-20: 5rem;      /* 80px */
+  --tg-space-24: 6rem;      /* 96px */
+}
+
+/* =============================================================================
+   Border Radius System
+   ============================================================================= */
+:root {
+  /* Border Radius Scale */
+  --tg-radius-none: 0;
+  --tg-radius-sm: 0.125rem;    /* 2px */
+  --tg-radius-base: 0.375rem;  /* 6px */
+  --tg-radius-md: 0.5rem;      /* 8px */
+  --tg-radius-lg: 0.75rem;     /* 12px */
+  --tg-radius-xl: 1rem;        /* 16px */
+  --tg-radius-2xl: 1.25rem;    /* 20px */
+  --tg-radius-full: 9999px;    /* Fully rounded */
+
+  /* Component-specific radius (aliased for semantic meaning) */
+  --tg-radius-button: var(--tg-radius-md);
+  --tg-radius-card: var(--tg-radius-lg);
+  --tg-radius-form: var(--tg-radius-md);
+  --tg-radius-badge: var(--tg-radius-full);
+}
+
+/* =============================================================================
+   Shadow System - Consistent elevation
+   ============================================================================= */
+:root {
+  /* Shadow Scale */
+  --tg-shadow-none: none;
+  --tg-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --tg-shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --tg-shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --tg-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --tg-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --tg-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Focus Shadow */
+  --tg-shadow-focus: 0 0 0 3px rgba(var(--tg-color-primary-rgb), 0.1);
+  --tg-shadow-focus-danger: 0 0 0 3px rgba(var(--tg-color-danger-rgb), 0.1);
+}
+
+/* =============================================================================
+   Component Tokens - Specific to UI components
+   ============================================================================= */
+:root {
+  /* Card Component */
+  --tg-card-bg: var(--tg-color-white);
+  --tg-card-border: 1px solid var(--tg-border-color-subtle);
+  --tg-card-border-radius: var(--tg-radius-card);
+  --tg-card-shadow: var(--tg-shadow-sm);
+  --tg-card-shadow-hover: var(--tg-shadow-md);
+  --tg-card-padding: var(--tg-space-6);
+  --tg-card-header-bg: rgba(var(--tg-color-primary-rgb), 0.05);
+  --tg-card-header-border: 1px solid rgba(var(--tg-color-primary-rgb), 0.1);
+
+  /* Button Component */
+  --tg-button-border-radius: var(--tg-radius-button);
+  --tg-button-font-weight: var(--tg-font-weight-medium);
+  --tg-button-padding-x: var(--tg-space-4);
+  --tg-button-padding-y: var(--tg-space-2);
+  --tg-button-font-size: var(--tg-font-size-base);
+
+  /* Form Component */
+  --tg-form-border-radius: var(--tg-radius-form);
+  --tg-form-border-color: var(--tg-color-gray-400);
+  --tg-form-border-color-focus: var(--tg-color-primary);
+  --tg-form-bg: var(--tg-color-white);
+  --tg-form-padding-x: var(--tg-space-3);
+  --tg-form-padding-y: var(--tg-space-2);
+  --tg-form-focus-shadow: 0 0 0 0.2rem rgba(var(--tg-color-primary-rgb), 0.25);
+
+  /* Alert Component */
+  --tg-alert-border-radius: var(--tg-radius-lg);
+  --tg-alert-padding: var(--tg-space-4);
+  --tg-alert-font-size: var(--tg-font-size-sm);
+
+  /* Badge Component */
+  --tg-badge-border-radius: var(--tg-radius-badge);
+  --tg-badge-font-size: var(--tg-font-size-xs);
+  --tg-badge-font-weight: var(--tg-font-weight-medium);
+  --tg-badge-padding-x: var(--tg-space-2);
+  --tg-badge-padding-y: var(--tg-space-1);
+}
+
+/* =============================================================================
+   Animation & Transition Tokens
+   ============================================================================= */
+:root {
+  /* Transition Durations */
+  --tg-transition-fast: 0.1s;
+  --tg-transition-base: 0.15s;
+  --tg-transition-slow: 0.3s;
+  --tg-transition-slower: 0.5s;
+
+  /* Transition Easings */
+  --tg-ease-linear: linear;
+  --tg-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --tg-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --tg-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Common Transitions */
+  --tg-transition-all: all var(--tg-transition-base) var(--tg-ease-in-out);
+  --tg-transition-colors: color var(--tg-transition-base) var(--tg-ease-in-out),
+                          background-color var(--tg-transition-base) var(--tg-ease-in-out),
+                          border-color var(--tg-transition-base) var(--tg-ease-in-out);
+  --tg-transition-shadow: box-shadow var(--tg-transition-base) var(--tg-ease-in-out);
+  --tg-transition-transform: transform var(--tg-transition-base) var(--tg-ease-in-out);
+}
+
+/* =============================================================================
+   Layout Tokens
+   ============================================================================= */
+:root {
+  /* Container Widths */
+  --tg-container-sm: 540px;
+  --tg-container-md: 720px;
+  --tg-container-lg: 960px;
+  --tg-container-xl: 1140px;
+  --tg-container-2xl: 1320px;
+
+  /* Z-index Scale */
+  --tg-z-dropdown: 1000;
+  --tg-z-sticky: 1020;
+  --tg-z-fixed: 1030;
+  --tg-z-modal-backdrop: 1040;
+  --tg-z-modal: 1050;
+  --tg-z-popover: 1060;
+  --tg-z-tooltip: 1070;
+  --tg-z-toast: 1080;
+}
+
+/* =============================================================================
+   Dark Mode Tokens
+   ============================================================================= */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode color overrides */
+    --tg-color-light: #212529;
+    --tg-color-dark: #f8f9fa;
+    --tg-card-bg: #343a40;
+    --tg-form-bg: #343a40;
+    --tg-border-color: #495057;
+  }
+}
+
+/* =============================================================================
+   High Contrast Mode Tokens
+   ============================================================================= */
+@media (prefers-contrast: high) {
+  :root {
+    /* High contrast color overrides */
+    --tg-color-primary: #0000ff;
+    --tg-color-secondary: #000000;
+    --tg-color-success: #008000;
+    --tg-color-danger: #ff0000;
+    --tg-border-color: #000000;
+  }
+}

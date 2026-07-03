@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}No Results Found - {{ session.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .no-results-container {
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 30px;
+    }
+
+    .alert-icon {
+        font-size: 48px;
+        color: #ffc107;
+        margin-bottom: 20px;
+    }
+
+    .query-list {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+
+    .query-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        margin: 10px 0;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .query-text {
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        color: #333;
+        word-break: break-all;
+        flex: 1;
+        margin-right: 15px;
+    }
+
+    .test-link {
+        white-space: nowrap;
+    }
+
+    .suggestions-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196F3;
+        padding: 20px;
+        margin: 30px 0;
+        border-radius: 4px;
+    }
+
+    .suggestions-box h5 {
+        color: #1976D2;
+        margin-bottom: 15px;
+    }
+
+    .suggestions-box ul {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+
+    .suggestions-box li {
+        margin: 8px 0;
+        color: #555;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="no-results-container" data-testid="no-results-container">
+    <div class="text-center">
+        <div class="alert-icon">
+            <svg class="w-12 h-12 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        </div>
+        <h2>No Results Found</h2>
+        <p class="text-lg text-gray-500">{{ session.title }}</p>
+    </div>
+
+    {% if api_error %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mt-6" data-testid="api-error-banner">
+        <h4 class="text-red-800 font-semibold">
+            <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg> Search Failed &mdash; API Error
+        </h4>
+        <p class="text-red-700 mt-2">One or more search queries failed due to an API error. No results were returned.</p>
+        {% if error_messages %}
+        <hr class="my-3 border-red-200">
+        <p class="text-red-700 mb-1"><strong>Error details:</strong></p>
+        <ul class="text-red-700 mb-0 pl-5">
+            {% for msg in error_messages %}
+            <li>{{ msg }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <hr class="my-3 border-red-200">
+        <p class="text-red-700 mb-0">
+            This is typically caused by insufficient API credits or a provider outage.
+            Please check your Serper API account or try again later.
+        </p>
+    </div>
+    {% else %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6">
+        <h4 class="text-yellow-800 font-semibold">
+            <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg> Search Completed
+        </h4>
+        <p class="text-yellow-700 mt-2">Your search executed successfully, but no results were found matching your criteria.</p>
+        <hr class="my-3 border-yellow-200">
+        <p class="text-yellow-700 mb-0">
+            <strong>Your search terms might be too restrictive.</strong>
+            Try testing them manually by clicking on any query below to see what Google returns.
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="query-list">
+        <h5 class="font-semibold mb-3">
+            <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg> Executed Queries
+        </h5>
+        <p class="text-gray-500 mb-3">Click any query to test it directly in Google:</p>
+
+        {% for execution in search_executions %}
+        <div class="query-item" data-testid="query-item">
+            <code class="query-text">{{ execution.query.query_text }}</code>
+            <a href="https://www.google.com/search?q={{ execution.query.query_text|urlencode }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="inline-flex items-center px-3 py-1.5 text-sm border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 test-link">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg> Test in Google
+            </a>
+        </div>
+        {% empty %}
+        <p class="text-gray-500 text-center">No queries were executed.</p>
+        {% endfor %}
+    </div>
+
+    <div class="suggestions-box">
+        <h5><svg class="w-5 h-5 inline-block mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z"/></svg> Suggestions to Find More Results</h5>
+        <ul>
+            <li>Remove quotes from exact phrase searches</li>
+            <li>Use fewer keywords in your search terms</li>
+            <li>Try alternative spellings or synonyms</li>
+            <li>Remove restrictive operators like filetype: or site:</li>
+            <li>Broaden your date range if you're using date filters</li>
+            <li>Consider searching for related terms or concepts</li>
+        </ul>
+    </div>
+
+    <div class="action-buttons">
+        <a href="{% url 'review_manager:create_session' %}"
+           class="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground font-medium rounded-md shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+           data-testid="create-search-btn">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg> Create New Search
+        </a>
+        <a href="{% url 'review_manager:session_detail' session.id %}"
+           class="inline-flex items-center px-6 py-3 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700"
+           data-testid="link-back-session">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Back to Session
+        </a>
+    </div>
+
+    <div class="text-center mt-4">
+        <p class="text-gray-500">
+            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            To modify your search strategy, please create a new search session.
+            Completed sessions cannot be edited to maintain data integrity.
+        </p>
+    </div>
+
+    <div class="text-center mt-6">
+        <a href="{% url 'review_manager:dashboard' %}" class="text-blue-600 hover:text-blue-800" data-testid="link-back-dashboard">
+            <svg class="w-4 h-4 inline-block mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.707 1.5ZM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5 5 5Z"/></svg> Return to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// No auto-refresh needed for this page
+</script>
+{% endblock %}

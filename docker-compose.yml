@@ -1,0 +1,40 @@
+# Default Docker Compose for Agent Grey - Points to Development Environment
+#
+# This is the default compose file that maintains backward compatibility.
+# It extends the development environment for rapid iteration and debugging.
+#
+# For specific environments, use:
+# - Development: docker-compose -f docker-compose.development.yml up
+# - Staging:     docker-compose -f docker-compose.staging.yml up
+# - Production:  docker-compose -f docker-compose.production.yml up
+#
+# Default usage (same as development):
+# docker-compose up -d
+#
+# NOTE: Docker Compose v1.x does not support 'include' directive.
+# Use: docker-compose -f docker-compose.development.yml up -d
+# Or upgrade to Docker Compose v2+ for include support.
+
+# Explicit project name — prevents collision with the production stack at
+# deployed production stack. Without this, both files
+# default to project=agent-grey (directory basename) and share a namespace.
+# NOTE: Compose's `include:` directive does NOT inherit `name:` from the
+# included file, so the name must be declared here at the top level.
+name: agent-grey-dev
+
+# Include all services from development environment
+# Requires Docker Compose v2.17+ for 'include' directive
+include:
+  - docker-compose.development.yml
+
+# This file ensures that existing scripts and documentation continue to work
+# while providing clear environment separation when needed.
+#
+# Users can continue using familiar commands:
+# - docker-compose up -d         (development environment)
+# - docker-compose logs -f web   (development logs)
+# - docker-compose exec web bash (development shell)
+#
+# While new environment-specific commands are available:
+# - docker-compose -f docker-compose.staging.yml up -d    (staging)
+# - docker-compose -f docker-compose.production.yml up -d (production)

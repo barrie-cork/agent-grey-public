@@ -1,0 +1,19 @@
+{% if is_critical %}URGENT: {% endif %}SLA Reminder - {{ session_title }}
+
+A conflict in your review session is {% if is_overdue %}overdue{% elif is_critical %}approaching its deadline{% else %}past the halfway mark{% endif %}:
+
+Result: {{ result_title }}
+Session: {{ session_title }}
+SLA: {{ sla_hours }} hours
+
+{% if is_overdue %}This conflict is overdue by {{ hours_overdue }} hours. Please prioritise resolving this discussion.{% else %}{{ threshold }} of the SLA time has elapsed. Approximately {{ hours_remaining }} hours remaining.{% endif %}
+
+View Discussion: {{ conflict_url }}
+
+Next Steps:
+- Review the discussion thread and any new comments
+- Engage with your co-reviewer to reach consensus
+- If stuck, consider proposing a re-vote or escalating
+
+---
+This notification was sent because you are involved in a conflict discussion that is approaching its SLA deadline.

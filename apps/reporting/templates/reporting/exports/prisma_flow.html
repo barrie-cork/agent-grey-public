@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>PRISMA Flow Diagram - {{ report.title }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'DejaVu Sans', 'Liberation Sans', sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+        }
+        .metadata {
+            text-align: center;
+            color: #666;
+            margin-bottom: 3rem;
+        }
+        .flow-diagram {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .flow-stage {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .flow-stage h2 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        .flow-numbers {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .flow-box {
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 1rem;
+            text-align: center;
+            flex: 1;
+            margin: 0 0.5rem;
+        }
+        .flow-box.primary {
+            background: #e3f2fd;
+            border-color: #90caf9;
+        }
+        .flow-box.excluded {
+            background: #ffebee;
+            border-color: #ef9a9a;
+        }
+        .flow-box .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .flow-box.excluded .number {
+            color: #d32f2f;
+        }
+        .flow-box .label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .arrow {
+            text-align: center;
+            font-size: 2rem;
+            color: #666;
+            margin: 1rem 0;
+        }
+        .summary {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 1rem;
+            margin-top: 3rem;
+        }
+        .footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>PRISMA Flow Diagram</h1>
+
+    <div class="metadata">
+        <p><strong>{{ report.session.title }}</strong></p>
+        <p>Generated on: {{ generated_at|date:"F j, Y" }}</p>
+    </div>
+
+    <div class="flow-diagram">
+        <!-- Identification Stage -->
+        <div class="flow-stage">
+            <h2>Identification</h2>
+            <div class="flow-numbers">
+                <div class="flow-box primary">
+                    <div class="number">{{ data.identification.records_identified|default:0 }}</div>
+                    <div class="label">Records identified through database searching</div>
+                </div>
+                {% if data.identification.additional_records %}
+                <div class="flow-box">
+                    <div class="number">{{ data.identification.additional_records|default:0 }}</div>
+                    <div class="label">Additional records from other sources</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="arrow">↓</div>
+
+        <!-- Screening Stage -->
+        <div class="flow-stage">
+            <h2>Screening</h2>
+            <div class="flow-numbers">
+                <div class="flow-box primary">
+                    <div class="number">{{ data.screening.records_screened|default:0 }}</div>
+                    <div class="label">Records after duplicates removed</div>
+                </div>
+                <div class="flow-box excluded">
+                    <div class="number">{{ data.screening.records_excluded|default:0 }}</div>
+                    <div class="label">Records excluded</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow">↓</div>
+
+        <!-- Eligibility Stage -->
+        <div class="flow-stage">
+            <h2>Eligibility</h2>
+            <div class="flow-numbers">
+                <div class="flow-box primary">
+                    <div class="number">{{ data.eligibility.full_text_assessed|default:0 }}</div>
+                    <div class="label">Full-text articles assessed</div>
+                </div>
+                <div class="flow-box excluded">
+                    <div class="number">{{ data.eligibility.full_text_excluded|default:0 }}</div>
+                    <div class="label">Full-text articles excluded</div>
+                </div>
+            </div>
+            {% if data.eligibility.exclusion_reasons %}
+            <div style="margin-top: 1rem; padding-left: 2rem;">
+                <p><strong>Reasons for exclusion:</strong></p>
+                <ul>
+                    {% for reason, count in data.eligibility.exclusion_reasons.items %}
+                    <li>{{ reason }}: {{ count }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="arrow">↓</div>
+
+        <!-- Included Stage -->
+        <div class="flow-stage">
+            <h2>Included</h2>
+            <div class="flow-box primary" style="max-width: 400px; margin: 0 auto;">
+                <div class="number">{{ data.included.studies_included|default:0 }}</div>
+                <div class="label">Studies included in the systematic review</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary">
+        <h3>Summary Statistics</h3>
+        <p><strong>Total records identified:</strong> {{ data.summary.total_identified|default:0 }}</p>
+        <p><strong>Duplicates removed:</strong> {{ data.summary.duplicates_removed|default:0 }}</p>
+        <p><strong>Records screened:</strong> {{ data.screening.records_screened|default:0 }}</p>
+        <p><strong>Records excluded:</strong> {{ data.screening.records_excluded|default:0 }}</p>
+        <p><strong>Full-text articles assessed:</strong> {{ data.eligibility.full_text_assessed|default:0 }}</p>
+        <p><strong>Studies included:</strong> {{ data.included.studies_included|default:0 }}</p>
+        <p><strong>Inclusion rate:</strong> {{ data.summary.inclusion_rate|floatformat:1 }}%</p>
+    </div>
+
+    <div class="footer">
+        <p>Generated by Agent Grey - PRISMA 2020 Compliant</p>
+        <p>{{ report.session.owner.email }} | {{ report.session.institution|default:"" }}</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}IRR Alert - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hi {{ lead_reviewer_name }},
+</div>
+
+<div class="content">
+    <p>Inter-rater reliability has dropped below the acceptable threshold for your systematic review project:</p>
+</div>
+
+<div class="alert-box danger">
+    <h2 style="margin: 0 0 10px 0; font-size: 18px; color: #721c24;">⚠️ Low Inter-Rater Reliability Detected</h2>
+    <p><span class="label">Current IRR (Cohen's Kappa):</span> <strong>{{ cohens_kappa }}</strong></p>
+    <p><span class="label">Threshold (Cochrane minimum):</span> <strong>0.70</strong></p>
+    <p><span class="label">Reviewer Pair:</span> {{ reviewer_a }} and {{ reviewer_b }}</p>
+</div>
+
+<div class="highlight-box">
+    <h2>Review Statistics</h2>
+    <p><span class="label">Total Comparisons:</span> {{ total_comparisons }}</p>
+    <p><span class="label">Agreements:</span> {{ agreements }} ({{ percentage_agreement }}%)</p>
+    <p><span class="label">Disagreements:</span> {{ disagreements }}</p>
+</div>
+
+<div class="content">
+    <h3 style="color: #2c3e50;">Recommendations:</h3>
+    <ul style="color: #555555;">
+        <li><strong>Review team calibration:</strong> Schedule a meeting to discuss decision criteria</li>
+        <li><strong>Clarify inclusion/exclusion criteria:</strong> Ensure reviewers have a shared understanding</li>
+        <li><strong>Consider adding a third reviewer:</strong> For additional perspective on difficult decisions</li>
+        <li><strong>Review the PRISMA guidelines:</strong> Ensure your review process meets reporting standards</li>
+    </ul>
+</div>
+
+<div class="button-container">
+    <a href="{{ dashboard_url }}" class="button">View Dashboard</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>Note:</strong> Cohen's Kappa values are interpreted as follows:
+        <br>• &lt; 0.20: Slight agreement
+        <br>• 0.21 - 0.40: Fair agreement
+        <br>• 0.41 - 0.60: Moderate agreement
+        <br>• 0.61 - 0.80: Substantial agreement
+        <br>• 0.81 - 1.00: Almost perfect agreement
+        <br><br>
+        Cochrane Handbook recommends a minimum of 0.70 for systematic reviews.
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This alert was sent because you are the lead reviewer and inter-rater reliability has dropped below the acceptable threshold.
+{% endblock %}

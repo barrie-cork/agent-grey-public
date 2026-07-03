@@ -1,0 +1,69 @@
+version: '3.8'
+
+# Explicit project name — see docker-compose.yml comment. Prevents collision
+# with the deployed production stack (project=agent-grey).
+name: agent-grey-minimal
+
+# Hardening (TH PMD #970, follow-up to a231848):
+# - Host ports bound to 127.0.0.1 only — use an SSH tunnel for remote access.
+# - debugpy 5678 intentionally not host-bound — use
+#   `docker compose exec web python -m debugpy ...` if you need to attach.
+# See .claude/rules/custom/deploy-verify.md and no-local-compose.md.
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-agent_grey}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env.dev.local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env.dev.local
+    environment:
+      - DJANGO_SETTINGS_MODULE=grey_lit_project.settings.local
+    volumes:
+      - .:/app
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:

@@ -1,0 +1,51 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}External Reviewers Approved{% endblock %}
+
+{% block content %}
+<div class="greeting">Hi {{ owner_name }},</div>
+
+<div class="content">
+    <p>Great news! The external reviewers you invited to your review session have been approved.</p>
+</div>
+
+<div class="alert-box success">
+    <strong>Approval Confirmed</strong><br>
+    {{ approved_count }} external reviewer{{ approved_count|pluralize }} {{ approved_count|pluralize:"has,have" }} been approved by {{ approved_by_name }} on {{ approved_at|date:"F j, Y" }} at {{ approved_at|time:"g:i A" }}.
+</div>
+
+<div class="highlight-box">
+    <h2>Session: {{ session_title }}</h2>
+    <p><span class="label">Approved by:</span> {{ approved_by_name }}</p>
+    <p><span class="label">Approval Date:</span> {{ approved_at|date:"F j, Y, g:i A" }}</p>
+</div>
+
+<div class="highlight-box">
+    <h2>Approved External Reviewers</h2>
+    {% for reviewer in external_reviewers %}
+    <p>✓ {{ reviewer.first_name }} {{ reviewer.last_name }} ({{ reviewer.email }})</p>
+    {% endfor %}
+</div>
+
+<div class="content">
+    <p><strong>What happens next?</strong></p>
+    <ul>
+        <li>Invitations have been automatically sent to the approved reviewers</li>
+        <li>Each reviewer will receive a magic link to join the review session</li>
+        <li>Links expire in 7 days from the original invitation date</li>
+        <li>You can track acceptance status in your session dashboard</li>
+    </ul>
+</div>
+
+<div class="button-container">
+    <a href="{{ session_url }}" class="button">View Session Dashboard</a>
+</div>
+
+<div class="content">
+    <p>If any of the approved reviewers don't accept their invitations within 7 days, you can resend invitations from the session dashboard.</p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+You're receiving this email because you are the owner of this review session and your external reviewer invitations have been processed.
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Re-Vote Proposed - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hi {{ reviewer_name }},
+</div>
+
+<div class="content">
+    <p><strong>{{ proposer_name }}</strong> has proposed a re-vote for a conflicting result:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ result_title }}</h2>
+    {% if result_url %}
+    <p><strong>URL:</strong> <a href="{{ result_url }}">{{ result_url|truncatechars:60 }}</a></p>
+    {% endif %}
+</div>
+
+<div class="alert-box" style="background-color: #fff3cd; border-left-color: #ffc107;">
+    <p><strong>Rationale:</strong></p>
+    <p style="font-style: italic; margin-top: 10px;">{{ rationale }}</p>
+    <p style="margin-top: 15px; font-size: 14px;">
+        ⏰ <strong>This proposal expires {{ expires_at }}</strong>
+    </p>
+</div>
+
+<div class="content">
+    <p><strong>Action Required:</strong> Please review the proposal and decide whether to accept the re-vote.</p>
+    <p>If all reviewers accept, you'll be able to submit new decisions based on the discussion.</p>
+</div>
+
+<div class="button-container">
+    <a href="{{ discussion_url }}" class="button">View Proposal & Accept</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>What Happens Next:</strong>
+        <br>• Review the discussion and proposal rationale
+        <br>• Click "Accept" if you agree to re-vote
+        <br>• Once all reviewers accept, submit your new decision
+        <br>• If the proposal expires, it will be automatically rejected
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you are a reviewer on this conflict and a re-vote has been proposed.
+{% endblock %}

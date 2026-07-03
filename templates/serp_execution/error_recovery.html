@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Error Recovery - {{ execution.query.query_string|truncatechars:50 }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-4" data-testid="error-recovery-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li><a href="{% url 'review_manager:dashboard' %}" class="text-muted-foreground hover:text-foreground">Dashboard</a></li>
+            <li class="text-muted-foreground">/</li>
+            <li><a href="{% url 'review_manager:session_detail' session_id=session.id %}" class="text-muted-foreground hover:text-foreground">{{ session.title }}</a></li>
+            <li class="text-muted-foreground">/</li>
+            <li><a href="{% url 'serp_execution:execution_status' session_id=session.id %}" class="text-muted-foreground hover:text-foreground">Execution Status</a></li>
+            <li class="text-muted-foreground">/</li>
+            <li class="text-foreground font-medium">Error Recovery</li>
+        </ol>
+    </nav>
+
+    <h1 class="text-2xl font-bold mb-6">Error Recovery</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <!-- Execution Details -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-4 overflow-hidden">
+                <div class="px-6 py-4 bg-destructive text-destructive-foreground rounded-t-lg">
+                    <h5 class="m-0 font-semibold"><i class="fas fa-exclamation-circle"></i> Failed Execution Details</h5>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-3">
+                        <dt class="font-semibold text-foreground">Query:</dt>
+                        <dd class="text-muted-foreground">
+                            <code class="bg-muted px-2 py-1 rounded text-sm">{{ execution.query.query_string }}</code>
+                        </dd>
+
+                        <dt class="font-semibold text-foreground">Search Engine:</dt>
+                        <dd>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">{{ execution.search_engine }}</span>
+                        </dd>
+
+                        <dt class="font-semibold text-foreground">Status:</dt>
+                        <dd>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">{{ execution.get_status_display }}</span>
+                        </dd>
+
+                        <dt class="font-semibold text-foreground">Attempts:</dt>
+                        <dd class="text-muted-foreground">
+                            {{ execution.retry_count|add:1 }} / 3
+                        </dd>
+
+                        <dt class="font-semibold text-foreground">Failed At:</dt>
+                        <dd class="text-muted-foreground">
+                            {{ execution.updated_at|timesince }} ago
+                        </dd>
+
+                        <dt class="font-semibold text-foreground">Error Message:</dt>
+                        <dd>
+                            <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3">
+                                <pre class="m-0 text-sm whitespace-pre-wrap">{{ execution.error_message }}</pre>
+                            </div>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Recovery Form -->
+            <div class="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                    <h5 class="m-0 font-semibold"><i class="fas fa-tools"></i> Recovery Options</h5>
+                </div>
+                <div class="p-6">
+                    <form method="post" data-testid="recovery-form">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-foreground mb-2">{{ form.recovery_action.label }}</label>
+                            {% for radio in form.recovery_action %}
+                                <div class="flex items-center gap-2 mb-1">
+                                    {{ radio.tag }}
+                                    <label class="text-sm text-foreground" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                            {% if form.recovery_action.errors %}
+                                <div class="text-destructive text-sm mt-1">{{ form.recovery_action.errors.0 }}</div>
+                            {% endif %}
+                            <small class="text-xs text-muted-foreground mt-1 block">{{ form.recovery_action.help_text }}</small>
+                        </div>
+
+                        <div class="mb-4" id="retry-delay-container">
+                            <label for="{{ form.retry_delay.id_for_label }}" class="block text-sm font-medium text-foreground mb-1">
+                                {{ form.retry_delay.label }}
+                            </label>
+                            {{ form.retry_delay }}
+                            {% if form.retry_delay.errors %}
+                                <div class="text-destructive text-sm mt-1">{{ form.retry_delay.errors.0 }}</div>
+                            {% endif %}
+                            <small class="text-xs text-muted-foreground mt-1 block">{{ form.retry_delay.help_text }}</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-foreground mb-1">
+                                {{ form.notes.label }}
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="text-destructive text-sm mt-1">{{ form.notes.errors.0 }}</div>
+                            {% endif %}
+                            <small class="text-xs text-muted-foreground mt-1 block">{{ form.notes.help_text }}</small>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 mb-4">
+                                {{ form.non_field_errors.0 }}
+                            </div>
+                        {% endif %}
+
+                        <div class="flex justify-between">
+                            <a href="{% url 'serp_execution:execution_status' session_id=session.id %}"
+                               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                               data-testid="link-back-status">
+                                <i class="fas fa-arrow-left"></i> Back to Status
+                            </a>
+                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" data-testid="submit-recovery-btn">
+                                <i class="fas fa-check"></i> Apply Recovery Action
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <!-- Retry Strategy Recommendation -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-4 overflow-hidden">
+                <div class="px-6 py-4 bg-cyan-600 text-white rounded-t-lg">
+                    <h5 class="m-0 font-semibold"><i class="fas fa-lightbulb"></i> Recommended Strategy</h5>
+                </div>
+                <div class="p-4">
+                    {% if retry_strategy.should_retry %}
+                        <p class="mb-2">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                            <strong>Retry Recommended</strong>
+                        </p>
+                        <p class="mb-2 text-sm text-muted-foreground">
+                            <strong class="text-foreground">Delay:</strong> {{ retry_strategy.delay_seconds }} seconds
+                        </p>
+                        <p class="mb-2">
+                            <strong class="text-foreground">Priority:</strong>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if retry_strategy.priority == 'high' %}bg-red-100 text-red-800
+                                {% elif retry_strategy.priority == 'medium' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ retry_strategy.priority|title }}
+                            </span>
+                        </p>
+
+                        {% if retry_strategy.modifications %}
+                            <p class="mb-1 text-sm"><strong>Suggestions:</strong></p>
+                            <ul class="m-0 text-sm text-muted-foreground list-disc list-inside">
+                                {% for mod in retry_strategy.modifications %}
+                                    <li>{{ mod }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% else %}
+                        <p class="mb-2">
+                            <i class="fas fa-times-circle text-red-600"></i>
+                            <strong>Retry Not Recommended</strong>
+                        </p>
+                        <p class="text-sm text-muted-foreground">Manual intervention may be required.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Error Category Analysis -->
+            <div class="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                    <h5 class="m-0 font-semibold"><i class="fas fa-diagnoses"></i> Error Analysis</h5>
+                </div>
+                <div class="p-4">
+                    <p class="mb-2 text-sm">
+                        <strong class="text-foreground">Category:</strong>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">{{ error_category|title }}</span>
+                    </p>
+
+                    <p class="mb-1 text-sm"><strong>Common Causes:</strong></p>
+                    <ul class="text-xs text-muted-foreground list-disc list-inside">
+                        {% if error_category == 'rate_limit' %}
+                            <li>Too many requests in short time</li>
+                            <li>API quota exceeded</li>
+                            <li>Concurrent request limits</li>
+                        {% elif error_category == 'timeout' %}
+                            <li>Slow network connection</li>
+                            <li>Large result set</li>
+                            <li>Server overload</li>
+                        {% elif error_category == 'network' %}
+                            <li>Internet connectivity issues</li>
+                            <li>DNS resolution problems</li>
+                            <li>Firewall blocking</li>
+                        {% elif error_category == 'authentication' %}
+                            <li>Invalid API key</li>
+                            <li>Expired credentials</li>
+                            <li>Permission denied</li>
+                        {% else %}
+                            <li>Unexpected API response</li>
+                            <li>Service temporarily unavailable</li>
+                            <li>Query syntax error</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const recoveryAction = document.querySelector('input[name="recovery_action"]:checked');
+    const retryDelayContainer = document.getElementById('retry-delay-container');
+
+    // Function to toggle retry delay visibility
+    function toggleRetryDelay() {
+        const selectedAction = document.querySelector('input[name="recovery_action"]:checked');
+        if (selectedAction && selectedAction.value === 'retry') {
+            retryDelayContainer.style.display = 'block';
+        } else {
+            retryDelayContainer.style.display = 'none';
+        }
+    }
+
+    // Initial state
+    toggleRetryDelay();
+
+    // Listen for changes
+    document.querySelectorAll('input[name="recovery_action"]').forEach(radio => {
+        radio.addEventListener('change', toggleRetryDelay);
+    });
+});
+</script>
+{% endblock %}

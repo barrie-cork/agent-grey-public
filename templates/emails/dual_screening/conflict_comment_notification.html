@@ -1,0 +1,47 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}New Comment on Conflict - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hi {{ reviewer_name }},
+</div>
+
+<div class="content">
+    <p><strong>{{ commenter_name }}</strong> added a comment to a conflict discussion:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ result_title }}</h2>
+    {% if result_url %}
+    <p><strong>URL:</strong> <a href="{{ result_url }}">{{ result_url|truncatechars:60 }}</a></p>
+    {% endif %}
+</div>
+
+<div class="alert-box">
+    <p><strong>Comment Preview:</strong></p>
+    <p style="font-style: italic; margin-top: 10px;">{{ comment_preview }}</p>
+</div>
+
+<div class="content">
+    <p>Join the discussion to help reach consensus on this result.</p>
+</div>
+
+<div class="button-container">
+    <a href="{{ discussion_url }}" class="button">View Discussion</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>What's Next:</strong>
+        <br>• Read the full comment in the discussion thread
+        <br>• Reply with your thoughts or questions
+        <br>• Propose a re-vote if you've changed your decision
+        <br>• Work together to reach consensus
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you are a reviewer on this conflict and a new comment was posted.
+{% endblock %}

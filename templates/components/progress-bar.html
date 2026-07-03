@@ -1,0 +1,18 @@
+{# Reusable Progress Bar Component - Tailwind CSS #}
+{# Usage: include 'components/progress-bar.html' with percentage=75 #}
+{# Optional: height='h-4' color='bg-success' id='my-bar' bar_id='my-bar-inner' #}
+{#          track_color='bg-muted' bar_extra_classes='animate-pulse' extra_classes='mt-4' #}
+{#          data_testid='review-progress-bar' aria_label='Review progress' #}
+<div class="w-full {{ track_color|default:'bg-muted' }} rounded-full {{ height|default:'h-2' }} overflow-hidden {{ extra_classes|default:'' }}"
+     {% if id %}id="{{ id }}"{% endif %}
+     {% if data_testid %}data-testid="{{ data_testid }}"{% endif %}
+     {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}>
+    <div class="{{ color|default:'bg-primary' }} h-full rounded-full transition-all duration-300 {{ bar_extra_classes|default:'' }}"
+         {% if bar_id %}id="{{ bar_id }}"{% endif %}
+         role="progressbar"
+         style="width: {{ percentage|default:0 }}%"
+         aria-valuenow="{{ percentage|default:0 }}"
+         aria-valuemin="0"
+         aria-valuemax="100">
+    </div>
+</div>

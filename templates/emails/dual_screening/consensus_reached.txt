@@ -1,0 +1,32 @@
+Consensus Reached - {{ session_title }}
+
+Hi {{ reviewer_name }},
+
+Consensus has been reached on Result #{{ result_number }} after discussion:
+
+{{ result_title }}
+{% if result_url %}URL: {{ result_url }}{% endif %}
+
+Final Decision: {{ final_decision }}
+Resolution Method: {{ resolution_method }}
+{% if resolved_by %}Resolved By: {{ resolved_by }}{% endif %}
+
+{% if resolution_notes %}
+Resolution Notes:
+"{{ resolution_notes }}"
+{% endif %}
+
+View Result: {{ result_url }}
+
+Next Steps:
+• The conflict has been marked as resolved
+• The final decision will be included in your PRISMA report
+• You can continue reviewing remaining results
+• If you have concerns about this resolution, please contact your lead reviewer
+
+---
+This notification was sent because consensus was reached on a conflict you were involved in.
+
+Manage notification preferences: {{ preferences_url }}
+
+© {% now "Y" %} Agent Grey. All rights reserved.

@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+{% load static %}
+{% load simple_review_tags %}
+
+{% block title %}Search Statistics - {{ session.title }} - Agent Grey{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4" data-testid="search-stats-container">
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li class="flex items-center">
+                <a href="{% url 'review_manager:dashboard' %}" class="text-muted-foreground hover:text-foreground flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    Dashboard
+                </a>
+            </li>
+            <li class="flex items-center">
+                <span class="mx-2 text-muted-foreground/60">/</span>
+                <a href="{% url 'review_manager:session_detail' session.id %}" class="text-muted-foreground hover:text-foreground">
+                    {{ session.title|truncatechars:40 }}
+                </a>
+            </li>
+            <li class="flex items-center">
+                <span class="mx-2 text-muted-foreground/60">/</span>
+                <a href="{% url 'review_results:overview' session.id %}{% if current_per_page != 25 %}?per_page={{ current_per_page }}{% endif %}" class="text-muted-foreground hover:text-foreground">
+                    Review
+                </a>
+            </li>
+            <li class="flex items-center">
+                <span class="mx-2 text-muted-foreground/60">/</span>
+                <span class="text-foreground font-medium" aria-current="page">Search Statistics</span>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-semibold text-foreground flex items-center gap-2">
+                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    Search Statistics
+                </h1>
+                <p class="text-muted-foreground mt-1">
+                    Query execution progress and completion rates for
+                    <strong class="text-foreground">{{ session.title }}</strong>
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'review_results:overview' session.id %}{% if current_per_page != 25 %}?per_page={{ current_per_page }}{% endif %}"
+                   class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                   data-testid="link-back-review">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Review
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Statistics Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-card rounded-lg shadow-sm border-l-4 border-primary hover:shadow-md transition-shadow" data-testid="stat-total-queries">
+            <div class="p-4">
+                <h6 class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Total Queries</h6>
+                <p class="text-3xl font-bold text-foreground mb-1">{{ overall_stats.total_queries }}</p>
+                <p class="text-sm text-muted-foreground">
+                    {{ overall_stats.queries_with_executions }} executed
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-card rounded-lg shadow-sm border-l-4 border-success hover:shadow-md transition-shadow" data-testid="stat-completion-rate">
+            <div class="p-4">
+                <h6 class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Completion Rate</h6>
+                <p class="text-3xl font-bold text-foreground mb-1">{{ overall_stats.completion_rate|floatformat:0 }}%</p>
+                <p class="text-sm text-muted-foreground">
+                    {{ overall_stats.completed }} / {{ overall_stats.total_queries }} queries
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-card rounded-lg shadow-sm border-l-4 border-accent hover:shadow-md transition-shadow" data-testid="stat-total-results">
+            <div class="p-4">
+                <h6 class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Total Results</h6>
+                <p class="text-3xl font-bold text-foreground mb-1">{{ overall_stats.total_results|floatformat:0 }}</p>
+                <p class="text-sm text-muted-foreground">
+                    {% if dedup_stats.unique_results != overall_stats.total_results and dedup_stats.unique_results > 0 %}
+                        {{ dedup_stats.unique_results }} unique after dedup
+                    {% else %}
+                        From {{ overall_stats.completed }} completed queries
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-card rounded-lg shadow-sm border-l-4 {% if overall_stats.failed > 0 %}border-destructive{% else %}border-border{% endif %} hover:shadow-md transition-shadow" data-testid="stat-failed-queries">
+            <div class="p-4">
+                <h6 class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Failed Queries</h6>
+                <p class="text-3xl font-bold text-foreground mb-1">{{ overall_stats.failed }}</p>
+                <p class="text-sm text-muted-foreground">
+                    {{ overall_stats.pending }} pending, {{ overall_stats.running }} running
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provider Breakdown -->
+    {% if provider_stats %}
+    <div class="mb-6" data-testid="provider-breakdown">
+        <h5 class="text-base font-medium text-foreground flex items-center gap-2 mb-3">
+            <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            Provider Breakdown
+        </h5>
+
+        {% if provider_stats|length == 1 %}
+            {% with provider=provider_stats.0 %}
+            <div class="bg-card rounded-lg shadow-sm border-l-4 border-secondary p-4" data-testid="provider-card">
+                <div class="flex flex-wrap items-center gap-4">
+                    <span class="text-sm font-medium text-foreground">{{ provider.serp_provider_display|default:provider.serp_provider }}</span>
+                    <span class="text-sm text-muted-foreground">{{ provider.total_executions }} execution{{ provider.total_executions|pluralize }}</span>
+                    <span class="text-sm text-muted-foreground">{{ provider.total_results }} result{{ provider.total_results|pluralize }}</span>
+                    {% if provider.success_rate == 100 %}
+                        <span class="inline-flex items-center rounded-full bg-success-light px-2 py-0.5 text-xs font-medium text-success-dark">{{ provider.success_rate }}% success</span>
+                    {% elif provider.success_rate >= 75 %}
+                        <span class="inline-flex items-center rounded-full bg-success-light px-2 py-0.5 text-xs font-medium text-success-dark">{{ provider.success_rate }}% success</span>
+                    {% elif provider.success_rate >= 50 %}
+                        <span class="inline-flex items-center rounded-full bg-warning-light px-2 py-0.5 text-xs font-medium text-warning-dark">{{ provider.success_rate }}% success</span>
+                    {% else %}
+                        <span class="inline-flex items-center rounded-full bg-error-light px-2 py-0.5 text-xs font-medium text-error-dark">{{ provider.success_rate }}% success</span>
+                    {% endif %}
+                    {% if provider.failed > 0 %}
+                        <span class="inline-flex items-center rounded-full bg-error-light px-2 py-0.5 text-xs font-medium text-error-dark" data-testid="provider-failed-badge">{{ provider.failed }} failed</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endwith %}
+        {% else %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-{{ provider_stats|length|default:2 }} gap-4">
+                {% for provider in provider_stats %}
+                <div class="bg-card rounded-lg shadow-sm border-l-4 border-secondary hover:shadow-md transition-shadow" data-testid="provider-card">
+                    <div class="p-4">
+                        <h6 class="text-sm font-medium text-foreground mb-3">{{ provider.serp_provider_display|default:provider.serp_provider }}</h6>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-muted-foreground">Executions</span>
+                                <span class="text-sm font-semibold text-foreground">{{ provider.total_executions }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-muted-foreground">Results</span>
+                                <span class="text-sm font-semibold text-foreground">{{ provider.total_results }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-muted-foreground">Success</span>
+                                {% if provider.success_rate >= 75 %}
+                                    <span class="inline-flex items-center rounded-full bg-success-light px-2 py-0.5 text-xs font-medium text-success-dark">{{ provider.success_rate }}%</span>
+                                {% elif provider.success_rate >= 50 %}
+                                    <span class="inline-flex items-center rounded-full bg-warning-light px-2 py-0.5 text-xs font-medium text-warning-dark">{{ provider.success_rate }}%</span>
+                                {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-error-light px-2 py-0.5 text-xs font-medium text-error-dark">{{ provider.success_rate }}%</span>
+                                {% endif %}
+                            </div>
+                            {% if provider.failed > 0 %}
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-muted-foreground">Failed</span>
+                                <span class="inline-flex items-center rounded-full bg-error-light px-2 py-0.5 text-xs font-medium text-error-dark" data-testid="provider-failed-badge">{{ provider.failed }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Cross-provider overlap callout -->
+        {% if provider_stats|length > 1 and overlap_count > 0 %}
+        <div class="mt-4 rounded-lg bg-info-light border border-info p-4" data-testid="overlap-callout">
+            <p class="text-sm text-info-dark flex items-center gap-2">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {{ overlap_count }} result{{ overlap_count|pluralize }} appeared from multiple providers ({{ overlap_percentage }}% overlap)
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Execution Details Table -->
+    <div class="bg-card rounded-lg shadow-sm overflow-hidden">
+        <div class="px-4 py-3 bg-muted border-b border-border">
+            <div class="flex justify-between items-center">
+                <h5 class="text-base font-medium text-foreground flex items-center gap-2">
+                    <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                    </svg>
+                    Execution Details
+                </h5>
+                <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+                    {{ overall_stats.total_executions }} execution{{ overall_stats.total_executions|pluralize }}
+                </span>
+            </div>
+        </div>
+
+        <div>
+            {% if executions %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-border" data-testid="query-table">
+                        <thead class="bg-muted sticky top-0 z-10">
+                            <tr>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style="width: 5%;">#</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style="width: 15%;">Provider</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style="width: 40%;">Query</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style="width: 15%;">Status</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style="width: 10%;">Results</th>
+                                <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider" style="width: 5%;">Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-card divide-y divide-border">
+                            {% for execution in executions %}
+                            <tr class="hover:bg-muted">
+                                <!-- Order Number -->
+                                <td class="px-3 py-2 text-sm text-muted-foreground">{{ execution.query.execution_order|default:forloop.counter }}</td>
+
+                                <!-- Provider -->
+                                <td class="px-3 py-2">
+                                    <span class="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground" data-testid="provider-badge">
+                                        {{ execution.serp_provider_display|default:execution.serp_provider|default:"Unknown" }}
+                                    </span>
+                                </td>
+
+                                <!-- Query Text -->
+                                <td class="px-3 py-2">
+                                    <div class="truncate max-w-md" title="{{ execution.query.query_text }}">
+                                        <span class="text-sm font-mono text-foreground">{{ execution.query.query_text|truncatechars:60 }}</span>
+                                    </div>
+                                    {% if execution.query.target_domain %}
+                                        <span class="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                                            </svg>
+                                            {{ execution.query.target_domain }}
+                                        </span>
+                                    {% endif %}
+                                    {% if execution.query.query_type == "domain-specific" %}
+                                        <span class="inline-flex items-center rounded-full bg-accent/20 px-1.5 py-0.5 text-xs text-accent mt-0.5">Domain</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Execution Status -->
+                                <td class="px-3 py-2">
+                                    {% if execution.status == "completed" %}
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-success-light px-2 py-0.5 text-xs font-medium text-success-dark">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Completed
+                                        </span>
+                                    {% elif execution.status == "running" %}
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent">
+                                            <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                            Running
+                                        </span>
+                                    {% elif execution.status == "failed" %}
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-error-light px-2 py-0.5 text-xs font-medium text-error-dark">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Failed
+                                        </span>
+                                    {% elif execution.status == "rate_limited" %}
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-warning-light px-2 py-0.5 text-xs font-medium text-warning-dark">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Rate Limited
+                                        </span>
+                                    {% elif execution.status == "pending" %}
+                                        <span class="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">Pending</span>
+                                    {% elif execution.status == "cancelled" %}
+                                        <span class="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">Cancelled</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Results Count -->
+                                <td class="px-3 py-2 text-sm">
+                                    {% if execution.results_count and execution.results_count > 0 %}
+                                        <strong class="text-foreground">{{ execution.results_count }}</strong>
+                                    {% else %}
+                                        <span class="text-muted-foreground/60">0</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Success Indicator -->
+                                <td class="px-3 py-2 text-center">
+                                    {% if execution.status == "completed" %}
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success-light">
+                                            <svg class="w-3.5 h-3.5 text-success-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </span>
+                                    {% elif execution.status == "failed" or execution.status == "rate_limited" %}
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-error-light">
+                                            <svg class="w-3.5 h-3.5 text-error-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </span>
+                                    {% elif execution.status == "running" %}
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent/20">
+                                            <svg class="w-3.5 h-3.5 text-accent animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted-foreground/60">&mdash;</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                {% if is_paginated %}
+                    <div class="px-4 py-3 bg-muted border-t border-border">
+                        <nav aria-label="Execution list pagination" class="flex justify-center">
+                            <ul class="inline-flex items-center -space-x-px">
+                                {% if page_obj.has_previous %}
+                                    <li>
+                                        <a class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground bg-card border border-border rounded-l-lg hover:bg-secondary hover:text-foreground"
+                                           href="?page={{ page_obj.previous_page_number }}{% if current_per_page != 25 %}&per_page={{ current_per_page }}{% endif %}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                            </svg>
+                                            Previous
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li>
+                                        <span class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground/50 bg-card border border-border rounded-l-lg cursor-not-allowed">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                            </svg>
+                                            Previous
+                                        </span>
+                                    </li>
+                                {% endif %}
+
+                                <li>
+                                    <span class="px-4 py-2 text-sm font-medium text-primary bg-primary/10 border border-border">
+                                        Page {{ page_obj.number }} of {{ paginator.num_pages }}
+                                    </span>
+                                </li>
+
+                                {% if page_obj.has_next %}
+                                    <li>
+                                        <a class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground bg-card border border-border rounded-r-lg hover:bg-secondary hover:text-foreground"
+                                           href="?page={{ page_obj.next_page_number }}{% if current_per_page != 25 %}&per_page={{ current_per_page }}{% endif %}">
+                                            Next
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li>
+                                        <span class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground/50 bg-card border border-border rounded-r-lg cursor-not-allowed">
+                                            Next
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+
+                        <!-- Per-page selector -->
+                        <div class="text-center mt-3">
+                            <span class="text-sm text-muted-foreground">
+                                Results per page:
+                                {% if current_per_page == 10 %}
+                                    <strong class="text-foreground">10</strong>
+                                {% else %}
+                                    <a href="?per_page=10" class="text-primary hover:text-primary/80 hover:underline">10</a>
+                                {% endif %}
+                                <span class="text-muted-foreground/50 mx-1">|</span>
+                                {% if current_per_page == 25 %}
+                                    <strong class="text-foreground">25</strong>
+                                {% else %}
+                                    <a href="?per_page=25" class="text-primary hover:text-primary/80 hover:underline">25</a>
+                                {% endif %}
+                                <span class="text-muted-foreground/50 mx-1">|</span>
+                                {% if current_per_page == 50 %}
+                                    <strong class="text-foreground">50</strong>
+                                {% else %}
+                                    <a href="?per_page=50" class="text-primary hover:text-primary/80 hover:underline">50</a>
+                                {% endif %}
+                                <span class="text-muted-foreground/50 mx-1">|</span>
+                                {% if current_per_page == 100 %}
+                                    <strong class="text-foreground">100</strong>
+                                {% else %}
+                                    <a href="?per_page=100" class="text-primary hover:text-primary/80 hover:underline">100</a>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <h4 class="mt-3 text-lg font-medium text-foreground">No Search Queries Found</h4>
+                    <p class="mt-1 text-muted-foreground">
+                        This session doesn't have any search queries yet.
+                    </p>
+                    <div class="mt-4">
+                        <a href="{% url 'review_manager:session_detail' session.id %}"
+                           class="inline-flex items-center gap-2 rounded-md border border-primary bg-card px-4 py-2 text-sm font-medium text-primary shadow-sm hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                            Back to Session
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Help Text -->
+    <div class="mt-6">
+        <div class="rounded-lg bg-info-light border border-info p-4">
+            <h6 class="text-sm font-medium text-info-dark flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Understanding Search Statistics
+            </h6>
+            <ul class="text-sm text-info space-y-1 list-disc list-inside">
+                <li><strong>Provider:</strong> The search API used for each execution (e.g., Serper.dev for Google, SearchAPI.io for Bing)</li>
+                <li><strong>Completion Rate:</strong> Percentage of queries that have at least one successful execution</li>
+                <li><strong>Overlap:</strong> Results found by multiple providers, indicating cross-provider redundancy</li>
+                <li><strong>Deduplication:</strong> Duplicate results removed during processing, shown in the Total Results card</li>
+                <li><strong>Success Rate:</strong> Percentage of successful executions vs. total execution attempts (includes retries)</li>
+                <li><strong>Rate Limiting:</strong> Local rate limiter set to 50 requests/minute to prevent API quota exhaustion while allowing full pagination</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

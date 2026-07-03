@@ -1,0 +1,85 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+#
+# QUICK ESCAPE: Use `git commit --no-verify` to bypass hooks when needed
+# RUN MANUALLY: `pre-commit run --all-files` to check entire codebase
+# RUN SPECIFIC: `pre-commit run ruff-critical --all-files` for critical checks only
+
+repos:
+  - repo: local
+    hooks:
+      # === AUTOMATIC CHECKS (fast, non-blocking) ===
+
+      # Basic formatting fixes
+      - id: trailing-whitespace
+        name: Fix trailing whitespace
+        entry: trailing-whitespace-fixer
+        language: python
+        types: [text]
+        additional_dependencies: [pre-commit-hooks]
+
+      - id: end-of-file-fixer
+        name: Fix end of files
+        entry: end-of-file-fixer
+        language: python
+        types: [text]
+        additional_dependencies: [pre-commit-hooks]
+
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+        entry: check-merge-conflict
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+
+      # Django template comment audit - prevent multi-line {# #} with template tags
+      - id: template-comment-audit
+        name: Django Template Comment Audit
+        entry: python3 scripts/audit_template_comments.py
+        language: system
+        types: [html]
+        pass_filenames: false
+        description: "Detect dangerous multi-line {# #} comments containing template tags"
+
+      # Critical ruff checks - syntax errors, undefined names, unused imports
+      - id: ruff-critical
+        name: ruff (critical issues only)
+        entry: ruff check
+        language: python
+        types: [python]
+        args: [
+          '--select=E999,F401,F821,F822,F823,F831,E901,E902',
+          '--extend-exclude=migrations,__pycache__,venv,build,dist'
+        ]
+        additional_dependencies: [ruff>=0.8.2]
+        description: "Check for syntax errors, undefined names, and unused imports"
+
+      # === MANUAL CHECKS (run with: pre-commit run --hook-stage manual) ===
+
+      # Django-specific checks (manual - slow due to Docker)
+      - id: check-migrations
+        name: Check for pending Django migrations
+        entry: bash -c 'docker-compose -f docker-compose.dev.yml run --rm web python manage.py makemigrations --check --dry-run'
+        language: system
+        pass_filenames: false
+        types: [python]
+        files: '^apps/.*models\.py$'
+        stages: [manual]
+        description: "Ensure all model changes have migrations"
+
+      - id: check-django-system
+        name: Django system check
+        entry: bash -c 'docker-compose -f docker-compose.dev.yml run --rm web python manage.py check'
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        description: "Run Django system checks"
+
+      # Metadata update hook (manual)
+      - id: update-metadata
+        name: Update dependency metadata
+        entry: bash -c 'docker-compose -f docker-compose.dev.yml exec -T web python scripts/metadata/update_dependencies.py --incremental'
+        language: system
+        pass_filenames: false
+        stages: [manual]
+        description: "Update project metadata after significant changes"

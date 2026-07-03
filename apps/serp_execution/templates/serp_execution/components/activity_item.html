@@ -1,0 +1,46 @@
+{% comment %}
+Reusable activity item component
+
+Usage:
+{% include 'serp_execution/components/activity_item.html' with activity=activity %}
+
+Parameters:
+- activity: Activity object with attributes:
+  - activity_type: Type of activity for icon selection
+  - get_activity_type_display: Display name of activity type
+  - description: Activity description
+  - created_at: Timestamp of activity
+{% endcomment %}
+
+<div class="activity-item mb-3">
+    <div class="d-flex align-items-start">
+        <div class="activity-icon me-3">
+            {% if activity.activity_type == 'status_changed' %}
+                <i class="fas fa-exchange-alt text-info"></i>
+            {% elif activity.activity_type == 'search_executed' %}
+                <i class="fas fa-play text-success"></i>
+            {% elif activity.activity_type == 'search_defined' %}
+                <i class="fas fa-edit text-primary"></i>
+            {% elif activity.activity_type == 'created' %}
+                <i class="fas fa-plus text-success"></i>
+            {% elif activity.activity_type == 'completed' %}
+                <i class="fas fa-check-circle text-success"></i>
+            {% elif activity.activity_type == 'failed' %}
+                <i class="fas fa-times-circle text-danger"></i>
+            {% else %}
+                <i class="fas fa-info-circle text-muted"></i>
+            {% endif %}
+        </div>
+        <div class="activity-content flex-grow-1">
+            <div class="activity-title small">
+                {{ activity.get_activity_type_display }}
+            </div>
+            <div class="activity-description text-muted small">
+                {{ activity.description|truncatechars:60 }}
+            </div>
+            <div class="activity-time text-muted small">
+                {{ activity.created_at|timesince }} ago
+            </div>
+        </div>
+    </div>
+</div>

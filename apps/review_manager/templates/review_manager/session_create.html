@@ -1,0 +1,526 @@
+{% extends "review_manager/base.html" %}
+{% load static %}
+
+{% block title %}Create New Review Session - Agent Grey{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="flex items-center">
+    <span class="mx-2 text-muted-foreground">/</span>
+    <span class="text-muted-foreground">Create New Session</span>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 py-8">
+    <div class="rounded-lg border border-border bg-card shadow-sm">
+        <div class="rounded-t-lg bg-primary px-6 py-4">
+            <h2 class="text-lg font-semibold text-primary-foreground flex items-center gap-2">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Create New Literature Review
+            </h2>
+        </div>
+        <div class="p-6">
+            <form method="post" id="configForm" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    {% include 'components/alert.html' with variant='danger' message=form.non_field_errors|join:', ' %}
+                {% endif %}
+
+                <!-- Session Details Section -->
+                <div class="mb-8 pb-6 border-b border-border">
+                    <h5 class="text-lg font-semibold text-foreground mb-4">Session Details</h5>
+                    {% include 'components/form-field.html' with field=form.title data_testid='input-title' %}
+                    {% include 'components/form-field.html' with field=form.description data_testid='input-description' rows='4' %}
+
+                    {% if show_organisation_selector %}
+                    <!-- Organisation selector (shown only when the user has >1 active organisation) -->
+                    <div class="mb-3">
+                        <label for="{{ form.organisation.id_for_label }}" class="block text-sm font-medium text-foreground mb-1">
+                            {{ form.organisation.label }}
+                        </label>
+                        {{ form.organisation }}
+                        {% if form.organisation.help_text %}
+                            <p class="mt-1 text-sm text-muted-foreground">{{ form.organisation.help_text }}</p>
+                        {% endif %}
+                        {% if form.organisation.errors %}
+                            <p class="text-sm text-destructive mt-1" data-testid="error-organisation">{{ form.organisation.errors }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Hidden field for invited reviewers JSON -->
+                {{ form.invited_reviewers_data }}
+
+                <!-- Section 1: Reviewer Invitation (Always Visible) -->
+                <div class="mb-8 pb-6 border-b border-border">
+                    <h5 class="text-lg font-semibold text-foreground mb-2">Invite Reviewers (Optional)</h5>
+                    <p class="text-sm text-muted-foreground mb-3">
+                        Add up to 4 additional reviewers to collaborate on this systematic review.
+                        You can also proceed solo without inviting anyone.
+                    </p>
+                    {% include 'components/alert.html' with variant='info' title='Note' message='Reviewer invitations will be sent automatically when search results are available for review. This ensures reviewers can only access results, not the search strategy, maintaining blind review integrity.' extra_classes='mb-4' %}
+
+                    <div class="bg-muted p-4 rounded-md">
+                        <div class="inline-block bg-secondary text-secondary-foreground px-3 py-2 rounded-md font-semibold text-sm mb-4" id="reviewerCountBadge">
+                            You + 0 reviewers = 1 total
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 mb-4 items-start">
+                            <input type="text"
+                                   id="reviewerFirstName"
+                                   data-testid="input-reviewer-first-name"
+                                   class="flex-1 min-w-[120px] rounded-md border-input shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
+                                   placeholder="First Name *"
+                                   maxlength="100">
+                            <input type="text"
+                                   id="reviewerLastName"
+                                   data-testid="input-reviewer-last-name"
+                                   class="flex-1 min-w-[120px] rounded-md border-input shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
+                                   placeholder="Last Name (optional)"
+                                   maxlength="100">
+                            <input type="email"
+                                   id="reviewerEmail"
+                                   data-testid="input-reviewer-email"
+                                   class="flex-1 min-w-[180px] rounded-md border-input shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
+                                   placeholder="Email Address *"
+                                   maxlength="254">
+                            <button type="button"
+                                    id="addReviewerBtn"
+                                    data-testid="add-reviewer-btn"
+                                    class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                                Add Reviewer
+                            </button>
+                        </div>
+
+                        <div class="mt-4" id="reviewerList">
+                            <!-- Dynamically added reviewers appear here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Number of Reviewers Per Result (Conditional) -->
+                <div class="hidden mb-8 pb-6 border-b border-border" id="reviewersPerResultSection">
+                    <h5 class="text-lg font-semibold text-foreground mb-2">Number of Reviewers Per Result</h5>
+                    <p class="text-sm text-muted-foreground mb-3">{{ form.min_reviewers_per_result.help_text }}</p>
+
+                    <div class="mb-3">
+                        {{ form.min_reviewers_per_result }}
+                        {% if form.min_reviewers_per_result.errors %}
+                            <p class="text-sm text-destructive mt-1">{{ form.min_reviewers_per_result.errors }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Section 3: Consensus Criteria (Conditional) -->
+                <div class="hidden mb-8 pb-6 border-b border-border" id="consensusCriteriaSection">
+                    <h5 class="text-lg font-semibold text-foreground mb-2">Consensus Criteria</h5>
+                    <p class="text-sm text-muted-foreground mb-3">{{ form.consensus_criteria.help_text }}</p>
+
+                    <div id="consensusCriteriaOptions" class="space-y-3">
+                        {% for radio in form.consensus_criteria %}
+                            <div class="flex items-center">
+                                {{ radio.tag }}
+                                <label class="ml-2 text-sm text-foreground" for="{{ radio.id_for_label }}">
+                                    <span class="consensus-label" data-original="{{ radio.choice_label }}">
+                                        {{ radio.choice_label }}
+                                    </span>
+                                    {% if radio.choice_value == 'MAJORITY' %}
+                                        <span class="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">Recommended</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if form.consensus_criteria.errors %}
+                        <p class="text-sm text-destructive mt-2">{{ form.consensus_criteria.errors }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Section 4: Conflict Resolution (Conditional) -->
+                <div class="hidden mb-8 pb-6 border-b border-border" id="conflictResolutionSection">
+                    <h5 class="text-lg font-semibold text-foreground mb-2">Conflict Resolution Method</h5>
+                    <p class="text-sm text-muted-foreground mb-3">{{ form.conflict_resolution_method.help_text }}</p>
+
+                    <div class="space-y-3">
+                        {% for radio in form.conflict_resolution_method %}
+                            <div class="flex items-center">
+                                {{ radio.tag }}
+                                <label class="ml-2 text-sm text-foreground flex items-center gap-2" for="{{ radio.id_for_label }}">
+                                    {{ radio.choice_label }}
+                                    {% if radio.choice_value == 'LEAD_ARBITRATION' %}
+                                        <span class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">Default</span>
+                                        <svg class="h-4 w-4 text-muted-foreground cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="The lead reviewer makes the final decision on conflicting results"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    {% elif radio.choice_value == 'DESIGNATED_ARBITRATOR' %}
+                                        <svg class="h-4 w-4 text-muted-foreground cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="A specific person (who may not be reviewing) resolves conflicts"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    {% elif radio.choice_value == 'CONSENSUS' %}
+                                        <svg class="h-4 w-4 text-muted-foreground cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Reviewers discuss conflicts through Agent Grey's comment system, can propose re-votes, and work toward consensus. All discussions are recorded in the audit trail."><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if form.conflict_resolution_method.errors %}
+                        <p class="text-sm text-destructive mt-2">{{ form.conflict_resolution_method.errors }}</p>
+                    {% endif %}
+
+                    <!-- Arbitrator Fields (conditionally shown) -->
+                    <div class="hidden ml-8 mt-4 p-4 bg-muted border-l-4 border-secondary" id="arbitratorFields">
+                        <div class="mb-4">
+                            <label for="{{ form.designated_arbitrator_email.id_for_label }}" class="block text-sm font-medium text-foreground mb-1">
+                                {{ form.designated_arbitrator_email.label }}
+                            </label>
+                            {{ form.designated_arbitrator_email }}
+                            {% if form.designated_arbitrator_email.help_text %}
+                                <p class="mt-1 text-sm text-muted-foreground">{{ form.designated_arbitrator_email.help_text }}</p>
+                            {% endif %}
+                            {% if form.designated_arbitrator_email.errors %}
+                                <p class="text-sm text-destructive mt-1">{{ form.designated_arbitrator_email.errors }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.designated_arbitrator_name.id_for_label }}" class="block text-sm font-medium text-foreground mb-1">
+                                {{ form.designated_arbitrator_name.label }}
+                            </label>
+                            {{ form.designated_arbitrator_name }}
+                            {% if form.designated_arbitrator_name.help_text %}
+                                <p class="mt-1 text-sm text-muted-foreground">{{ form.designated_arbitrator_name.help_text }}</p>
+                            {% endif %}
+                            {% if form.designated_arbitrator_name.errors %}
+                                <p class="text-sm text-destructive mt-1">{{ form.designated_arbitrator_name.errors }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blind Screening Notice (Always Visible) -->
+                <div class="rounded-md bg-info-light border border-info p-4 mt-6">
+                    <div class="flex items-center">
+                        <svg class="h-6 w-6 text-success mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <div>
+                            <strong class="text-foreground">Blind Screening: Always Enforced</strong>
+                            <p class="text-sm text-muted-foreground mt-0.5">
+                                Reviewers cannot see each other's decisions until both have voted,
+                                ensuring independent screening and PRISMA 2020 compliance.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex flex-col gap-2 mt-6">
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            data-testid="submit-create-session-btn">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Create Session
+                    </button>
+                    <a href="{% url 'review_manager:dashboard' %}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                       data-testid="cancel-create-btn">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% include 'components/alert.html' with variant='info' title='Getting Started' message='After creating your session, you will be guided through:<ol class="text-sm list-decimal list-inside space-y-1 mt-2"><li>Defining your search strategy using the PIC framework</li><li>Executing searches across multiple sources</li><li>Reviewing and tagging results</li><li>Generating PRISMA-compliant reports</li></ol>' extra_classes='mt-6' %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // === State Management ===
+        const state = {
+            invitedReviewers: [],
+            totalReviewers: 1,  // Start with lead reviewer
+            maxAdditionalReviewers: 4
+        };
+
+        // === DOM Elements ===
+        const reviewerFirstNameInput = document.getElementById('reviewerFirstName');
+        const reviewerLastNameInput = document.getElementById('reviewerLastName');
+        const reviewerEmailInput = document.getElementById('reviewerEmail');
+        const addReviewerBtn = document.getElementById('addReviewerBtn');
+        const reviewerList = document.getElementById('reviewerList');
+        const reviewerCountBadge = document.getElementById('reviewerCountBadge');
+        const invitedReviewersDataInput = document.getElementById('id_invited_reviewers_data');
+
+        // Conditional sections
+        const reviewersPerResultSection = document.getElementById('reviewersPerResultSection');
+        const consensusCriteriaSection = document.getElementById('consensusCriteriaSection');
+        const conflictResolutionSection = document.getElementById('conflictResolutionSection');
+
+        // Form elements
+        const minReviewersSelect = document.getElementById('id_min_reviewers_per_result');
+        const conflictMethodRadios = document.querySelectorAll('input[name="conflict_resolution_method"]');
+        const arbitratorFields = document.getElementById('arbitratorFields');
+        const arbitratorEmailInput = document.getElementById('id_designated_arbitrator_email');
+        const arbitratorNameInput = document.getElementById('id_designated_arbitrator_name');
+        const form = document.getElementById('configForm');
+
+        // === Add Reviewer Functionality ===
+        function addReviewer() {
+            const firstName = reviewerFirstNameInput.value.trim();
+            const lastName = reviewerLastNameInput.value.trim();
+            const email = reviewerEmailInput.value.trim();
+
+            // Validation
+            if (!firstName) {
+                alert('Please enter the reviewer\'s first name');
+                reviewerFirstNameInput.focus();
+                return;
+            }
+
+            if (!email) {
+                alert('Please enter the reviewer\'s email address');
+                reviewerEmailInput.focus();
+                return;
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address');
+                reviewerEmailInput.focus();
+                return;
+            }
+
+            // Check for duplicate email
+            const emailExists = state.invitedReviewers.some(r => r.email.toLowerCase() === email.toLowerCase());
+            if (emailExists) {
+                alert('This email address has already been added');
+                reviewerEmailInput.focus();
+                return;
+            }
+
+            // Check max reviewers
+            if (state.invitedReviewers.length >= state.maxAdditionalReviewers) {
+                alert('Maximum 4 additional reviewers allowed');
+                return;
+            }
+
+            // Add reviewer to state
+            const reviewer = {
+                first_name: firstName,
+                last_name: lastName,
+                email: email
+            };
+            state.invitedReviewers.push(reviewer);
+
+            // Update UI
+            renderReviewerList();
+            updateState();
+
+            // Clear inputs
+            reviewerFirstNameInput.value = '';
+            reviewerLastNameInput.value = '';
+            reviewerEmailInput.value = '';
+            reviewerFirstNameInput.focus();
+        }
+
+        addReviewerBtn.addEventListener('click', addReviewer);
+
+        // === Prevent Enter key from submitting form, trigger add reviewer instead ===
+        // FIX (Issue #28): Pressing Enter in reviewer input fields should add the reviewer,
+        // not submit the entire form prematurely
+        const reviewerInputs = [reviewerFirstNameInput, reviewerLastNameInput, reviewerEmailInput];
+        reviewerInputs.forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();  // Prevent form submission
+                    addReviewer();       // Add reviewer instead
+                }
+            });
+        });
+
+        // === Remove Reviewer Functionality ===
+        function removeReviewer(index) {
+            state.invitedReviewers.splice(index, 1);
+            renderReviewerList();
+            updateState();
+        }
+
+        // === Render Reviewer List ===
+        function renderReviewerList() {
+            if (state.invitedReviewers.length === 0) {
+                reviewerList.innerHTML = '<p class="text-sm text-muted-foreground">No reviewers invited yet</p>';
+                return;
+            }
+
+            reviewerList.innerHTML = state.invitedReviewers.map((reviewer, index) => `
+                <div class="flex justify-between items-center p-3 bg-card border border-border rounded-md mb-2">
+                    <div class="flex-1">
+                        <strong class="text-foreground">${reviewer.first_name} ${reviewer.last_name || ''}</strong><br>
+                        <span class="text-sm text-muted-foreground">${reviewer.email}</span>
+                    </div>
+                    <button type="button"
+                            class="inline-flex items-center rounded-md border border-destructive/50 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive-light focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            onclick="removeReviewerByIndex(${index})">
+                        Remove
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Expose removeReviewer to global scope for onclick handler
+        window.removeReviewerByIndex = removeReviewer;
+
+        // === Update State ===
+        function updateState() {
+            // Update total reviewers count
+            state.totalReviewers = 1 + state.invitedReviewers.length;
+
+            // Update badge
+            reviewerCountBadge.textContent = `You + ${state.invitedReviewers.length} reviewers = ${state.totalReviewers} total`;
+
+            // Update hidden JSON field
+            invitedReviewersDataInput.value = JSON.stringify(state.invitedReviewers);
+
+            // Show/hide conditional sections
+            const shouldShowSections = state.totalReviewers >= 2;
+            toggleConditionalSections(shouldShowSections);
+
+            // Update reviewers per result dropdown
+            updateReviewersPerResultOptions();
+
+            // Disable add button if max reached
+            addReviewerBtn.disabled = state.invitedReviewers.length >= state.maxAdditionalReviewers;
+        }
+
+        // === Toggle Conditional Sections ===
+        function toggleConditionalSections(show) {
+            if (show) {
+                reviewersPerResultSection.classList.remove('hidden');
+                consensusCriteriaSection.classList.remove('hidden');
+                conflictResolutionSection.classList.remove('hidden');
+                // Re-evaluate arbitrator required state based on current radio selection
+                toggleArbitratorFields();
+            } else {
+                reviewersPerResultSection.classList.add('hidden');
+                consensusCriteriaSection.classList.add('hidden');
+                conflictResolutionSection.classList.add('hidden');
+                // Reset conflict resolution to default so hidden radio values
+                // don't submit stale selections (e.g. DESIGNATED_ARBITRATOR)
+                const defaultConflictRadio = document.querySelector('input[name="conflict_resolution_method"][value="CONSENSUS"]');
+                if (defaultConflictRadio) {
+                    defaultConflictRadio.checked = true;
+                }
+                // Clear required and values on hidden arbitrator fields to prevent
+                // "not focusable" browser validation errors
+                arbitratorEmailInput.required = false;
+                arbitratorNameInput.required = false;
+                arbitratorEmailInput.value = '';
+                arbitratorNameInput.value = '';
+                arbitratorFields.classList.add('hidden');
+            }
+        }
+
+        // === Update Reviewers Per Result Dropdown ===
+        function updateReviewersPerResultOptions() {
+            const currentValue = minReviewersSelect.value;
+            minReviewersSelect.innerHTML = '';
+
+            // Generate options up to total available reviewers
+            const maxOptions = Math.min(state.totalReviewers, 4);
+            const labels = {
+                1: '1 Reviewer (Single Screening)',
+                2: '2 Reviewers (Dual Screening)',
+                3: '3 Reviewers (Triple Screening)',
+                4: '4 Reviewers (Multiple Screening)'
+            };
+
+            for (let i = 1; i <= maxOptions; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = labels[i];
+                if (i === parseInt(currentValue) || (i === 2 && !currentValue && maxOptions >= 2)) {
+                    option.selected = true;
+                }
+                minReviewersSelect.appendChild(option);
+            }
+
+            // Update consensus criteria labels when reviewers per result changes
+            minReviewersSelect.addEventListener('change', updateConsensusCriteriaLabels);
+            updateConsensusCriteriaLabels();
+        }
+
+        // === Update Consensus Criteria Labels ===
+        function updateConsensusCriteriaLabels() {
+            const selectedReviewers = parseInt(minReviewersSelect.value) || 2;
+            const labels = document.querySelectorAll('.consensus-label');
+
+            labels.forEach(label => {
+                const original = label.getAttribute('data-original');
+                const radio = label.closest('.flex').querySelector('input[type="radio"]');
+                const value = radio.value;
+
+                if (value === 'MAJORITY') {
+                    const majorityCount = Math.floor(selectedReviewers / 2) + 1;
+                    label.textContent = `Simple Majority (${majorityCount} out of ${selectedReviewers})`;
+                } else if (value === 'UNANIMOUS') {
+                    label.textContent = `Unanimous (${selectedReviewers} out of ${selectedReviewers})`;
+                }
+            });
+        }
+
+        // === Arbitrator Fields Toggle ===
+        function toggleArbitratorFields() {
+            const designatedArbitratorRadio = document.querySelector('input[name="conflict_resolution_method"][value="DESIGNATED_ARBITRATOR"]');
+
+            if (designatedArbitratorRadio && designatedArbitratorRadio.checked) {
+                arbitratorFields.classList.remove('hidden');
+                arbitratorEmailInput.required = true;
+                arbitratorNameInput.required = true;
+            } else {
+                arbitratorFields.classList.add('hidden');
+                arbitratorEmailInput.required = false;
+                arbitratorNameInput.required = false;
+                arbitratorEmailInput.value = '';
+                arbitratorNameInput.value = '';
+            }
+        }
+
+        conflictMethodRadios.forEach(radio => {
+            radio.addEventListener('change', toggleArbitratorFields);
+        });
+
+        // Initial toggle on page load
+        toggleArbitratorFields();
+
+        // === Form Validation ===
+        form.addEventListener('submit', function(event) {
+            // If no reviewers invited and sections are hidden, allow submission
+            if (state.totalReviewers === 1) {
+                return true;
+            }
+
+            // Validate reviewers per result is selected
+            if (!minReviewersSelect.value) {
+                event.preventDefault();
+                alert('Please select the number of reviewers per result');
+                minReviewersSelect.focus();
+                return false;
+            }
+
+            // Validate arbitrator fields if designated arbitrator selected
+            const designatedArbitratorRadio = document.querySelector('input[name="conflict_resolution_method"][value="DESIGNATED_ARBITRATOR"]');
+            if (designatedArbitratorRadio && designatedArbitratorRadio.checked) {
+                if (!arbitratorEmailInput.value || !arbitratorNameInput.value) {
+                    event.preventDefault();
+                    alert('Please provide arbitrator email and name');
+                    return false;
+                }
+            }
+        });
+
+        // === Initialize on Page Load ===
+        renderReviewerList();
+        updateState();
+    });
+</script>
+{% endblock %}

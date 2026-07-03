@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>PRISMA 2020 Flow Diagram - Other Methods Test</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.4;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .prisma-container {
+            max-width: 650px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Header Section */
+        .prisma-header {
+            background: #FDB714;
+            border: 2px solid #000;
+            border-radius: 5px;
+            padding: 10px 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 30px;
+        }
+
+        /* Box Styles */
+        .prisma-box {
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 3px;
+            padding: 12px 15px;
+            margin: 0 auto 25px;
+            position: relative;
+        }
+
+        .identification-box {
+            width: 250px;
+            margin: 0 0 25px 0;
+        }
+
+        .identification-box .box-title {
+            font-size: 10px;
+            margin-bottom: 5px;
+        }
+
+        .identification-box .source-list {
+            font-size: 10px;
+            line-height: 1.6;
+            margin: 5px 0 0 0;
+            padding-left: 20px;
+            list-style: none;
+        }
+
+        .identification-box .source-list li {
+            margin: 3px 0;
+            text-indent: -15px;
+            padding-left: 15px;
+        }
+
+        /* Two Column Layout */
+        .two-column-section {
+            display: flex;
+            justify-content: center;
+            gap: 45px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .left-box {
+            width: 245px;
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 3px;
+            padding: 25px 15px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .right-box {
+            width: 245px;
+            background: #E8E8E8;
+            border: 2px solid #000;
+            border-radius: 3px;
+            padding: 12px 15px;
+            font-size: 10px;
+        }
+
+        .box-label {
+            font-size: 10px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .box-count {
+            font-size: 10px;
+            margin-top: 5px;
+        }
+
+        /* Exclusion Reasons */
+        .exclusion-list {
+            margin: 8px 0 8px 20px;
+            padding: 0;
+            list-style: none;
+            font-size: 9px;
+            line-height: 1.7;
+        }
+
+        .exclusion-list li {
+            text-indent: -10px;
+            padding-left: 10px;
+        }
+
+        /* Arrows */
+        .arrow-down {
+            width: 2px;
+            height: 25px;
+            background: #000;
+            margin: 0 auto 25px;
+            position: relative;
+        }
+
+        .arrow-down::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: -3px;
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 6px solid #000;
+        }
+
+        .arrow-right {
+            position: absolute;
+            top: 50%;
+            left: calc(245px + 15px);
+            width: 35px;
+            height: 2px;
+            background: #000;
+            transform: translateY(-50%);
+        }
+
+        .arrow-right::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+            border-left: 6px solid #000;
+        }
+
+        /* Center aligned content */
+        .text-center {
+            text-align: center;
+        }
+
+        /* Included studies box */
+        .included-box {
+            width: 250px;
+            margin: 0 0 25px 0;
+        }
+
+        /* Metadata footer */
+        .metadata {
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="prisma-container">
+        <!-- Header -->
+        <div class="prisma-header">
+            Identification of studies via other methods
+        </div>
+
+        <!-- Identification Box -->
+        <div class="prisma-box identification-box">
+            <div class="box-title">Records identified from:</div>
+            <ul class="source-list">
+                <li>Websites (n = 120)</li>
+                <li>Organisations (n = 45)</li>
+                <li>Citation searching (n = 35)</li>
+                <li>etc.</li>
+            </ul>
+        </div>
+
+        <!-- Arrow Down -->
+        <div class="arrow-down"></div>
+
+        <!-- Retrieval Section: Two Columns -->
+        <div class="two-column-section">
+            <div class="left-box">
+                <div class="box-label">Reports sought for retrieval</div>
+                <div class="box-count">(n = 180)</div>
+            </div>
+
+            <!-- Horizontal Arrow -->
+            <div class="arrow-right"></div>
+
+            <div class="right-box text-center">
+                <div class="box-label">Reports not retrieved</div>
+                <div class="box-count">(n = 30)</div>
+            </div>
+        </div>
+
+        <!-- Arrow Down -->
+        <div class="arrow-down"></div>
+
+        <!-- Eligibility Section: Two Columns -->
+        <div class="two-column-section">
+            <div class="left-box">
+                <div class="box-label">Reports assessed for eligibility</div>
+                <div class="box-count">(n = 150)</div>
+            </div>
+
+            <!-- Horizontal Arrow -->
+            <div class="arrow-right"></div>
+
+            <div class="right-box">
+                <div class="box-label"><strong>Reports excluded:</strong></div>
+                <ul class="exclusion-list">
+                    <li>Reason 1 (n = )</li>
+                    <li>Reason 2 (n = )</li>
+                    <li>Reason 3 (n = )</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Arrow Down -->
+        <div class="arrow-down"></div>
+
+        <!-- Included Reports Box -->
+        <div class="prisma-box included-box">
+            <div class="box-label">Reports included in review</div>
+            <div class="box-count">(n = 15)</div>
+        </div>
+
+        <!-- Metadata Footer -->
+        <div class="metadata">
+            <p>PRISMA 2020 Flow Diagram - Other Methods Section</p>
+            <p>Generated: 10 October 2025</p>
+        </div>
+    </div>
+</body>
+</html>

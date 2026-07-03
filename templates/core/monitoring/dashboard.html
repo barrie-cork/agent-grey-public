@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Workflow Monitoring Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        border-left: 4px solid #007bff;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .metric-card.warning {
+        border-left-color: #ffc107;
+    }
+    .metric-card.danger {
+        border-left-color: #dc3545;
+    }
+    .metric-card.success {
+        border-left-color: #28a745;
+    }
+    .health-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+    .health-healthy { background-color: #28a745; }
+    .health-warning { background-color: #ffc107; }
+    .health-critical { background-color: #dc3545; }
+    .stuck-session {
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+    }
+    .activity-item {
+        border-left: 3px solid #dee2e6;
+        padding-left: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .performance-bar {
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    .performance-fill {
+        height: 100%;
+        background-color: #28a745;
+        transition: width 0.3s ease;
+    }
+    .performance-fill.warning {
+        background-color: #ffc107;
+    }
+    .performance-fill.danger {
+        background-color: #dc3545;
+    }
+    #refreshIndicator {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #007bff;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    #refreshIndicator.active {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-4">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold m-0">Workflow Monitoring Dashboard</h1>
+            <small class="text-muted-foreground">Real-time system performance and health monitoring</small>
+        </div>
+        <div>
+            <span id="refreshIndicator">Refreshing...</span>
+        </div>
+    </div>
+
+    <!-- System Health Overview -->
+    <div class="mb-6">
+        <div class="rounded-lg border border-border bg-card shadow-sm">
+            <div class="p-6">
+                <h5 class="font-semibold mb-4">
+                    <span class="health-indicator health-{{ system_health.overall_status }}"></span>
+                    System Health: {{ system_health.overall_status|title }}
+                </h5>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <strong>Components:</strong>
+                        <ul class="mt-2 space-y-1">
+                            {% for component, status in system_health.components.items %}
+                            <li>
+                                <i class="fas fa-{% if status %}check-circle text-green-600{% else %}times-circle text-red-600{% endif %}"></i>
+                                {{ component|title }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="md:col-span-2">
+                        {% if system_health.issues %}
+                        <strong>Issues Detected:</strong>
+                        <ul class="mt-2 space-y-1">
+                            {% for issue in system_health.issues %}
+                            <li class="text-yellow-600">{{ issue }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4">
+                            <i class="fas fa-check-circle"></i> All systems operational
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="metric-card rounded-lg border border-border bg-card shadow-sm p-4 {% if workflow_stats.sessions_last_hour > 50 %}warning{% endif %}">
+            <h6 class="text-muted-foreground text-sm mb-2">Active Sessions (1hr)</h6>
+            <h2 class="text-2xl font-bold m-0">{{ workflow_stats.sessions_last_hour }}</h2>
+            <small class="text-muted-foreground">{{ workflow_stats.sessions_last_24h }} in 24hrs</small>
+        </div>
+
+        <div class="metric-card rounded-lg border border-border bg-card shadow-sm p-4 {% if stuck_sessions|length > 0 %}danger{% else %}success{% endif %}">
+            <h6 class="text-muted-foreground text-sm mb-2">Stuck Sessions</h6>
+            <h2 class="text-2xl font-bold m-0">{{ stuck_sessions|length }}</h2>
+            <small class="text-muted-foreground">Requiring intervention</small>
+        </div>
+
+        <div class="metric-card rounded-lg border border-border bg-card shadow-sm p-4">
+            <h6 class="text-muted-foreground text-sm mb-2">Avg Completion Time</h6>
+            <h2 class="text-2xl font-bold m-0">{{ workflow_stats.avg_completion_time_hours }}h</h2>
+            <small class="text-muted-foreground">From start to finish</small>
+        </div>
+
+        <div class="metric-card rounded-lg border border-border bg-card shadow-sm p-4 {% if workflow_stats.error_rate_24h > 5 %}warning{% endif %}">
+            <h6 class="text-muted-foreground text-sm mb-2">Error Rate (24h)</h6>
+            <h2 class="text-2xl font-bold m-0">{{ workflow_stats.error_rate_24h }}%</h2>
+            <small class="text-muted-foreground">Failed operations</small>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="lg:col-span-2 rounded-lg border border-border bg-card shadow-sm h-full">
+            <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                <h5 class="m-0 font-semibold">Performance Metrics</h5>
+            </div>
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h6 class="font-medium">Overall Health Score</h6>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if performance_metrics.health_score >= 80 %}bg-green-100 text-green-800{% elif performance_metrics.health_score >= 60 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ performance_metrics.health_score }}%
+                    </span>
+                </div>
+
+                <div class="performance-bar mb-4">
+                    <div class="performance-fill {% if performance_metrics.health_score < 60 %}danger{% elif performance_metrics.health_score < 80 %}warning{% endif %}"
+                         style="width: {{ performance_metrics.health_score }}%"></div>
+                </div>
+
+                {% if performance_metrics.operations %}
+                <h6 class="mt-4 font-medium">Operation Performance</h6>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-border">
+                                <th class="py-2 text-left font-medium">Operation</th>
+                                <th class="py-2 text-left font-medium">Avg Duration</th>
+                                <th class="py-2 text-left font-medium">Avg Queries</th>
+                                <th class="py-2 text-left font-medium">Total Calls</th>
+                                <th class="py-2 text-left font-medium">Slow %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for op, stats in performance_metrics.operations.items %}
+                            <tr class="border-b border-border">
+                                <td class="py-2">{{ op|title|cut:"_" }}</td>
+                                <td class="py-2">{{ stats.avg_duration|floatformat:3 }}s</td>
+                                <td class="py-2">{{ stats.avg_queries|floatformat:1 }}</td>
+                                <td class="py-2">{{ stats.count }}</td>
+                                <td class="py-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if stats.slow_percentage > 10 %}bg-red-100 text-red-800{% elif stats.slow_percentage > 5 %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                        {{ stats.slow_percentage|floatformat:1 }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-border bg-card shadow-sm h-full">
+            <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                <h5 class="m-0 font-semibold">Status Distribution</h5>
+            </div>
+            <div class="p-6">
+                <canvas id="statusChart" height="250"></canvas>
+
+                <div class="mt-3">
+                    <small class="text-muted-foreground">Total Sessions: {{ workflow_stats.total_sessions }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stuck Sessions Alert -->
+    {% if stuck_sessions %}
+    <div class="mb-6">
+        <div class="rounded-lg border border-yellow-300 bg-card shadow-sm overflow-hidden">
+            <div class="px-6 py-4 bg-yellow-500 text-yellow-900">
+                <h5 class="m-0 font-semibold"><i class="fas fa-exclamation-triangle"></i> Stuck Sessions</h5>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-border">
+                                <th class="py-2 text-left font-medium">Session</th>
+                                <th class="py-2 text-left font-medium">Status</th>
+                                <th class="py-2 text-left font-medium">Owner</th>
+                                <th class="py-2 text-left font-medium">Stuck Duration</th>
+                                <th class="py-2 text-left font-medium">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in stuck_sessions %}
+                            <tr class="stuck-session border-b border-border">
+                                <td class="py-2">{{ session.title|truncatechars:30 }}</td>
+                                <td class="py-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">{{ session.status }}</span></td>
+                                <td class="py-2">{{ session.owner }}</td>
+                                <td class="py-2">{{ session.stuck_duration|timesince }}</td>
+                                <td class="py-2">
+                                    <a href="{% url 'review_manager:session_detail' session.id %}"
+                                       class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md border border-primary text-primary bg-white hover:bg-primary/10" target="_blank">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Activities -->
+    <div class="mb-6">
+        <div class="rounded-lg border border-border bg-card shadow-sm">
+            <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                <h5 class="m-0 font-semibold">Recent Activities</h5>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto">
+                <div id="activity-feed">
+                    {% for activity in recent_activities %}
+                    <div class="activity-item">
+                        <div class="flex justify-between">
+                            <strong>{{ activity.session_title|truncatechars:40 }}</strong>
+                            <small class="text-muted-foreground">{{ activity.created_at|timesince }} ago</small>
+                        </div>
+                        <div class="text-muted-foreground">
+                            {{ activity.type_display }} by {{ activity.user }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+// Status distribution chart
+const statusData = {
+    {% for status, count in workflow_stats.status_distribution.items %}
+    '{{ status }}': {{ count }},
+    {% endfor %}
+};
+
+const ctx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(statusData),
+        datasets: [{
+            data: Object.values(statusData),
+            backgroundColor: [
+                '#6c757d', // draft
+                '#17a2b8', // defining_search
+                '#ffc107', // ready_to_execute
+                '#007bff', // executing
+                '#fd7e14', // processing_results
+                '#20c997', // ready_for_review
+                '#6f42c1', // under_review
+                '#28a745', // completed
+                '#dc3545'  // archived
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',
+                labels: {
+                    padding: 10,
+                    font: {
+                        size: 11
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Auto-refresh functionality
+let refreshTimer;
+const REFRESH_INTERVAL = 30000; // 30 seconds
+
+function showRefreshIndicator() {
+    const indicator = document.getElementById('refreshIndicator');
+    indicator.classList.add('active');
+    setTimeout(() => {
+        indicator.classList.remove('active');
+    }, 1000);
+}
+
+function refreshDashboard() {
+    showRefreshIndicator();
+
+    fetch('{% url "core:monitoring_api" %}')
+        .then(response => response.json())
+        .then(data => {
+            // Update key metrics
+            updateMetrics(data);
+
+            // Update activity feed
+            updateActivityFeed(data.recent_activities);
+
+            // Update health status
+            updateHealthStatus(data.system_health);
+        })
+        .catch(error => {
+            console.error('Failed to refresh dashboard:', error);
+        });
+}
+
+function updateMetrics(data) {
+    // Update session counts
+    const sessionElements = document.querySelectorAll('[data-metric]');
+    sessionElements.forEach(element => {
+        const metric = element.dataset.metric;
+        if (data.workflow_stats && data.workflow_stats[metric] !== undefined) {
+            element.textContent = data.workflow_stats[metric];
+        }
+    });
+}
+
+function updateActivityFeed(activities) {
+    const feed = document.getElementById('activity-feed');
+    if (!activities || activities.length === 0) return;
+
+    // Create new activity HTML
+    const newActivities = activities.map(activity => `
+        <div class="activity-item">
+            <div class="d-flex justify-content-between">
+                <strong>${activity.session_title}</strong>
+                <small class="text-muted">${activity.time_ago} ago</small>
+            </div>
+            <div class="text-muted">
+                ${activity.type_display} by ${activity.user}
+            </div>
+        </div>
+    `).join('');
+
+    // Prepend new activities
+    feed.innerHTML = newActivities + feed.innerHTML;
+
+    // Keep only last 20 activities
+    const items = feed.querySelectorAll('.activity-item');
+    if (items.length > 20) {
+        for (let i = 20; i < items.length; i++) {
+            items[i].remove();
+        }
+    }
+}
+
+function updateHealthStatus(health) {
+    // Update health indicator
+    const indicators = document.querySelectorAll('.health-indicator');
+    indicators.forEach(indicator => {
+        indicator.className = `health-indicator health-${health.overall_status}`;
+    });
+}
+
+// Start auto-refresh
+refreshTimer = setInterval(refreshDashboard, REFRESH_INTERVAL);
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (refreshTimer) {
+        clearInterval(refreshTimer);
+    }
+});
+});
+</script>
+{% endblock %}

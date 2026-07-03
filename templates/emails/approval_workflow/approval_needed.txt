@@ -1,0 +1,39 @@
+Hi {{ is_name }},
+
+A review session requires your approval for external reviewers who have been invited to participate.
+
+SESSION DETAILS
+================
+Session Title: {{ session_title }}
+Session Owner: {{ session_owner_name }}
+{% if session_description %}Description: {{ session_description }}{% endif %}
+External Reviewers: {{ external_count }} reviewer{{ external_count|pluralize }}
+
+EXTERNAL REVIEWERS PENDING APPROVAL
+====================================
+{% for reviewer in external_reviewers %}• {{ reviewer.first_name }} {{ reviewer.last_name }} ({{ reviewer.email }})
+{% endfor %}
+
+ACTION REQUIRED
+===============
+These external reviewers require your approval before they can be invited to the review session. Please review and approve or reject them within 7 days.
+
+Review Pending Invitations: {{ approval_url }}
+
+As an Information Specialist, you are responsible for reviewing and approving external reviewers to ensure they are appropriate for the review session.
+
+Consider the following when reviewing:
+• Does the reviewer have relevant expertise?
+• Are there any potential conflicts of interest?
+• Is the email address from a professional domain?
+
+If you have any questions about this review session or the external reviewers, please contact the session owner: {{ session_owner_name }}.
+
+---
+This email was sent by Agent Grey
+
+You're receiving this email because you are an Information Specialist for your organisation and external reviewers require your approval.
+
+Manage notification preferences: {{ preferences_url }}
+
+© {% now "Y" %} Agent Grey. All rights reserved.

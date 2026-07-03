@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% load static %}
+{% load simple_review_tags %}
+{% load multi_reviewer_tags %}
+
+{% block title %}Review Results - {{ session.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'review_results/css/review_overview.css' %}">
+<link rel="stylesheet" href="{% static 'review_results/css/widgets.css' %}">
+{% endblock %}
+
+{% block content_header_breadcrumbs %}
+<nav class="flex" aria-label="Breadcrumb" data-testid="breadcrumb-nav">
+    <ol class="inline-flex items-center space-x-1 md:space-x-2 text-sm">
+        <li class="inline-flex items-center">
+            <a href="{% url 'review_manager:dashboard' %}"
+                class="text-muted-foreground hover:text-primary">Dashboard</a>
+        </li>
+        <li class="inline-flex items-center">
+            <svg class="w-4 h-4 text-muted-foreground/60 mx-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    clip-rule="evenodd"></path>
+            </svg>
+            <a href="{% url 'review_manager:session_detail' session.id %}"
+                class="text-muted-foreground hover:text-primary truncate max-w-[200px]">{{ session.title }}</a>
+        </li>
+        <li class="inline-flex items-center">
+            <svg class="w-4 h-4 text-muted-foreground/60 mx-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    clip-rule="evenodd"></path>
+            </svg>
+            <span class="text-foreground font-medium">Review</span>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+        <!-- Main Content Area -->
+        <div class="order-2 lg:order-1">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                <h1 class="text-2xl font-bold text-foreground" data-testid="review-results-heading">Review Results</h1>
+            </div>
+
+            {% include "review_results/includes/_processing_alerts.html" %}
+
+            <!-- Results -->
+            <div class="rounded-lg border border-border bg-card shadow-sm" data-testid="results-container">
+                <div class="px-4 py-3 border-b border-border">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                        <h5 class="font-semibold text-foreground" data-testid="results-count-heading">
+                            Results for Review ({{ successful_count }})
+                        </h5>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Offline Backup Buttons -->
+                            {% if results and session.status == 'ready_for_review' or session.status == 'under_review' %}
+                            <div class="inline-flex rounded-md shadow-sm" role="group">
+                                <button
+                                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-l-md border border-warning bg-warning text-warning-foreground hover:bg-warning-dark"
+                                    id="offline-backup-btn" data-testid="offline-backup-btn"
+                                    title="Download offline backup Excel file">
+                                    <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                            clip-rule="evenodd"></path>
+                                    </svg>
+                                    Offline Backup
+                                </button>
+                                <a href="{% url 'reporting:import_backup' session.id %}"
+                                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-r-md border border-warning bg-card text-warning hover:bg-warning-light"
+                                    data-testid="import-backup-btn" title="Import offline backup changes">
+                                    <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"
+                                            clip-rule="evenodd"></path>
+                                    </svg>
+                                    Import Changes
+                                </a>
+                            </div>
+                            {% endif %}
+
+                            <!-- Add Manual Result Button -->
+                            {% if session.status == 'ready_for_review' or session.status == 'under_review' %}
+                            <button
+                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md border border-primary bg-card text-primary hover:bg-primary hover:text-white"
+                                onclick="document.getElementById('addManualResultModal').showModal()"
+                                data-testid="add-manual-result-btn"
+                                title="Add a result discovered during screening">
+                                <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                                Add Result
+                            </button>
+                            {% endif %}
+
+                            <!-- Per Page Selector -->
+                            <div class="flex items-center">
+                                <label for="per_page" class="text-sm text-foreground mr-2">Per page:</label>
+                                <select id="per_page" data-testid="per-page-select"
+                                    class="rounded-md border-input text-sm shadow-sm focus:border-primary focus:ring-ring"
+                                    onchange="changePerPage(this.value)">
+                                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    {% if results %}
+                    {% for result in results %}
+                    {% include "review_results/includes/_result_card.html" %}
+                    {% endfor %}
+
+                    <!-- Pagination -->
+                    {% if results.has_other_pages %}
+                    <nav aria-label="Results pagination" class="mt-6" data-testid="pagination-nav">
+                        <ul class="flex justify-center items-center -space-x-px">
+                            {% if results.has_previous %}
+                            <li>
+                                <a class="px-3 py-2 rounded-l-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    href="?page={{ results.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                            </li>
+                            {% endif %}
+
+                            {% for num in results.paginator.page_range %}
+                            {% if results.number == num %}
+                            <li>
+                                <span class="px-3 py-2 border border-primary bg-primary/10 text-primary font-medium">{{ num }}</span>
+                            </li>
+                            {% elif num > results.number|add:'-3' and num < results.number|add:'3' %} <li>
+                                <a class="px-3 py-2 border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if results.has_next %}
+                                <li>
+                                    <a class="px-3 py-2 rounded-r-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                                        href="?page={{ results.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                                </li>
+                                {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-12" data-testid="no-results-empty-state">
+                        <svg class="mx-auto h-12 w-12 text-muted-foreground mb-4" fill="currentColor"
+                            viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                        <h5 class="text-lg font-medium text-foreground mb-2">No results to review</h5>
+                        <p class="text-muted-foreground mb-4">
+                            There are no processed results available for review.
+                        </p>
+                        <a href="{% url 'review_manager:session_detail' session.id %}"
+                            class="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                            Back to Session
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="order-1 lg:order-2">
+            {% include "review_results/includes/_sidebar.html" %}
+        </div>
+    </div>
+</div>
+
+{% include "review_results/includes/_modals.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'review_results/js/review_interface.js' %}"></script>
+<script defer src="{% static 'review_results/js/review_workflow2.js' %}"></script>
+<script defer src="{% static 'review_results/js/offline_backup.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        initializeReviewInterface("{{ session.id }}", "{{ csrf_token }}");
+        initializeOfflineBackup("{% url 'reporting:generate_offline_backup' session.id %}", "{{ csrf_token }}");
+
+        // Reset reviews confirmation
+        const resetForm = document.getElementById('reset-reviews-form');
+        if (resetForm) {
+            resetForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const confirmMessage = 'Are you sure you want to reset ALL review decisions?\n\n' +
+                    'This will:\n' +
+                    '• Delete all Include/Exclude/Maybe decisions\n' +
+                    '• Clear all exclusion reasons and notes\n' +
+                    '• Reset all results to "Pending Review" status\n\n' +
+                    'This action cannot be undone!';
+
+                if (confirm(confirmMessage)) {
+                    resetForm.submit();
+                }
+            });
+        }
+    });
+
+    // Add Manual Result
+    window.addManualResult = async function() {
+        const form = document.getElementById('addManualResultForm');
+        const url = document.getElementById('manualResultUrl').value.trim();
+        const title = document.getElementById('manualResultTitle').value.trim();
+        const justification = document.getElementById('manualResultJustification').value.trim();
+        const snippet = document.getElementById('manualResultSnippet').value.trim();
+        const errorDiv = document.getElementById('addManualResultError');
+        const errorMsg = document.getElementById('addManualResultErrorMessage');
+        const btn = document.getElementById('addManualResultBtn');
+
+        errorDiv.style.display = 'none';
+
+        if (!url || !title || !justification) {
+            errorMsg.textContent = 'URL, Title, and Justification are required.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Adding...';
+
+        try {
+            const response = await fetch('/api/results/add-manual/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({
+                    session_id: '{{ session.id }}',
+                    url: url,
+                    title: title,
+                    justification: justification,
+                    snippet: snippet,
+                }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Failed to add result');
+            }
+
+            document.getElementById('addManualResultModal').close();
+            form.reset();
+            window.location.reload();
+        } catch (err) {
+            errorMsg.textContent = err.message;
+            errorDiv.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Add Result';
+        }
+    };
+
+    // Initialize Cohen's Kappa Widget (Workflow #2 Only)
+    {% if session.current_configuration.is_workflow_2 %}
+    document.addEventListener('DOMContentLoaded', function () {
+        const sessionId = '{{ session.id }}';
+        const kappaWidget = new KappaWidget('#kappa-widget', sessionId);
+        console.log('[Kappa Widget] Initialized for session:', sessionId);
+    });
+    {% endif %}
+</script>
+
+<!-- Load Kappa Widget JavaScript -->
+{% if session.current_configuration.is_workflow_2 %}
+<script defer src="{% static 'review_results/js/kappa_widget.js' %}"></script>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'accounts/base_auth.html' %}
+
+{% block title %}Sign Up - Agent Grey{% endblock %}
+
+{% block auth_title %}Create Account{% endblock %}
+
+{% block auth_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        {% include 'components/alert.html' with variant='danger' message=form.non_field_errors|join:', ' %}
+    {% endif %}
+
+    {% for field in form %}
+        {% include 'components/form-field.html' with field=field %}
+    {% endfor %}
+
+    <div class="flex flex-col gap-2">
+        <button type="submit" data-testid="submit-signup-btn"
+                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            Create Account
+        </button>
+    </div>
+
+    <hr class="my-6 border-border">
+
+    <div class="text-center text-sm text-muted-foreground">
+        <p>
+            Already have an account? <a href="{% url 'accounts:login' %}" data-testid="link-login" class="text-primary hover:text-primary/80">Login</a>
+        </p>
+    </div>
+</form>
+
+<div id="password-strength" class="mt-4 hidden">
+    <p class="text-sm text-muted-foreground">Password strength: <span id="strength-text"></span></p>
+    <div class="mt-1 h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+        <div id="strength-bar" class="h-full bg-primary rounded-full transition-all duration-300" style="width: 0%"></div>
+    </div>
+</div>
+{% endblock %}

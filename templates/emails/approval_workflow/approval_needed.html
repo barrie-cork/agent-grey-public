@@ -1,0 +1,55 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Approval Required: External Reviewers{% endblock %}
+
+{% block content %}
+<div class="greeting">Hi {{ is_name }},</div>
+
+<div class="content">
+    <p>A review session requires your approval for external reviewers who have been invited to participate.</p>
+</div>
+
+<div class="highlight-box">
+    <h2>Session Details</h2>
+    <p><span class="label">Session Title:</span> {{ session_title }}</p>
+    <p><span class="label">Session Owner:</span> {{ session_owner_name }}</p>
+    {% if session_description %}
+    <p><span class="label">Description:</span> {{ session_description }}</p>
+    {% endif %}
+    <p><span class="label">External Reviewers:</span> {{ external_count }} reviewer{{ external_count|pluralize }}</p>
+</div>
+
+<div class="highlight-box">
+    <h2>External Reviewers Pending Approval</h2>
+    {% for reviewer in external_reviewers %}
+    <p>• {{ reviewer.first_name }} {{ reviewer.last_name }} ({{ reviewer.email }})</p>
+    {% endfor %}
+</div>
+
+<div class="alert-box">
+    <strong>Action Required:</strong> These external reviewers require your approval before they can be invited to the review session. Please review and approve or reject them within 7 days.
+</div>
+
+<div class="button-container">
+    <a href="{{ approval_url }}" class="button">Review Pending Invitations</a>
+</div>
+
+<div class="content">
+    <p>As an Information Specialist, you are responsible for reviewing and approving external reviewers to ensure they are appropriate for the review session.</p>
+
+    <p><strong>Consider the following when reviewing:</strong></p>
+    <ul>
+        <li>Does the reviewer have relevant expertise?</li>
+        <li>Are there any potential conflicts of interest?</li>
+        <li>Is the email address from a professional domain?</li>
+    </ul>
+</div>
+
+<div class="content">
+    <p>If you have any questions about this review session or the external reviewers, please contact the session owner: {{ session_owner_name }}.</p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+You're receiving this email because you are an Information Specialist for your organisation and external reviewers require your approval.
+{% endblock %}

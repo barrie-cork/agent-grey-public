@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - Agent Grey{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-1">
+            <div class="rounded-lg border border-border bg-card shadow-sm">
+                <div class="border-b border-border px-6 py-4">
+                    <h3 class="text-lg font-semibold text-foreground">Account Information</h3>
+                </div>
+                <div class="px-6 py-4">
+                    <dl class="space-y-4">
+                        <div class="grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-muted-foreground">Email:</dt>
+                            <dd class="text-sm text-foreground col-span-2">{{ user.email }}</dd>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-muted-foreground">Joined:</dt>
+                            <dd class="text-sm text-foreground col-span-2">{{ user.created_at|date:"F d, Y" }}</dd>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <dt class="text-sm font-medium text-muted-foreground">Last Login:</dt>
+                            <dd class="text-sm text-foreground col-span-2">{{ user.last_login|date:"F d, Y H:i" }}</dd>
+                        </div>
+                    </dl>
+                    <div class="mt-6">
+                        <a href="{% url 'accounts:password_reset' %}" data-testid="link-change-password"
+                           class="inline-flex items-center justify-center rounded-md border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                            Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:col-span-2">
+            <div class="rounded-lg border border-border bg-card shadow-sm">
+                <div class="border-b border-border px-6 py-4">
+                    <h3 class="text-lg font-semibold text-foreground">Edit Profile</h3>
+                </div>
+                <div class="px-6 py-4">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            {% include 'components/alert.html' with variant='danger' message=form.non_field_errors|join:', ' %}
+                        {% endif %}
+
+                        {% for field in form %}
+                            {% include 'components/form-field.html' with field=field %}
+                        {% endfor %}
+
+                        <div class="flex gap-2">
+                            <button type="submit" data-testid="submit-profile-btn"
+                                    class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                                Save Changes
+                            </button>
+                            <a href="{% url 'accounts:profile' %}" data-testid="cancel-profile-btn"
+                               class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Organisations Section -->
+    <div class="md:col-span-3">
+        <div class="rounded-lg border border-border bg-card shadow-sm">
+            <div class="border-b border-border px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-foreground">Your Organisations</h3>
+                <a href="{% url 'organisation:create' %}" data-testid="btn-create-org"
+                   class="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    Create Organisation
+                </a>
+            </div>
+            <div class="px-6 py-4">
+                {% if memberships %}
+                <div class="divide-y divide-border">
+                    {% for membership in memberships %}
+                    <div class="flex items-center justify-between py-3 {% if forloop.first %}pt-0{% endif %} {% if forloop.last %}pb-0{% endif %}" data-testid="org-membership-row">
+                        <div>
+                            <p class="text-sm font-medium text-foreground">{{ membership.organisation.name }}</p>
+                            <p class="text-xs text-muted-foreground">{{ membership.get_role_display }}</p>
+                        </div>
+                        <a href="{% url 'organisation:dashboard' org_id=membership.organisation.id %}"
+                           class="inline-flex items-center justify-center rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                            Dashboard
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-muted-foreground">You are not a member of any organisation yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

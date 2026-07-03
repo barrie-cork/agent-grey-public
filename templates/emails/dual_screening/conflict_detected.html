@@ -1,0 +1,50 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Conflict Detected - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hi {{ reviewer_name }},
+</div>
+
+<div class="content">
+    <p>A conflict has been detected on Result #{{ result_number }}:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ result_title }}</h2>
+    {% if result_url %}
+    <p><strong>URL:</strong> <a href="{{ result_url }}">{{ result_url }}</a></p>
+    {% endif %}
+    {% if result_snippet %}
+    <p><em>{{ result_snippet|truncatewords:30 }}</em></p>
+    {% endif %}
+</div>
+
+<div class="alert-box">
+    <p><span class="label">You voted:</span> <strong>{{ reviewer_decision }}</strong></p>
+    <p><span class="label">Co-reviewer voted:</span> <strong>{{ other_decision }}</strong></p>
+</div>
+
+<div class="content">
+    <p>Please discuss with your co-reviewer to reach consensus.</p>
+</div>
+
+<div class="button-container">
+    <a href="{{ conflict_url }}" class="button">View Conflict</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>Next Steps:</strong>
+        <br>• Contact your co-reviewer to discuss the decision
+        <br>• Review the full report if needed
+        <br>• Update your decision if you reach consensus
+        <br>• If no consensus is reached, the conflict will be escalated to an arbitrator
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you are assigned to this review and a conflict was detected on one of your decisions.
+{% endblock %}

@@ -1,0 +1,190 @@
+/**
+ * Agent Grey - Django Templates Design System
+ * Tailwind CSS v4 entry point for Django templates
+ * Scans Django template directories for class usage
+ */
+
+/* Import Tailwind CSS v4 and design tokens */
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* Django template scanning - critical for class purging */
+@source "../../../../templates/**/*.html";
+@source "../../../../apps/**/templates/**/*.html";
+
+/* Custom dark mode variant */
+@custom-variant dark (&:is(.dark *));
+
+/* Base Layer Styles */
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-family-sans);
+  }
+}
+
+/* Smooth open/close animation for <details> collapsible */
+details[open] summary {
+  background-color: var(--color-muted);
+}
+
+details > div {
+  animation: slideDown 200ms ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Chevron rotation for details/summary */
+details[open] .details-chevron {
+  transform: rotate(180deg);
+}
+
+.details-chevron {
+  transition: transform 200ms ease-out;
+}
+
+/* Force include responsive utilities for Django templates */
+@layer utilities {
+  /* Decision button hover states - used in Python template tags (not scanned by Tailwind)
+   * Required by:
+   *   - apps/review_results/templatetags/simple_review_tags.py (quick_decision_buttons)
+   *   - apps/review_results/templatetags/multi_reviewer_tags.py (reviewer_decision_buttons)
+   * DO NOT REMOVE - these classes are dynamically generated in Python, not HTML templates
+   */
+
+  /* Include button (success/green) */
+  .hover\:bg-success\/90:hover {
+    background-color: color-mix(in oklab, var(--color-success) 90%, transparent);
+  }
+  .hover\:bg-success\/10:hover {
+    background-color: color-mix(in oklab, var(--color-success) 10%, transparent);
+  }
+
+  /* Exclude button (destructive/red) */
+  .hover\:bg-destructive\/90:hover {
+    background-color: color-mix(in oklab, var(--color-destructive) 90%, transparent);
+  }
+  .hover\:bg-destructive\/10:hover {
+    background-color: color-mix(in oklab, var(--color-destructive) 10%, transparent);
+  }
+
+  /* Maybe button (warning/amber) */
+  .hover\:bg-warning\/90:hover {
+    background-color: color-mix(in oklab, var(--color-warning) 90%, transparent);
+  }
+  .hover\:bg-warning\/10:hover {
+    background-color: color-mix(in oklab, var(--color-warning) 10%, transparent);
+  }
+
+  /* Ensure warning text is visible (from template tags) */
+  .text-warning {
+    color: var(--color-warning);
+  }
+  .border-warning {
+    border-color: var(--color-warning);
+  }
+
+  /* Button cursor states for decision buttons (scoped to avoid affecting other buttons) */
+  button[data-testid^="include-btn-"]:not(:disabled),
+  button[data-testid^="exclude-btn-"]:not(:disabled),
+  button[data-testid^="maybe-btn-"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Responsive display utilities */
+  .hidden { display: none; }
+  .block { display: block; }
+  .inline { display: inline; }
+  .inline-block { display: inline-block; }
+  .flex { display: flex; }
+  .grid { display: grid; }
+
+  @media (min-width: 768px) {
+    .md\:block { display: block; }
+    .md\:hidden { display: none; }
+    .md\:flex { display: flex; }
+    .md\:grid { display: grid; }
+    .md\:inline { display: inline; }
+    .md\:col-span-1 { grid-column: span 1 / span 1; }
+    .md\:col-span-2 { grid-column: span 2 / span 2; }
+    .md\:col-span-3 { grid-column: span 3 / span 3; }
+    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1024px) {
+    .lg\:block { display: block; }
+    .lg\:hidden { display: none; }
+    .lg\:flex { display: flex; }
+    .lg\:grid { display: grid; }
+    .lg\:col-span-1 { grid-column: span 1 / span 1; }
+    .lg\:col-span-2 { grid-column: span 2 / span 2; }
+    .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .lg\:grid-cols-\[1fr_400px\] { grid-template-columns: 1fr 400px; }
+    .lg\:order-1 { order: 1; }
+    .lg\:order-2 { order: 2; }
+  }
+
+  @media (min-width: 640px) {
+    .sm\:px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .sm\:text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+  }
+
+  @media (min-width: 1024px) {
+    .lg\:px-8 { padding-left: 2rem; padding-right: 2rem; }
+  }
+
+  /* Feedback FAB button */
+  .feedback-float-btn {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    transition: all 150ms ease;
+    cursor: pointer;
+    border: none;
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+  .feedback-float-btn:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+  .feedback-float-btn--recording {
+    background-color: #ef4444 !important;
+    color: white !important;
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Sidebar layout - multi-line class attributes in Django templates prevent Tailwind scanner detection */
+  .-translate-x-full { --tw-translate-x: -100%; translate: var(--tw-translate-x) var(--tw-translate-y); }
+
+  @media (min-width: 1280px) {
+    .xl\:ml-\[260px\] { margin-left: 260px; }
+    .xl\:translate-x-0 { --tw-translate-x: 0px; translate: var(--tw-translate-x) var(--tw-translate-y); }
+    .xl\:z-30 { z-index: 30; }
+    .xl\:hidden { display: none; }
+  }
+}

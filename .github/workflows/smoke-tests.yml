@@ -1,0 +1,67 @@
+name: Production Smoke Tests
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  smoke-tests:
+    runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set environment URL
+        id: set-url
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            ENV="production"
+          fi
+
+          if [ "$ENV" == "production" ]; then
+            echo "BASE_URL=${{ secrets.PRODUCTION_URL }}" >> $GITHUB_ENV
+          elif [ "$ENV" == "staging" ]; then
+            echo "BASE_URL=${{ secrets.STAGING_URL }}" >> $GITHUB_ENV
+          fi
+
+      - name: Run smoke tests
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+          TEST_USER: ${{ secrets.SMOKE_TEST_USER }}
+          TEST_PASS: ${{ secrets.SMOKE_TEST_PASS }}
+        run: |
+          chmod +x scripts/production_smoke_tests.sh
+          ./scripts/production_smoke_tests.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-results
+          path: |
+            *.log
+            test-results/
+
+      - name: Notify on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🔥 Production smoke tests failed!
+            Environment: ${{ env.BASE_URL }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}

@@ -1,0 +1,23 @@
+{
+  "name": "agent-grey-extension",
+  "version": "0.1.0",
+  "description": "Agent Grey browser extension – grey-lit source capture for systematic review",
+  "private": true,
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.5.22"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.320",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "typescript": "~5.9.3",
+    "vue-tsc": "^3.1.0",
+    "wxt": "^0.20.7"
+  }
+}

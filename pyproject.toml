@@ -1,0 +1,11 @@
+[tool.ruff]
+target-version = "py312"
+# PRPs/ holds illustrative spec/example snippets that are not runtime code.
+extend-exclude = ["PRPs/"]
+
+[tool.ruff.lint]
+# Django settings files require star imports from base and late imports
+# after configuration. These are not fixable without restructuring the
+# entire settings module layout.
+# F811: production.py intentionally overrides DATABASES imported from base.
+per-file-ignores = { "grey_lit_project/settings/*.py" = ["E402", "F403", "F405", "F811"], "scripts/check-migration-health.py" = ["E402"], "scripts/setup_e2e_test_data.py" = ["E402"], "tests/validate_optimization_metrics.py" = ["E402"], "tests/run_optimization_tests.py" = ["E402"], "tests/playwright/conftest.py" = ["E402"], "tests/playwright/conftest_optimization.py" = ["E402"] }

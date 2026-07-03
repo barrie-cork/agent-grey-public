@@ -1,0 +1,48 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Re-Vote Ready - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hi {{ reviewer_name }},
+</div>
+
+<div class="content">
+    <p>Great news! All reviewers have accepted the re-vote proposal for:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ result_title }}</h2>
+    {% if result_url %}
+    <p><strong>URL:</strong> <a href="{{ result_url }}">{{ result_url|truncatechars:60 }}</a></p>
+    {% endif %}
+</div>
+
+<div class="alert-box success">
+    <p><strong>✅ Re-Vote Accepted</strong></p>
+    <p style="margin-top: 10px;">All reviewers have agreed to reconsider their decisions based on the discussion.</p>
+</div>
+
+<div class="content">
+    <p><strong>Action Required:</strong> Please submit your new decision for this result.</p>
+    <p>Review the discussion thread and the full document, then make your decision (Include, Exclude, or Maybe).</p>
+</div>
+
+<div class="button-container">
+    <a href="{{ discussion_url }}" class="button">Submit Your New Decision</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>What's Next:</strong>
+        <br>• Review the discussion comments
+        <br>• Re-read the document if needed
+        <br>• Submit your new decision
+        <br>• If consensus is reached, the conflict will be automatically resolved
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you are a reviewer on this conflict and the re-vote is now ready for decisions.
+{% endblock %}

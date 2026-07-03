@@ -1,0 +1,96 @@
+{% load static navigation_tags %}
+{# Sidebar Navigation - Dark navy fixed sidebar #}
+
+{# Overlay for mobile drawer #}
+<div id="sidebar-overlay" class="fixed inset-0 z-40 bg-black/50 hidden xl:hidden" aria-hidden="true"></div>
+
+<aside id="sidebar"
+       class="fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border
+              -translate-x-full transition-transform duration-300 ease-in-out
+              xl:translate-x-0 xl:z-30"
+       aria-label="Sidebar navigation">
+
+  {# Logo + Brand #}
+  <div class="flex items-center gap-3 px-5 py-4 border-b border-sidebar-border">
+    <a href="/" class="flex items-center gap-3 hover:opacity-90" data-testid="nav-logo">
+      <img src="{% static 'images/agent-grey-logo-login.png' %}" alt="Agent Grey" class="h-10 w-10 shrink-0 rounded-lg bg-white">
+      <span class="min-w-0">
+        <span class="block text-base font-bold text-white leading-tight">Agent Grey</span>
+        <span class="block text-xs text-sidebar-foreground/60 leading-tight">Grey Literature Search and Review</span>
+      </span>
+    </a>
+  </div>
+
+  {# Navigation Links #}
+  <nav class="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
+    {% if user.is_authenticated %}
+      {% user_can_access_dashboard user as can_access_dashboard %}
+      {% if can_access_dashboard %}
+        <a href="{% url 'admin:index' %}"
+           class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+           data-testid="nav-admin">
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Admin
+        </a>
+      {% endif %}
+
+      <a href="{% url 'review_manager:dashboard' %}"
+         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+         data-testid="nav-dashboard">
+        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        My Reviews
+      </a>
+
+      <a href="{% url 'review_manager:pending_invitations' %}"
+         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+         data-testid="nav-invitations">
+        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        Invitations
+        {% if pending_invitations_count > 0 %}
+          <span class="ml-auto inline-flex items-center justify-center rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">
+            {{ pending_invitations_count }}
+          </span>
+        {% endif %}
+      </a>
+    {% endif %}
+  </nav>
+
+  {# User Section (bottom) #}
+  <div class="shrink-0 border-t border-sidebar-border px-3 py-4">
+    {% if user.is_authenticated %}
+      <a href="{% url 'accounts:profile' %}"
+         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+         data-testid="nav-profile">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-sm font-semibold">
+          {{ user.email|first|upper }}
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm font-medium text-sidebar-foreground">{{ user.get_full_name|default:user.email }}</span>
+          <span class="block truncate text-xs text-sidebar-foreground/60">{{ user.email }}</span>
+        </span>
+      </a>
+      <form method="post" action="{% url 'accounts:logout' %}" class="mt-1">
+        {% csrf_token %}
+        <button type="submit"
+                class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
+                data-testid="nav-logout">
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Sign Out
+        </button>
+      </form>
+    {% else %}
+      <div class="space-y-2">
+        <a href="{% url 'accounts:login' %}"
+           class="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground border border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+           data-testid="nav-login">
+          Login
+        </a>
+        <a href="{% url 'accounts:signup' %}"
+           class="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 transition-colors"
+           data-testid="nav-signup">
+          Sign Up
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</aside>

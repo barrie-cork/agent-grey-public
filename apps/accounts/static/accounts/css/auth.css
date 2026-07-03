@@ -1,0 +1,266 @@
+/*
+ * Authentication-specific styles for Agent Grey
+ * Used by login, signup, password reset templates
+ */
+
+/* =============================================================================
+   Authentication Container
+   ============================================================================= */
+.auth-container {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.auth-card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    border: none;
+    max-width: 400px;
+    width: 100%;
+}
+
+.auth-card .card-body {
+    padding: 2.5rem;
+}
+
+/* =============================================================================
+   Authentication Form Elements
+   ============================================================================= */
+.auth-form .form-control {
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #ced4da;
+    transition: all 0.15s ease-in-out;
+}
+
+.auth-form .form-control:focus {
+    border-color: var(--tg-color-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--tg-color-primary-rgb), 0.25);
+    outline: none;
+}
+
+.auth-form .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+/* =============================================================================
+   Authentication Buttons
+   ============================================================================= */
+.auth-form .btn-primary {
+    background-color: var(--tg-color-primary);
+    border-color: var(--tg-color-primary);
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    border-radius: var(--tg-radius-form);
+    transition: var(--tg-transition-all);
+}
+
+.auth-form .btn-primary:hover {
+    background-color: var(--tg-color-primary-hover);
+    border-color: var(--tg-color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 0.25rem 0.5rem rgba(var(--tg-color-primary-rgb), 0.2);
+}
+
+.auth-form .btn-primary:active {
+    transform: translateY(0);
+}
+
+/* =============================================================================
+   Authentication Links
+   ============================================================================= */
+.auth-links a {
+    color: var(--tg-color-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--tg-transition-colors);
+}
+
+.auth-links a:hover {
+    color: var(--tg-color-primary-hover);
+    text-decoration: underline;
+}
+
+/* =============================================================================
+   Authentication Header
+   ============================================================================= */
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-header h2 {
+    color: var(--tg-color-primary);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.auth-header p {
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+/* =============================================================================
+   Error Messages
+   ============================================================================= */
+.auth-form .invalid-feedback {
+    display: block;
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.auth-form .alert {
+    border-radius: 0.375rem;
+    border: none;
+    font-size: 0.875rem;
+}
+
+.auth-form .alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #721c24;
+}
+
+/* =============================================================================
+   Authentication Divider
+   ============================================================================= */
+.auth-divider {
+    margin: 1.5rem 0;
+    border-color: #e9ecef;
+}
+
+/* =============================================================================
+   Password Strength Indicator
+   ============================================================================= */
+.password-strength {
+    margin-top: 0.5rem;
+}
+
+.password-strength-bar {
+    height: 4px;
+    border-radius: 2px;
+    background-color: #e9ecef;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.password-strength-fill {
+    height: 100%;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.password-strength-weak .password-strength-fill {
+    width: 33%;
+    background-color: #dc3545;
+}
+
+.password-strength-medium .password-strength-fill {
+    width: 66%;
+    background-color: #ffc107;
+}
+
+.password-strength-strong .password-strength-fill {
+    width: 100%;
+    background-color: #198754;
+}
+
+.password-strength-text {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    color: #6c757d;
+}
+
+/* =============================================================================
+   Remember Me Checkbox
+   ============================================================================= */
+.auth-form .form-check {
+    margin: 1rem 0;
+}
+
+.auth-form .form-check-input:checked {
+    background-color: var(--tg-color-primary);
+    border-color: var(--tg-color-primary);
+}
+
+.auth-form .form-check-input:focus {
+    border-color: var(--tg-color-primary);
+    outline: none;
+    box-shadow: 0 0 0 0.25rem rgba(var(--tg-color-primary-rgb), 0.25);
+}
+
+.auth-form .form-check-label {
+    color: #495057;
+    font-weight: 500;
+}
+
+/* =============================================================================
+   Responsive Design
+   ============================================================================= */
+@media (max-width: 576px) {
+    .auth-card .card-body {
+        padding: 2rem 1.5rem;
+    }
+
+    .auth-header h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* =============================================================================
+   Loading State
+   ============================================================================= */
+.auth-form .btn-primary.loading {
+    position: relative;
+    color: transparent;
+}
+
+.auth-form .btn-primary.loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* =============================================================================
+   Success States
+   ============================================================================= */
+.auth-success {
+    text-align: center;
+    padding: 2rem;
+}
+
+.auth-success .success-icon {
+    color: #198754;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.auth-success h3 {
+    color: #198754;
+    margin-bottom: 1rem;
+}
+
+.auth-success p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}

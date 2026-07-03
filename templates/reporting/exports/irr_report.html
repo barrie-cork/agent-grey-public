@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inter-Rater Reliability Report - {{ session.title }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+            }
+        }
+
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 20pt;
+            color: #0A2D45;
+            margin-bottom: 0.5cm;
+            border-bottom: 3px solid #0A2D45;
+            padding-bottom: 0.3cm;
+        }
+
+        h2 {
+            font-size: 16pt;
+            color: #0A2D45;
+            margin-top: 1cm;
+            margin-bottom: 0.4cm;
+        }
+
+        h3 {
+            font-size: 13pt;
+            color: #0A2D45;
+            margin-top: 0.6cm;
+            margin-bottom: 0.3cm;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1cm;
+        }
+
+        .header h1 {
+            border-bottom: none;
+            margin-bottom: 0.2cm;
+        }
+
+        .header .subtitle {
+            font-size: 12pt;
+            color: #666;
+        }
+
+        .meta-info {
+            background-color: #f8f9fa;
+            padding: 0.5cm;
+            border-radius: 5px;
+            margin-bottom: 1cm;
+        }
+
+        .meta-info table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .meta-info td {
+            padding: 0.2cm 0;
+        }
+
+        .meta-info td:first-child {
+            font-weight: bold;
+            width: 40%;
+        }
+
+        .metrics-summary {
+            display: flex;
+            justify-content: space-around;
+            margin: 1cm 0;
+            page-break-inside: avoid;
+        }
+
+        .metric-card {
+            flex: 1;
+            text-align: center;
+            padding: 0.5cm;
+            margin: 0 0.3cm;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 24pt;
+            font-weight: bold;
+            display: block;
+            margin: 0.2cm 0;
+        }
+
+        .metric-label {
+            font-size: 10pt;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .kappa-good {
+            color: #28a745;
+        }
+
+        .kappa-moderate {
+            color: #ffc107;
+        }
+
+        .kappa-poor {
+            color: #dc3545;
+        }
+
+        .interpretation-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 0.5cm;
+            margin: 0.5cm 0;
+            page-break-inside: avoid;
+        }
+
+        .interpretation-box.good {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .interpretation-box.poor {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .interpretation-box h3 {
+            margin-top: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.5cm 0;
+        }
+
+        table th {
+            background-color: #0A2D45;
+            color: white;
+            padding: 0.3cm;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        table td {
+            padding: 0.3cm;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .footer {
+            margin-top: 1.5cm;
+            padding-top: 0.5cm;
+            border-top: 1px solid #dee2e6;
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+        }
+
+        .recommendation {
+            background-color: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 0.5cm;
+            margin: 0.5cm 0;
+            page-break-inside: avoid;
+        }
+
+        .recommendation h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        .reference {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 0.5cm;
+            padding: 0.3cm;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>Inter-Rater Reliability Report</h1>
+        <p class="subtitle">Dual-Reviewer Systematic Review Analysis</p>
+    </div>
+
+    <!-- Meta Information -->
+    <div class="meta-info">
+        <table>
+            <tr>
+                <td>Review Title:</td>
+                <td><strong>{{ session.title }}</strong></td>
+            </tr>
+            {% if session.description %}
+            <tr>
+                <td>Description:</td>
+                <td>{{ session.description }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td>Generated:</td>
+                <td>{{ generated_at|date:"d F Y H:i" }}</td>
+            </tr>
+            <tr>
+                <td>Review Owner:</td>
+                <td>{{ session.owner.get_full_name|default:session.owner.username }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Executive Summary -->
+    <h2>Executive Summary</h2>
+    <div class="metrics-summary">
+        <div class="metric-card">
+            <span class="metric-label">Cohen's Kappa</span>
+            <span class="metric-value {% if data.cohens_kappa >= 0.70 %}kappa-good{% elif data.cohens_kappa >= 0.40 %}kappa-moderate{% else %}kappa-poor{% endif %}">
+                {{ data.cohens_kappa|floatformat:3 }}
+            </span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">Agreement</span>
+            <span class="metric-value">{{ data.percentage_agreement|floatformat:1 }}%</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">Total Comparisons</span>
+            <span class="metric-value">{{ data.total_comparisons }}</span>
+        </div>
+    </div>
+
+    <!-- Interpretation -->
+    <div class="interpretation-box {% if meets_standard %}good{% elif data.cohens_kappa < 0.40 %}poor{% endif %}">
+        <h3>Interpretation</h3>
+        <p><strong>Cohen's Kappa: {{ data.cohens_kappa|floatformat:3 }}</strong></p>
+        <p>
+            {% if data.cohens_kappa >= 0.80 %}
+                <strong>Almost Perfect Agreement</strong> - The reviewers demonstrate exceptional consistency in their screening decisions. This indicates a highly reliable review process.
+            {% elif data.cohens_kappa >= 0.60 %}
+                <strong>Substantial Agreement</strong> - The reviewers show strong agreement in their screening decisions, indicating a reliable review process.
+            {% elif data.cohens_kappa >= 0.40 %}
+                <strong>Moderate Agreement</strong> - The reviewers show acceptable but improvable agreement. Consider discussing disagreements to improve calibration.
+            {% elif data.cohens_kappa >= 0.20 %}
+                <strong>Fair Agreement</strong> - The reviewers show limited agreement. Recalibration is recommended before continuing the review.
+            {% else %}
+                <strong>Slight Agreement</strong> - The reviewers show poor agreement. Immediate recalibration is required.
+            {% endif %}
+        </p>
+        <p>
+            {% if meets_standard %}
+                <strong>✓ Meets Cochrane Standard</strong> - This IRR value meets the Cochrane minimum standard of κ ≥ 0.70 for systematic reviews.
+            {% else %}
+                <strong>⚠ Below Cochrane Standard</strong> - This IRR value is below the Cochrane minimum standard of κ ≥ 0.70. Reviewer recalibration is recommended.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Detailed Metrics -->
+    <h2>Detailed Analysis</h2>
+
+    <h3>Agreement Breakdown</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+                <th>Percentage</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Comparisons</td>
+                <td>{{ data.total_comparisons }}</td>
+                <td>100%</td>
+            </tr>
+            <tr>
+                <td>Agreements</td>
+                <td>{{ data.agreements }}</td>
+                <td>{{ data.percentage_agreement|floatformat:1 }}%</td>
+            </tr>
+            <tr>
+                <td>Disagreements</td>
+                <td>{{ data.disagreements }}</td>
+                <td>{{ 100|add:"-"|add:data.percentage_agreement|floatformat:1 }}%</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if data.conflict_breakdown %}
+    <h3>Conflict Type Breakdown</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Conflict Type</th>
+                <th>Count</th>
+                <th>Percentage of Conflicts</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for conflict_type, count in data.conflict_breakdown.items %}
+            <tr>
+                <td>{{ conflict_type }}</td>
+                <td>{{ count }}</td>
+                <td>{{ count|multiply:100|divide:data.disagreements|floatformat:1 }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if data.cohens_kappa_ci_lower and data.cohens_kappa_ci_upper %}
+    <h3>Confidence Interval</h3>
+    <p>
+        <strong>95% Confidence Interval:</strong>
+        [{{ data.cohens_kappa_ci_lower|floatformat:3 }}, {{ data.cohens_kappa_ci_upper|floatformat:3 }}]
+    </p>
+    <p class="reference">
+        The 95% confidence interval indicates the range within which we can be 95% confident that the true IRR value lies.
+        A narrow interval indicates more precise measurement.
+    </p>
+    {% endif %}
+
+    <!-- Reviewer Pairs -->
+    {% if data.reviewer_pairs %}
+    <h3>Reviewer Pair Analysis</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Reviewer A</th>
+                <th>Reviewer B</th>
+                <th>Cohen's Kappa</th>
+                <th>Agreement</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pair in data.reviewer_pairs %}
+            <tr>
+                <td>{{ pair.reviewer_a }}</td>
+                <td>{{ pair.reviewer_b }}</td>
+                <td class="{% if pair.cohens_kappa >= 0.70 %}kappa-good{% elif pair.cohens_kappa >= 0.40 %}kappa-moderate{% else %}kappa-poor{% endif %}">
+                    {{ pair.cohens_kappa|floatformat:3 }}
+                </td>
+                <td>{{ pair.percentage_agreement|floatformat:1 }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Recommendation -->
+    <div class="recommendation">
+        <h3>Recommendation</h3>
+        <p>{{ recommendation }}</p>
+
+        {% if not meets_standard %}
+        <p><strong>Action Required:</strong></p>
+        <ul>
+            <li>Conduct calibration session with reviewers to discuss disagreements</li>
+            <li>Review screening criteria and ensure clarity in decision-making rules</li>
+            <li>Consider involving a third reviewer for ongoing quality assurance</li>
+            <li>Re-calculate IRR after addressing calibration issues</li>
+        </ul>
+        {% endif %}
+    </div>
+
+    <!-- Reference Information -->
+    <div class="reference">
+        <h3>Reference Standards</h3>
+        <p><strong>Cochrane Handbook:</strong> Minimum κ ≥ 0.70 for systematic reviews</p>
+        <p><strong>Landis & Koch (1977) Interpretation:</strong></p>
+        <ul style="margin: 0.2cm 0; padding-left: 1cm;">
+            <li>&lt; 0.20: Slight agreement</li>
+            <li>0.20 - 0.40: Fair agreement</li>
+            <li>0.40 - 0.60: Moderate agreement</li>
+            <li>0.60 - 0.80: Substantial agreement</li>
+            <li>0.80 - 1.00: Almost perfect agreement</li>
+        </ul>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>
+            Generated by Agent Grey | Grey Literature Review Application<br>
+            PRISMA 2020 Compliant Systematic Review Reporting<br>
+            Report Generated: {{ generated_at|date:"d F Y H:i" }} UTC
+        </p>
+    </div>
+</body>
+</html>

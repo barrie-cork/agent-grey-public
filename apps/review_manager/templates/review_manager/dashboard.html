@@ -1,0 +1,188 @@
+{% extends "review_manager/base.html" %}
+{% load static %}
+
+{% block title %}Your Literature Reviews - Agent Grey{% endblock %}
+
+{% block content %}
+<div class="py-2">
+    <!-- Header Section -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-foreground mb-4">Your Grey Literature Reviews</h1>
+            <div class="flex flex-wrap gap-2">
+                <button type="button"
+                        class="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-sm font-medium text-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-200"
+                        data-filter="all" data-testid="filter-total">
+                    <svg class="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    <strong class="text-xl">{{ total_sessions }}</strong> Total
+                </button>
+                <button type="button"
+                        class="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-sm font-medium text-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-200"
+                        data-filter="active" data-testid="filter-active">
+                    <svg class="h-5 w-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <strong class="text-xl">{{ active_sessions }}</strong> Active
+                </button>
+                <button type="button"
+                        class="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-sm font-medium text-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-200"
+                        data-filter="completed" data-testid="filter-completed">
+                    <svg class="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <strong class="text-xl">{{ completed_sessions }}</strong> Completed
+                </button>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4">
+            <!-- Search Section -->
+            <form method="get" class="flex-1" id="dashboard-filter-form">
+                <div class="relative">
+                    <input type="text"
+                           name="q"
+                           value="{{ search_query }}"
+                           placeholder="Search sessions..."
+                           class="block w-full rounded-md border-input pl-4 pr-10 py-2 shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
+                           data-testid="input-search-sessions"
+                           aria-label="Search sessions">
+                    <input type="hidden" name="status" value="{{ current_filter }}" id="status-filter">
+                </div>
+            </form>
+
+            <a href="{% url 'review_manager:create_session' %}"
+               class="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+               data-testid="create-session-btn">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                New Review Session
+            </a>
+        </div>
+    </div>
+
+    <!-- Pending Invitations Preview -->
+    {% if pending_invitations %}
+    <div class="rounded-lg border-l-4 border-info bg-info-light p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-info mb-1 flex items-center gap-2">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    Pending Invitations
+                </h3>
+                <p class="text-sm text-info">
+                    You have {{ pending_invitations_count }} pending invitation{{ pending_invitations_count|pluralize }}.
+                </p>
+            </div>
+            <a href="{% url 'review_manager:pending_invitations' %}"
+               class="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+               data-testid="link-view-invitations">
+                View All Invitations
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- My Reviews Section -->
+    <div class="mb-10">
+        <h2 class="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <svg class="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            My Reviews
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for session in owned_sessions %}
+                {% include 'review_manager/components/session_card.html' with session=session %}
+            {% empty %}
+            <div class="col-span-full rounded-lg border border-border bg-card p-8 text-center">
+                <svg class="mx-auto h-12 w-12 text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <p class="text-muted-foreground mb-4">You haven't created any review sessions yet.</p>
+                <a href="{% url 'review_manager:create_session' %}"
+                   class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                   data-testid="create-first-session-btn">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Create First Session
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Shared With Me Section -->
+    {% if shared_sessions %}
+    <div class="mb-10">
+        <h2 class="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+            <svg class="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            Shared With Me
+        </h2>
+        <p class="text-sm text-muted-foreground mb-4">
+            Review sessions where you've been invited as a reviewer.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for session in shared_sessions %}
+                {% include 'review_manager/components/session_card.html' with session=session is_shared=True %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="flex justify-center">
+        <ul class="inline-flex items-center -space-x-px">
+            {% if page_obj.has_previous %}
+            <li>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_filter != 'all' %}&status={{ current_filter }}{% endif %}"
+                   class="px-3 py-2 rounded-l-lg border border-border bg-card text-sm text-muted-foreground hover:bg-muted focus:ring-2 focus:ring-ring">
+                    Previous
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+            <li>
+                <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_filter != 'all' %}&status={{ current_filter }}{% endif %}"
+                   class="px-3 py-2 border border-border text-sm {% if page_obj.number == num %}bg-primary/10 text-primary font-medium{% else %}bg-card text-muted-foreground hover:bg-muted{% endif %} focus:ring-2 focus:ring-ring">
+                    {{ num }}
+                </a>
+            </li>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li>
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_filter != 'all' %}&status={{ current_filter }}{% endif %}"
+                   class="px-3 py-2 rounded-r-lg border border-border bg-card text-sm text-muted-foreground hover:bg-muted focus:ring-2 focus:ring-ring">
+                    Next
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Delete session confirmation
+    document.querySelectorAll('.delete-session-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const button = form.querySelector('.delete-session-btn');
+            const sessionTitle = button.dataset.sessionTitle;
+
+            const confirmMessage = `Are you sure you want to permanently delete the session "${sessionTitle}"?\n\nThis action cannot be undone and will delete:\n• All search queries and results\n• All review decisions\n• All generated reports\n• All associated data`;
+
+            if (confirm(confirmMessage)) {
+                form.submit();
+            }
+        });
+    });
+
+    // Filter functionality
+    document.querySelectorAll('[data-filter]').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const filter = button.dataset.filter;
+            const statusFilter = document.getElementById('status-filter');
+            statusFilter.value = filter === 'all' ? '' : filter;
+            document.getElementById('dashboard-filter-form').submit();
+        });
+    });
+});
+</script>
+{% endblock %}

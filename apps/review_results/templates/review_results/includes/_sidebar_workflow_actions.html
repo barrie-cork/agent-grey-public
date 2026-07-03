@@ -1,0 +1,47 @@
+<!-- Workflow Actions -->
+{% if session.status in 'ready_for_review,under_review' %}
+<div class="h-px bg-border mt-4 mb-3"></div>
+<div class="flex flex-col gap-2">
+    <!-- Workflow #2: Multi-Reviewer Completion -->
+    {% if session.current_configuration.is_workflow_2 %}
+    <button type="button"
+        class="w-full px-3 py-2 text-[10px] uppercase font-bold tracking-widest rounded bg-success text-white hover:bg-success-dark shadow-sm"
+        onclick="document.getElementById('completionModal').showModal()"
+        data-testid="mark-complete-button">
+        Mark My Review Complete
+    </button>
+    {% else %}
+    <!-- Workflow #1: Single-Reviewer Completion -->
+    <form method="post" action="{% url 'review_results:complete_review' session_id=session.id %}" id="wf1CompleteForm">
+        {% csrf_token %}
+        <button type="button"
+            class="w-full px-3 py-2 text-[10px] uppercase font-bold tracking-widest rounded bg-success text-white hover:bg-success-dark shadow-sm"
+            onclick="document.getElementById('wf1CompletionModal').showModal()"
+            data-testid="complete-review-btn">
+            Complete Review
+        </button>
+    </form>
+    {% endif %}
+
+    <div class="flex gap-2">
+        {% if session.status in 'ready_to_execute,executing,processing_results,ready_for_review,under_review' %}
+        <a href="{% url 'search_strategy:strategy_form' session.id %}"
+            class="flex-1 text-center px-1 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded border border-warning text-warning-dark hover:bg-warning/10"
+            data-testid="return-to-search-strategy-btn">
+            Modify Strategy
+        </a>
+        {% endif %}
+
+        <form method="post" action="{% url 'review_results:reset_reviews' session_id=session.id %}"
+            id="reset-reviews-form" class="flex-1">
+            {% csrf_token %}
+            <button type="submit"
+                class="w-full text-center px-1 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded border border-destructive/50 text-destructive-dark hover:bg-destructive/10"
+                id="reset-reviews-btn" data-testid="reset-reviews-btn"
+                onclick="return confirm('Are you sure you want to reset all review decisions? This cannot be undone.')">
+                Reset All
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}

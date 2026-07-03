@@ -1,0 +1,27 @@
+{# Reusable Form Field Component - Tailwind CSS #}
+{# Usage with Django form field object: #}
+{#   include 'components/form-field.html' with field=form.email #}
+{# Optional: data_testid='input-email' extra_classes='mb-6' input_type='email' rows='4' #}
+<div class="{{ extra_classes|default:'mb-4' }}">
+    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-foreground mb-1">
+        {{ field.label }}{% if field.field.required %}<span class="text-destructive ml-1">*</span>{% endif %}
+    </label>
+    {% if rows %}
+        <textarea name="{{ field.name }}"
+                  id="{{ field.id_for_label }}"
+                  rows="{{ rows|default:'4' }}"
+                  class="block w-full rounded-lg border border-input bg-background px-4 py-2.5 shadow-sm focus:border-primary focus:ring-2 focus:ring-ring/20 sm:text-sm placeholder:text-muted-foreground {% if field.errors %}border-destructive{% endif %}"
+                  {% if data_testid %}data-testid="{{ data_testid }}"{% endif %}
+                  {% if field.field.required %}required{% endif %}>{{ field.value|default:'' }}</textarea>
+    {% else %}
+        <input type="{{ input_type|default:'text' }}"
+               name="{{ field.name }}"
+               id="{{ field.id_for_label }}"
+               value="{{ field.value|default:'' }}"
+               class="block w-full rounded-lg border border-input bg-background px-4 py-2.5 shadow-sm focus:border-primary focus:ring-2 focus:ring-ring/20 sm:text-sm placeholder:text-muted-foreground {% if field.errors %}border-destructive{% endif %}"
+               {% if data_testid %}data-testid="{{ data_testid }}"{% endif %}
+               {% if field.field.required %}required{% endif %}>
+    {% endif %}
+    {% if field.help_text %}<p class="mt-1 text-sm text-muted-foreground">{{ field.help_text }}</p>{% endif %}
+    {% if field.errors %}<p class="mt-1 text-sm text-destructive">{{ field.errors.0 }}</p>{% endif %}
+</div>

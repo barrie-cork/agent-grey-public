@@ -1,0 +1,117 @@
+/* Review Results Overview CSS */
+
+/*
+ * Design Token Bridge
+ * Mirrors values from frontend/src/assets/styles/tokens.css for Django-served static CSS.
+ * Remove when templates fully migrate to Tailwind utilities.
+ */
+:root {
+    --review-success: oklch(0.52 0.14 145);
+    --review-success-bg: oklch(0.52 0.14 145 / 0.05);
+    --review-destructive: oklch(0.52 0.20 25);
+    --review-destructive-bg: oklch(0.52 0.20 25 / 0.05);
+    --review-warning: oklch(0.78 0.16 75);
+    --review-warning-bg: oklch(0.78 0.16 75 / 0.05);
+    --review-muted: oklch(0.58 0.02 250);
+    --review-primary: oklch(0.55 0.18 250);
+    --review-primary-bg: oklch(0.55 0.18 250 / 0.1);
+}
+
+.result-card {
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+
+.result-card:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Review status indicators */
+.result-card[data-decision="include"] {
+    border-left-color: var(--review-success);
+    background-color: var(--review-success-bg);
+}
+
+.result-card[data-decision="exclude"] {
+    border-left-color: var(--review-destructive);
+    background-color: var(--review-destructive-bg);
+}
+
+.result-card[data-decision="maybe"] {
+    border-left-color: var(--review-warning);
+    background-color: var(--review-warning-bg);
+}
+
+.result-card[data-decision="pending"] {
+    border-left-color: var(--review-muted);
+}
+
+/* Decision buttons */
+.decision-buttons {
+    gap: 0.5rem;
+}
+
+.decision-buttons .btn {
+    min-width: 80px;
+    font-size: 0.875rem;
+}
+
+/* Review controls */
+.review-controls {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.additional-actions {
+    margin-top: auto;
+}
+
+/* Notes preview */
+.review-notes-preview {
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+.result-checkbox {
+    cursor: pointer;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.result-card.selected {
+    background-color: var(--review-primary-bg);
+    border-color: var(--review-primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .result-card .row {
+        flex-direction: column;
+    }
+
+    .review-controls {
+        text-align: left !important;
+        margin-top: 1rem;
+    }
+
+    .decision-buttons {
+        justify-content: flex-start;
+    }
+
+    .additional-actions {
+        margin-top: 0.5rem;
+    }
+}
+
+/* Animation for status changes */
+.status-changing {
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}

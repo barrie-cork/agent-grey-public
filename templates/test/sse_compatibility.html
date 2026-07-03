@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}SSE Browser Compatibility Test{% endblock %}
+
+{% block extra_css %}
+<style>
+    .test-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .test-header {
+        background: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .test-controls {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .test-results {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .conflict-id-input {
+        width: 100%;
+        max-width: 400px;
+        padding: 0.5rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        font-family: monospace;
+    }
+
+    .btn-test {
+        background: #0d6efd;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-right: 0.5rem;
+    }
+
+    .btn-test:hover {
+        background: #0b5ed7;
+    }
+
+    .btn-test:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .test-log {
+        background: #212529;
+        color: #00ff00;
+        font-family: 'Courier New', monospace;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        max-height: 500px;
+        overflow-y: auto;
+        margin-top: 1rem;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+
+    .status-success {
+        background: #198754;
+    }
+
+    .status-error {
+        background: #dc3545;
+    }
+
+    .status-warning {
+        background: #ffc107;
+    }
+
+    .status-info {
+        background: #0dcaf0;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .metric-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    .browser-info {
+        background: #fff3cd;
+        border: 1px solid #ffe69c;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="test-container">
+    <div class="test-header">
+        <h1>
+            <span class="status-indicator status-info"></span>
+            SSE Browser Compatibility Test
+        </h1>
+        <p class="mb-0 mt-2">Test Server-Sent Events (SSE) functionality across different browsers</p>
+    </div>
+
+    <div class="browser-info">
+        <strong>Browser Detected:</strong> <span id="browserName">Detecting...</span>
+        <br>
+        <strong>EventSource Support:</strong> <span id="eventSourceSupport">Checking...</span>
+    </div>
+
+    <div class="test-controls">
+        <h3>Test Configuration</h3>
+
+        <div class="mb-3">
+            <label for="conflictId" class="form-label">Conflict ID:</label>
+            <input
+                type="text"
+                id="conflictId"
+                class="conflict-id-input"
+                value="e280878b-491e-4d86-88c5-95389a4fe658"
+                placeholder="Enter conflict UUID"
+            >
+            <small class="form-text text-muted d-block mt-1">
+                Default conflict ID from test data. Change if needed.
+            </small>
+        </div>
+
+        <div class="mt-4">
+            <button id="runTests" class="btn-test">Run SSE Tests</button>
+            <button id="clearLog" class="btn-test" style="background: #6c757d;">Clear Log</button>
+        </div>
+    </div>
+
+    <div class="test-results">
+        <h3>Test Results</h3>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-value" id="connectionLatency">-</div>
+                <div class="metric-label">Connection Latency (ms)</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-value" id="eventsReceived">0</div>
+                <div class="metric-label">Events Received</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-value" id="reconnectTime">-</div>
+                <div class="metric-label">Reconnect Time (ms)</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-value" id="testStatus">IDLE</div>
+                <div class="metric-label">Test Status</div>
+            </div>
+        </div>
+
+        <div class="test-log" id="testLog">
+=== SSE Browser Compatibility Test ===
+Ready to run tests. Click "Run SSE Tests" to begin.
+
+Tests will verify:
+- EventSource API support
+- Connection establishment
+- Event delivery
+- Reconnection handling
+- Keepalive messages (every 30s)
+- Browser-specific polyfills (Safari)
+
+Thresholds:
+- Connection latency: <500ms
+- Reconnection time: <2s
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'js/test-utils/sse_browser_compatibility.js' %}"></script>
+<script>
+    // Detect browser
+    function detectBrowser() {
+        const ua = navigator.userAgent;
+        let browserName = 'Unknown';
+
+        if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
+            browserName = 'Chrome';
+        } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
+            browserName = 'Safari';
+        } else if (ua.indexOf('Firefox') > -1) {
+            browserName = 'Firefox';
+        } else if (ua.indexOf('Edg') > -1) {
+            browserName = 'Edge';
+        }
+
+        return browserName;
+    }
+
+    // Check EventSource support
+    function checkEventSourceSupport() {
+        return typeof EventSource !== 'undefined';
+    }
+
+    // Update UI
+    document.addEventListener('DOMContentLoaded', function() {
+        const browserName = detectBrowser();
+        const eventSourceSupport = checkEventSourceSupport();
+
+        document.getElementById('browserName').textContent = browserName;
+        document.getElementById('eventSourceSupport').textContent = eventSourceSupport ?
+            'Yes ✓' : 'No ✗ (Polyfill may be loaded)';
+
+        // Run tests button
+        document.getElementById('runTests').addEventListener('click', async function() {
+            const conflictId = document.getElementById('conflictId').value.trim();
+
+            if (!conflictId) {
+                alert('Please enter a conflict ID');
+                return;
+            }
+
+            // Disable button during tests
+            this.disabled = true;
+            this.textContent = 'Running Tests...';
+
+            // Clear previous results
+            document.getElementById('connectionLatency').textContent = '-';
+            document.getElementById('eventsReceived').textContent = '0';
+            document.getElementById('reconnectTime').textContent = '-';
+            document.getElementById('testStatus').textContent = 'RUNNING';
+
+            // Clear log
+            document.getElementById('testLog').textContent =
+                '=== Starting SSE Tests ===\n' +
+                `Browser: ${browserName}\n` +
+                `Conflict ID: ${conflictId}\n\n`;
+
+            try {
+                // Run the SSE compatibility tests
+                // The test script should be loaded and provide a runBrowserTests function
+                if (typeof window.runBrowserTests === 'function') {
+                    await window.runBrowserTests(conflictId);
+                } else {
+                    log('ERROR: SSE test script not loaded or runBrowserTests function not found');
+                    document.getElementById('testStatus').textContent = 'ERROR';
+                }
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+                document.getElementById('testStatus').textContent = 'FAILED';
+            } finally {
+                // Re-enable button
+                this.disabled = false;
+                this.textContent = 'Run SSE Tests';
+            }
+        });
+
+        // Clear log button
+        document.getElementById('clearLog').addEventListener('click', function() {
+            document.getElementById('testLog').textContent =
+                '=== SSE Browser Compatibility Test ===\nLog cleared.\n';
+            document.getElementById('connectionLatency').textContent = '-';
+            document.getElementById('eventsReceived').textContent = '0';
+            document.getElementById('reconnectTime').textContent = '-';
+            document.getElementById('testStatus').textContent = 'IDLE';
+        });
+    });
+
+    // Helper function to log to the test console
+    function log(message) {
+        const testLog = document.getElementById('testLog');
+        testLog.textContent += message + '\n';
+        testLog.scrollTop = testLog.scrollHeight;
+    }
+
+    // Override console.log to capture in our test log
+    const originalConsoleLog = console.log;
+    console.log = function(...args) {
+        originalConsoleLog.apply(console, args);
+        log(args.join(' '));
+    };
+</script>
+{% endblock %}

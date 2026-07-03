@@ -1,0 +1,29 @@
+{% load i18n %}{% autoescape off %}
+{% trans "Welcome to Agent Grey!" %}
+
+{% blocktrans with name=user.get_full_name|default:user.username %}Hello {{ name }},{% endblocktrans %}
+
+{% trans "Thank you for creating an account with Agent Grey! You can now start your systematic grey literature research projects following PRISMA guidelines." %}
+
+{% trans "Your account details:" %}
+{% trans "Username:" %} {{ user.username }}
+{% trans "Email:" %} {{ user.email }}
+
+{% trans "Get started by logging in to your dashboard:" %}
+{{ protocol }}://{{ domain }}{% url 'review_manager:dashboard' %}
+
+{% trans "What you can do with Agent Grey:" %}
+• {% trans "Create systematic literature review sessions" %}
+• {% trans "Define search strategies using the PIC framework" %}
+• {% trans "Execute automated searches via Google Search API" %}
+• {% trans "Review and tag search results" %}
+• {% trans "Generate PRISMA-compliant reports" %}
+
+{% trans "If you have any questions or need help getting started, please don't hesitate to reach out to our support team." %}
+
+{% trans "Best regards," %}
+{% blocktrans %}The {{ site_name }} team{% endblocktrans %}
+
+---
+{% trans "This email was sent because you created an account on" %} {{ site_name }}.
+{% endautoescape %}

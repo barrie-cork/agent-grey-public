@@ -1,0 +1,7 @@
+{# Reusable Badge Component - Tailwind CSS #}
+{# Usage: include 'components/badge.html' with text="New" variant="success" #}
+<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {% if variant == 'success' %}bg-success-light text-success{% elif variant == 'danger' or variant == 'error' %}bg-destructive-light text-destructive{% elif variant == 'warning' %}bg-warning-light text-warning-foreground{% elif variant == 'info' %}bg-info-light text-info{% elif variant == 'secondary' %}bg-secondary text-secondary-foreground{% else %}bg-info-light text-info{% endif %} {{ extra_classes|default:'' }}"
+      {% if id %}id="{{ id }}"{% endif %}
+      {% if title %}title="{{ title }}"{% endif %}>
+  {{ text }}
+</span>

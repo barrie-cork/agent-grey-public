@@ -1,0 +1,29 @@
+Conflict Detected - {{ session_title }}
+
+Hi {{ reviewer_name }},
+
+A conflict has been detected on Result #{{ result_number }}:
+
+{{ result_title }}
+{% if result_url %}URL: {{ result_url }}{% endif %}
+{% if result_snippet %}{{ result_snippet|truncatewords:30 }}{% endif %}
+
+You voted: {{ reviewer_decision }}
+Co-reviewer voted: {{ other_decision }}
+
+Please discuss with your co-reviewer to reach consensus.
+
+View Conflict: {{ conflict_url }}
+
+Next Steps:
+• Contact your co-reviewer to discuss the decision
+• Review the full report if needed
+• Update your decision if you reach consensus
+• If no consensus is reached, the conflict will be escalated to an arbitrator
+
+---
+This notification was sent because you are assigned to this review and a conflict was detected on one of your decisions.
+
+Manage notification preferences: {{ preferences_url }}
+
+© {% now "Y" %} Agent Grey. All rights reserved.

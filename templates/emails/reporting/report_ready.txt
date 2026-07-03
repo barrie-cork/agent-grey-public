@@ -1,0 +1,27 @@
+Report Ready - {{ report_title }}
+
+Hello {{ user_name }},
+
+Your report has been generated and is ready for download.
+
+===============================
+REPORT DETAILS
+===============================
+
+Title: {{ report_title }}
+Session: {{ session_title }}
+Report Type: {{ report_type }}
+Format: {{ export_format }}
+File Size: {{ file_size }}
+{% if expires_at %}Available Until: {{ expires_at|date:"d F Y" }}{% endif %}
+
+Download your report: {{ download_url }}
+
+You can also download this report from your session page: {{ session_url }}
+
+---
+This notification was sent because you generated a report in Agent Grey.
+
+Manage notification preferences: {{ preferences_url }}
+
+© {% now "Y" %} Agent Grey. All rights reserved.

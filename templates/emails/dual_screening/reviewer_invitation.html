@@ -1,0 +1,59 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Invitation to Review Session - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Dear {{ invitee_name }},
+</div>
+
+<div class="content">
+    <p>You have been invited by <strong>{{ inviter_name }}</strong> to collaborate on the grey literature review session:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ session_title }}</h2>
+    <p><span class="label">Session Owner:</span> {{ inviter_name }}</p>
+    <p><span class="label">Review Type:</span> Grey Literature Screening</p>
+    {% if session_description %}
+    <p><span class="label">Description:</span> {{ session_description|truncatewords:50 }}</p>
+    {% endif %}
+    <p><span class="label">Total Results:</span> {{ total_results }} sources to review</p>
+</div>
+
+<div class="content">
+    <h3 style="color: #2c3e50;">As a reviewer, you will:</h3>
+    <ul style="color: #555555;">
+        <li>Access all search results and review materials for this session</li>
+        <li>Screen sources based on title, snippet, and URL (grey literature pattern)</li>
+        <li>Make independent inclusion/exclusion decisions</li>
+        <li>Collaborate with other reviewers for dual-screening consensus</li>
+        <li>Contribute to a PRISMA 2020-compliant systematic review</li>
+    </ul>
+</div>
+
+<div class="button-container">
+    <a href="{{ magic_link }}" class="button">Accept Invitation</a>
+</div>
+
+<div class="alert-box">
+    <p style="margin: 0;"><strong>⏰ This invitation expires in {{ expires_days }} day{{ expires_days|pluralize }}.</strong></p>
+    <p style="margin: 5px 0 0 0; font-size: 14px;">Expires on: {{ expires_at|date:"F j, Y" }} at {{ expires_at|time:"g:i A" }}</p>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>About Grey Literature Reviews:</strong>
+        <br>This session focuses on grey literature sources (government reports, policy documents, clinical guidelines, organisational publications).
+        Unlike traditional database searches, grey literature screening emphasises evaluating source credibility, organisational authorship,
+        and relevance based on limited metadata.
+    </p>
+    <p style="font-size: 14px; color: #6c757d; margin-top: 15px;">
+        If you have any questions or cannot accept this invitation, please contact {{ inviter_name }} directly.
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This invitation was sent by {{ inviter_name }} who values your collaboration on this systematic review project.
+{% endblock %}

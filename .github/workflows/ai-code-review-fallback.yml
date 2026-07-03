@@ -1,0 +1,376 @@
+name: 'AI Code Review - Fallback (MiniMax M3)'
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+      reason:
+        description: 'Reason for fallback'
+        required: true
+        type: choice
+        options:
+          - copilot_quota_exceeded
+          - copilot_error
+          - copilot_timeout
+          - manual
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # Risk-based triage to conserve API quota
+  triage:
+    runs-on: ubuntu-latest
+    outputs:
+      should_review: ${{ steps.classify.outputs.should_review }}
+      priority: ${{ steps.classify.outputs.priority }}
+      risk_score: ${{ steps.classify.outputs.risk_score }}
+      changed_files: ${{ steps.classify.outputs.changed_files }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify PR risk level
+        id: classify
+        run: |
+          # Get changed files
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BASE_REF="origin/main"
+            git fetch origin pull/${{ inputs.pr_number }}/head:pr-${{ inputs.pr_number }}
+            git checkout pr-${{ inputs.pr_number }}
+          else
+            BASE_REF="origin/${{ github.base_ref }}"
+          fi
+
+          # Calculate risk score based on file patterns
+          RISK=0
+          CHANGED_FILES=$(git diff --name-only $BASE_REF...HEAD | grep '\.py$' || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "should_review=false" >> $GITHUB_OUTPUT
+            echo "No Python files changed"
+            exit 0
+          fi
+
+          # High-risk patterns
+          echo "$CHANGED_FILES" | while read file; do
+            case "$file" in
+              */models.py)
+                RISK=$((RISK + 10))
+                echo "High risk: models.py change (+10)"
+                ;;
+              */migrations/*)
+                RISK=$((RISK + 8))
+                echo "High risk: migration (+8)"
+                ;;
+              */tasks.py)
+                RISK=$((RISK + 7))
+                echo "High risk: Celery task (+7)"
+                ;;
+              */views.py|*/services/*.py)
+                RISK=$((RISK + 5))
+                echo "Medium risk: view/service (+5)"
+                ;;
+              */middleware/*.py)
+                RISK=$((RISK + 6))
+                echo "Medium-high risk: middleware (+6)"
+                ;;
+              */tests/*)
+                RISK=$((RISK + 1))
+                echo "Low risk: test file (+1)"
+                ;;
+            esac
+          done
+
+          # Save changed files for review
+          echo "$CHANGED_FILES" > changed_files.txt
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          cat changed_files.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "risk_score=$RISK" >> $GITHUB_OUTPUT
+
+          # Determine priority and whether to review
+          if [ $RISK -ge 20 ]; then
+            echo "priority=critical" >> $GITHUB_OUTPUT
+            echo "should_review=true" >> $GITHUB_OUTPUT
+            echo "Priority: CRITICAL (risk=$RISK)"
+          elif [ $RISK -ge 10 ]; then
+            echo "priority=high" >> $GITHUB_OUTPUT
+            echo "should_review=true" >> $GITHUB_OUTPUT
+            echo "Priority: HIGH (risk=$RISK)"
+          elif [ $RISK -ge 5 ]; then
+            echo "priority=medium" >> $GITHUB_OUTPUT
+            # Only review medium if labeled or manual trigger
+            if [ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ai-review') }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "should_review=true" >> $GITHUB_OUTPUT
+              echo "Priority: MEDIUM (risk=$RISK, labeled)"
+            else
+              echo "should_review=false" >> $GITHUB_OUTPUT
+              echo "Priority: MEDIUM (risk=$RISK, skipping to conserve quota)"
+            fi
+          else
+            echo "priority=low" >> $GITHUB_OUTPUT
+            echo "should_review=false" >> $GITHUB_OUTPUT
+            echo "Priority: LOW (risk=$RISK, skipping)"
+          fi
+
+      - name: Upload changed files
+        if: steps.classify.outputs.should_review == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: changed-files
+          path: changed_files.txt
+
+  # AI-powered code review
+  ai-review:
+    needs: triage
+    if: needs.triage.outputs.should_review == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Download changed files list
+        uses: actions/download-artifact@v4.1.3
+        with:
+          name: changed-files
+
+      - name: Start Review Timer
+        id: review-timer
+        run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Check rate limits
+        id: rate-check
+        run: |
+          python .github/scripts/rate_limit_tracker.py check low
+          CAN_REQUEST=$?
+
+          if [ $CAN_REQUEST -eq 0 ]; then
+            echo "quota_available=true" >> $GITHUB_OUTPUT
+            REMAINING=$(python .github/scripts/rate_limit_tracker.py stats | jq -r '.low_tier.remaining')
+            echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
+          else
+            echo "quota_available=false" >> $GITHUB_OUTPUT
+            echo "remaining=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Load Agent Grey context
+        if: steps.rate-check.outputs.quota_available == 'true'
+        id: context
+        run: |
+          # Load appropriate prompt based on priority
+          pip install pyyaml
+          python << 'EOF'
+          import yaml
+          with open('.github/prompts/agent_grey_context.yml') as f:
+              prompts = yaml.safe_load(f)
+
+          priority = "${{ needs.triage.outputs.priority }}"
+
+          # Combine base context with focus area
+          system_prompt = prompts['system_prompt']
+
+          if priority == 'critical':
+              system_prompt += "\n\n" + prompts['security_focus_prompt']
+
+          # Save to file for AI inference
+          with open('system_prompt.txt', 'w') as f:
+              f.write(system_prompt)
+          EOF
+
+      - name: Prepare code for review
+        if: steps.rate-check.outputs.quota_available == 'true'
+        run: |
+          # Extract changed files content
+          cat changed_files.txt | head -20 | while read file; do
+            if [ -f "$file" ]; then
+              echo "=== FILE: $file ===" >> code_review.txt
+              cat "$file" >> code_review.txt
+              echo -e "\n\n" >> code_review.txt
+            fi
+          done
+
+          # Truncate if too large (stay under 8000 token limit ≈ 32KB)
+          if [ $(wc -c < code_review.txt) -gt 30000 ]; then
+            head -c 30000 code_review.txt > code_review_truncated.txt
+            echo -e "\n\n[... truncated for token limit ...]" >> code_review_truncated.txt
+            mv code_review_truncated.txt code_review.txt
+          fi
+
+      - name: AI Security & Quality Analysis
+        if: steps.rate-check.outputs.quota_available == 'true'
+        id: ai-review
+        continue-on-error: true
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+        run: |
+          # Use MiniMax M3 API directly
+          SYSTEM_PROMPT=$(cat system_prompt.txt)
+          CODE_CONTENT=$(cat code_review.txt)
+
+          # Choose tier based on priority (model is MiniMax M3 for all)
+          MODEL="MiniMax-M3"
+          if [ "${{ needs.triage.outputs.priority }}" = "critical" ]; then
+            TIER="high"
+          else
+            TIER="low"
+          fi
+
+          # Make API request
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $MINIMAX_API_KEY" \
+            -H "Content-Type: application/json" \
+            https://api.minimax.io/v1/chat/completions \
+            -d "{
+              \"messages\": [
+                {\"role\": \"system\", \"content\": $(echo "$SYSTEM_PROMPT" | jq -Rs .)},
+                {\"role\": \"user\", \"content\": $(echo "Review this Django code for security issues, bugs, and quality problems:\n\n$CODE_CONTENT" | jq -Rs .)}
+              ],
+              \"model\": \"$MODEL\",
+              \"thinking\": {\"type\": \"disabled\"},
+              \"temperature\": 0.3,
+              \"max_tokens\": 4000
+            }")
+
+          # Extract review content
+          REVIEW=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "ERROR: No response"')
+
+          # Save review
+          echo "$REVIEW" > ai_review.md
+
+          # Record API usage
+          TOKENS=$(echo "$RESPONSE" | jq -r '.usage.total_tokens // 0')
+          python .github/scripts/rate_limit_tracker.py record $TIER "$MODEL" $TOKENS
+
+          echo "review_completed=true" >> $GITHUB_OUTPUT
+
+      - name: Post AI review comment
+        if: steps.ai-review.outputs.review_completed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('ai_review.md', 'utf8');
+            const priority = '${{ needs.triage.outputs.priority }}';
+            const riskScore = '${{ needs.triage.outputs.risk_score }}';
+            const remaining = '${{ steps.rate-check.outputs.remaining }}';
+            const reason = '${{ inputs.reason }}';
+
+            // Map reason codes to human-readable text
+            const reasonText = {
+              'copilot_quota_exceeded': 'Copilot quota exhausted',
+              'copilot_error': 'Copilot API error',
+              'copilot_timeout': 'Copilot review timeout (>60s)',
+              'manual': 'Manual fallback request'
+            }[reason] || reason;
+
+            const comment = [
+              '## ⚠️ AI Code Review (Fallback System)',
+              '',
+              '**Status**: Completed via MiniMax M3 API',
+              '**Reason**: ' + reasonText,
+              '**Model**: MiniMax M3',
+              '**Risk Score**: ' + riskScore + '/100',
+              '**Quota Remaining**: ' + remaining + ' requests',
+              '',
+              review,
+              '',
+              '_Note: Primary Copilot review unavailable. This is a fallback review._',
+              '',
+              '---',
+              '',
+              '**Was this review helpful?** React with 👍 (helpful) or 👎 (not helpful) to improve future reviews.',
+              '',
+              '*Powered by MiniMax M3 | Fallback from GitHub Copilot*'
+            ].join('\n');
+
+            // Post comment on PR
+            const prNumber = context.payload.pull_request?.number || ${{ inputs.pr_number || 0 }};
+            if (prNumber > 0) {
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+      - name: Handle quota exhausted
+        if: steps.rate-check.outputs.quota_available == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request?.number || ${{ inputs.pr_number || 0 }};
+            if (prNumber > 0) {
+              const stats = await (async () => {
+                const { execSync } = require('child_process');
+                return execSync('python .github/scripts/rate_limit_tracker.py stats').toString();
+              })();
+
+              const body = [
+                '## ⚠️ AI Code Review Quota Exhausted',
+                '',
+                'The daily API quota for AI code review has been reached.',
+                '',
+                '**Alternative Options**:',
+                '- Manual code review recommended for this PR',
+                '- Review will be attempted automatically tomorrow when quota resets',
+                '- Add `needs-ai-review` label to prioritise tomorrow\'s review',
+                '- For immediate review, trigger workflow manually after quota reset',
+                '',
+                '**Current Stats**: ' + stats
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+
+      - name: Calculate Elapsed Time
+        id: calculate-elapsed
+        if: always()
+        run: |
+          END=$(date +%s)
+          START=${{ steps.review-timer.outputs.start }}
+          ELAPSED=$((END - START))
+          echo "elapsed=$ELAPSED" >> $GITHUB_OUTPUT
+
+      - name: Record Review Metrics
+        if: always()
+        continue-on-error: true
+        run: |
+          LATENCY=${{ steps.calculate-elapsed.outputs.elapsed }}
+          OUTCOME="${{ job.status }}"
+
+          # Map job status to metric outcome
+          case "$OUTCOME" in
+            "success") METRIC_OUTCOME="success" ;;
+            "failure") METRIC_OUTCOME="failure" ;;
+            *) METRIC_OUTCOME="timeout" ;;
+          esac
+
+          python .github/scripts/review_metrics.py \
+            --service github_models \
+            --tier low \
+            --pr ${{ inputs.pr_number }} \
+            --outcome "$METRIC_OUTCOME" \
+            --latency "$LATENCY"

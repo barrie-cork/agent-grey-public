@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "lib": ["ESNext", "DOM"],
+    "types": ["chrome"],
+    "baseUrl": ".",
+    "paths": {
+      "@@/*": ["src/*"],
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "wxt.config.ts", ".wxt/types/**/*.d.ts"]
+}

@@ -1,0 +1,188 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on version tags like v1.0.0
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create release for'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get tag name
+      id: get_tag
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        target: production
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_HUB_USERNAME }}/agent-grey-web:${{ steps.get_tag.outputs.tag }}
+          ${{ secrets.DOCKER_HUB_USERNAME }}/agent-grey-web:latest
+          ${{ secrets.DOCKER_HUB_USERNAME }}/agent-grey-worker:${{ steps.get_tag.outputs.tag }}
+          ${{ secrets.DOCKER_HUB_USERNAME }}/agent-grey-worker:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+    - name: Prepare release files
+      run: |
+        # Create release directory
+        mkdir -p release-files
+        
+        # Copy deployment files
+        cp docker-compose.production.yml release-files/docker-compose.yml
+        cp .env.example.release release-files/.env.example
+        cp install.sh release-files/
+        cp nginx.conf release-files/
+        cp README-DEPLOYMENT.md release-files/
+        
+        # Make install.sh executable
+        chmod +x release-files/install.sh
+        
+        # Create a quick start archive
+        cd release-files
+        tar -czf ../agent-grey-${{ steps.get_tag.outputs.tag }}-quickstart.tar.gz *
+        cd ..
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get commits since last tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        
+        if [[ -n "$PREVIOUS_TAG" ]]; then
+          echo "## What's Changed" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+        else
+          echo "## First Release" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "Initial release of Agent Grey - Systematic Grey Literature Review Tool" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+        fi
+        
+        # Add deployment instructions
+        cat >> CHANGELOG.md << 'EOF'
+        
+        ## 🚀 Quick Start for New Users
+        
+        1. **Download** the files below
+        2. **Get API key** from [Serper.dev](https://serper.dev/) (free)
+        3. **Run installer**: `chmod +x install.sh && ./install.sh`
+        4. **Access**: http://localhost:8000 (admin/admin123)
+        
+        ## 📋 Manual Installation
+        
+        ```bash
+        # Download docker-compose.yml and .env.example
+        cp .env.example .env.local
+        # Add your SERPER_API_KEY to .env.local
+        docker-compose up -d
+        ```
+        
+        ## 🔄 Updating from Previous Version
+        
+        ```bash
+        docker-compose pull
+        docker-compose up -d
+        ```
+        
+        ## 📦 What's Included
+        
+        - `docker-compose.yml` - Main deployment file
+        - `.env.example` - Configuration template  
+        - `install.sh` - Automated installer script
+        - `nginx.conf` - Web server configuration
+        - `README-DEPLOYMENT.md` - Complete documentation
+        - `agent-grey-${{ steps.get_tag.outputs.tag }}-quickstart.tar.gz` - All files in one archive
+        
+        ## 🆘 Need Help?
+        
+        - 📖 [Deployment Guide](https://github.com/${{ github.repository }}/blob/${{ steps.get_tag.outputs.tag }}/README-DEPLOYMENT.md)
+        - 🐛 [Report Issues](https://github.com/${{ github.repository }}/issues)
+        - 💬 [Discussions](https://github.com/${{ github.repository }}/discussions)
+        
+        ---
+        
+        **Agent Grey** - PRISMA 2020 compliant systematic grey literature review tool
+        EOF
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.get_tag.outputs.tag }}
+        name: "Agent Grey ${{ steps.get_tag.outputs.tag }}"
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: false
+        files: |
+          release-files/docker-compose.yml
+          release-files/.env.example
+          release-files/install.sh
+          release-files/nginx.conf
+          release-files/README-DEPLOYMENT.md
+          agent-grey-${{ steps.get_tag.outputs.tag }}-quickstart.tar.gz
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Docker Hub Description Update
+      uses: peter-evans/dockerhub-description@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        repository: ${{ secrets.DOCKER_HUB_USERNAME }}/agent-grey-web
+        short-description: "Agent Grey - PRISMA 2020 systematic grey literature review tool"
+        readme-filepath: ./README.md
+
+    - name: Release Summary
+      run: |
+        echo "## 🎉 Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** ${{ steps.get_tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Docker Images:**" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ secrets.DOCKER_HUB_USERNAME }}/agent-grey-web:${{ steps.get_tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ secrets.DOCKER_HUB_USERNAME }}/agent-grey-worker:${{ steps.get_tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/${{ steps.get_tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Files Available for Download:**" >> $GITHUB_STEP_SUMMARY
+        echo "- docker-compose.yml" >> $GITHUB_STEP_SUMMARY
+        echo "- .env.example" >> $GITHUB_STEP_SUMMARY
+        echo "- install.sh" >> $GITHUB_STEP_SUMMARY
+        echo "- nginx.conf" >> $GITHUB_STEP_SUMMARY
+        echo "- README-DEPLOYMENT.md" >> $GITHUB_STEP_SUMMARY
+        echo "- agent-grey-${{ steps.get_tag.outputs.tag }}-quickstart.tar.gz" >> $GITHUB_STEP_SUMMARY

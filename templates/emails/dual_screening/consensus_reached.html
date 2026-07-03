@@ -1,0 +1,55 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Consensus Reached - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hi {{ reviewer_name }},
+</div>
+
+<div class="content">
+    <p>Consensus has been reached on Result #{{ result_number }} after discussion:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ result_title }}</h2>
+    {% if result_url %}
+    <p><strong>URL:</strong> <a href="{{ result_url }}">{{ result_url }}</a></p>
+    {% endif %}
+</div>
+
+<div class="alert-box success">
+    <p><span class="label">Final Decision:</span> <strong>{{ final_decision }}</strong></p>
+    <p><span class="label">Resolution Method:</span> {{ resolution_method }}</p>
+    {% if resolved_by %}
+    <p><span class="label">Resolved By:</span> {{ resolved_by }}</p>
+    {% endif %}
+</div>
+
+{% if resolution_notes %}
+<div class="content">
+    <h3 style="color: #2c3e50;">Resolution Notes:</h3>
+    <p style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; font-style: italic;">
+        "{{ resolution_notes }}"
+    </p>
+</div>
+{% endif %}
+
+<div class="button-container">
+    <a href="{{ result_url }}" class="button">View Result</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>Next Steps:</strong>
+        <br>• The conflict has been marked as resolved
+        <br>• The final decision will be included in your PRISMA report
+        <br>• You can continue reviewing remaining results
+        <br>• If you have concerns about this resolution, please contact your lead reviewer
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because consensus was reached on a conflict you were involved in.
+{% endblock %}

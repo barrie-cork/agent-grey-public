@@ -1,0 +1,166 @@
+/* Duplicate Groups Modernization - Statistics Dashboard Style */
+
+/* Metric Cards - Matching Statistics Dashboard Style */
+.metric-card {
+    transition: all 0.2s ease-in-out;
+    border-left: 4px solid;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.metric-card.primary { border-left-color: #0d6efd; }
+.metric-card.success { border-left-color: #198754; }
+.metric-card.info { border-left-color: #0dcaf0; }
+.metric-card.warning { border-left-color: #ffc107; }
+.metric-card.danger { border-left-color: #dc3545; }
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+/* Section Headers */
+.section-header {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h4 {
+    margin-bottom: 0;
+    color: #212529;
+    font-weight: 600;
+}
+
+/* Group Cards - Flattened Design */
+.duplicate-group-card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    margin-bottom: 1.5rem;
+    transition: box-shadow 0.2s;
+}
+
+.duplicate-group-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.group-card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 1.25rem;
+}
+
+.group-card-body {
+    padding: 1.25rem;
+}
+
+/* Representative Result Highlighting */
+.representative-result {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Metadata Sidebar Enhancement */
+.metadata-sidebar {
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    padding: 1.25rem;
+    border: 1px solid #dee2e6;
+}
+
+.metadata-item {
+    margin-bottom: 1rem;
+}
+
+.metadata-item:last-child {
+    margin-bottom: 0;
+}
+
+.metadata-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Query Metadata Enhancement */
+.query-metadata-card {
+    background-color: #e7f3ff;
+    border-left: 3px solid #0dcaf0;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.serp-metadata-card {
+    background-color: #d1e7dd;
+    border-left: 3px solid #198754;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Duplicate Results Table Enhancement */
+.duplicates-table {
+    background-color: white;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.duplicates-table table {
+    margin-bottom: 0;
+}
+
+.duplicates-table thead {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Filter Sidebar Enhancement */
+.filter-card {
+    position: sticky;
+    top: 20px;
+}
+
+.filter-btn-group .btn {
+    justify-content: space-between;
+    text-align: left;
+}
+
+/* Similarity Type Badges */
+.similarity-badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    font-weight: 500;
+}
+
+/* Empty State Enhancement */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.5;
+}

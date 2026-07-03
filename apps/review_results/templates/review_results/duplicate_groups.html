@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% load static %}
+{% load simple_review_tags %}
+
+{% block title %}Duplicate Groups - {{ session.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.duplicate-group-card {
+    @apply border border-border rounded-lg bg-card shadow-sm mb-4;
+}
+.group-card-header {
+    @apply p-4 border-b border-border bg-muted rounded-t-lg;
+}
+.group-card-body {
+    @apply p-4;
+}
+.metadata-sidebar {
+    @apply bg-muted rounded-lg p-4;
+}
+.metadata-item {
+    @apply mb-3 pb-3 border-b border-border last:border-0 last:mb-0 last:pb-0;
+}
+.metadata-label {
+    @apply text-xs text-muted-foreground uppercase font-medium mb-1;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" data-testid="duplicate-groups-container">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6">
+        <!-- Main Content Area -->
+        <div class="order-2 lg:order-1">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                <h1 class="text-2xl font-bold text-foreground">Duplicate Groups</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="flex items-center space-x-2 text-sm">
+                        <li><a href="{% url 'review_manager:dashboard' %}" class="text-muted-foreground hover:text-foreground">Dashboard</a></li>
+                        <li class="text-muted-foreground">/</li>
+                        <li><a href="{% url 'review_manager:session_detail' session.id %}" class="text-muted-foreground hover:text-foreground">{{ session.title }}</a></li>
+                        <li class="text-muted-foreground">/</li>
+                        <li><a href="{% url 'review_results:overview' session.id %}{% if current_per_page != 25 %}?per_page={{ current_per_page }}{% endif %}" class="text-muted-foreground hover:text-foreground">Review</a></li>
+                        <li class="text-muted-foreground">/</li>
+                        <li class="text-foreground font-medium">Duplicates</li>
+                    </ol>
+                </nav>
+            </div>
+
+            <!-- Duplicate Groups Overview Statistics -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-foreground mb-4">Duplicate Groups Overview</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <!-- Metric Card 1: Total Groups -->
+                    <div class="rounded-lg border border-info bg-card p-4 text-center">
+                        <h3 class="text-2xl font-bold text-primary mb-1">{{ total_groups }}</h3>
+                        <small class="text-sm text-muted-foreground">Domain Groups</small>
+                    </div>
+
+                    <!-- Metric Card 2: Total Duplicates -->
+                    <div class="rounded-lg border border-warning bg-card p-4 text-center">
+                        <h3 class="text-2xl font-bold text-warning mb-1">{{ total_duplicate_results }}</h3>
+                        <small class="text-sm text-muted-foreground">Total Duplicates</small>
+                    </div>
+
+                    <!-- Metric Card 3: Groups Shown -->
+                    <div class="rounded-lg border border-accent bg-card p-4 text-center">
+                        <h3 class="text-2xl font-bold text-accent mb-1">{{ duplicate_groups|length }}</h3>
+                        <small class="text-sm text-muted-foreground">Groups Shown</small>
+                    </div>
+
+                    <!-- Metric Card 4: Page Number -->
+                    <div class="rounded-lg border border-info bg-card p-4 text-center">
+                        <h3 class="text-2xl font-bold text-primary mb-1">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</h3>
+                        <small class="text-sm text-muted-foreground">Current Page</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Duplicate Groups -->
+            <div class="rounded-lg border border-border bg-card shadow-sm">
+                <div class="border-b border-border px-4 py-3 bg-muted rounded-t-lg">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                        <h5 class="text-base font-semibold text-foreground">
+                            Duplicate Groups ({{ total_groups }} groups)
+                        </h5>
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <label for="per_page" class="text-sm text-muted-foreground">Per page:</label>
+                                <select id="per_page" class="block rounded-md border-input shadow-sm focus:border-primary focus:ring-ring sm:text-sm" onchange="changePerPage(this.value)" data-testid="per-page-select">
+                                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    {% if duplicate_groups %}
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+                            <h4 class="text-lg font-semibold text-foreground">Grouped by Domain</h4>
+                            <div class="flex gap-2">
+                                <button class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-border bg-card text-foreground hover:bg-muted" onclick="expandAllGroups()" data-testid="expand-all-btn">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                                    Expand All
+                                </button>
+                                <button class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-border bg-card text-foreground hover:bg-muted" onclick="collapseAllGroups()" data-testid="collapse-all-btn">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"></path></svg>
+                                    Collapse All
+                                </button>
+                            </div>
+                        </div>
+
+                        {% for group_data in duplicate_groups %}
+                        <!-- Domain Group Card -->
+                        <div class="mb-3" id="group-{{ forloop.counter }}">
+                            <details class="duplicate-group-card group" data-testid="duplicate-group-card">
+                                <!-- Group Header -->
+                                <summary class="group-card-header cursor-pointer list-none">
+                                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                        <div class="flex-1">
+                                            <h6 class="font-medium text-foreground mb-1 flex items-center gap-2">
+                                                <svg class="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                                                {{ group_data.domain }}
+                                            </h6>
+                                            <span class="text-sm text-muted-foreground inline-flex items-center gap-1">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                                                {{ group_data.count }} duplicate{{ group_data.count|pluralize }} from this domain
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning border border-warning/20">
+                                                {{ group_data.count }}
+                                            </span>
+                                            <span class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-primary/50 text-primary bg-card">
+                                                <svg class="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                <span class="group-open:hidden">Show</span>
+                                                <span class="hidden group-open:inline">Hide</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </summary>
+
+                                <!-- Group Body - Collapsible -->
+                                <div class="group-card-body">
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-border text-sm">
+                                            <thead class="bg-muted">
+                                                <tr>
+                                                    <th class="px-3 py-2 text-left font-medium text-muted-foreground" style="width: 35%;">Title</th>
+                                                    <th class="px-3 py-2 text-left font-medium text-muted-foreground" style="width: 30%;">URL</th>
+                                                    <th class="px-3 py-2 text-left font-medium text-muted-foreground" style="width: 20%;">Query</th>
+                                                    <th class="px-3 py-2 text-left font-medium text-muted-foreground" style="width: 15%;">Found</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-border bg-card">
+                                                {% for result in group_data.results %}
+                                                <tr class="hover:bg-muted">
+                                                    <td class="px-3 py-2">
+                                                        <a href="{{ result.url }}" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary/80">
+                                                            {{ result.title|default:"No title"|truncatewords:10 }}
+                                                        </a>
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        <span class="text-xs text-muted-foreground break-all">{{ result.url|truncatechars:60 }}</span>
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        {% with metadata=result.get_query_metadata %}
+                                                        {% if metadata %}
+                                                        <code class="text-xs text-muted-foreground bg-secondary px-1 py-0.5 rounded">{{ metadata.query_text|truncatewords:5 }}</code>
+                                                        {% endif %}
+                                                        {% endwith %}
+                                                    </td>
+                                                    <td class="px-3 py-2 text-muted-foreground text-xs">
+                                                        {% if result.processed_at %}{{ result.processed_at|timesince }} ago{% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                        <nav aria-label="Duplicate groups pagination" class="mt-6 flex justify-center">
+                            <ul class="inline-flex items-center -space-x-px">
+                                {% if page_obj.has_previous %}
+                                    <li>
+                                        <a class="px-3 py-2 ml-0 leading-tight text-muted-foreground bg-card border border-border rounded-l-lg hover:bg-muted hover:text-foreground" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li>
+                                            <span class="px-3 py-2 leading-tight text-primary border border-border bg-info-light font-medium">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li>
+                                            <a class="px-3 py-2 leading-tight text-muted-foreground bg-card border border-border hover:bg-muted hover:text-foreground" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li>
+                                        <a class="px-3 py-2 leading-tight text-muted-foreground bg-card border border-border rounded-r-lg hover:bg-muted hover:text-foreground" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-12">
+                            <svg class="mx-auto h-12 w-12 text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                            <h5 class="text-lg font-medium text-foreground mb-2">No duplicate groups found</h5>
+                            <p class="text-muted-foreground mb-4">
+                                There are no duplicate groups for this session.
+                            </p>
+                            <a href="{% url 'review_results:overview' session.id %}{% if current_per_page != 25 %}?per_page={{ current_per_page }}{% endif %}" class="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                Back to Review
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="order-1 lg:order-2">
+            <!-- Navigation -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-4">
+                <div class="border-b border-border px-4 py-3 bg-muted rounded-t-lg">
+                    <h6 class="text-xs font-semibold text-foreground uppercase flex items-center gap-2">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Navigation
+                    </h6>
+                </div>
+                <div class="p-4 flex flex-col gap-2">
+                    <a href="{% url 'review_results:overview' session.id %}{% if current_per_page != 25 %}?per_page={{ current_per_page }}{% endif %}"
+                       class="inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90"
+                       data-testid="link-back-review">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Back to Review
+                    </a>
+                    <a href="{% url 'review_results:filtered_results' session.id %}"
+                       class="inline-flex items-center justify-center gap-2 px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted"
+                       data-testid="link-filtered-results">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                        Filtered Results
+                    </a>
+                    <a href="{% url 'review_results:search_statistics' session.id %}"
+                       class="inline-flex items-center justify-center gap-2 px-4 py-2 border border-accent text-sm font-medium rounded-md text-accent bg-card hover:bg-accent/10"
+                       data-testid="link-search-statistics">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                        Search Statistics
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Stats Card -->
+            <div class="rounded-lg border border-border bg-card shadow-sm">
+                <div class="border-b border-border px-4 py-3 bg-muted rounded-t-lg">
+                    <h6 class="text-xs font-semibold text-foreground uppercase flex items-center gap-2">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Quick Stats
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <div class="metadata-item">
+                        <div class="metadata-label">Session</div>
+                        <span class="text-sm text-muted-foreground">{{ session.title|truncatewords:5 }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <div class="metadata-label">Total Results</div>
+                        <span class="text-xl font-bold text-primary">{{ session.processed_results_count|default:"0" }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <div class="metadata-label">Last Updated</div>
+                        <span class="text-sm text-muted-foreground">{{ session.updated_at|timesince }} ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Per page selector functionality
+function changePerPage(value) {
+    const url = new URL(window.location);
+    url.searchParams.set('per_page', value);
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+}
+
+// Expand All Groups (using native details elements)
+function expandAllGroups() {
+    document.querySelectorAll('details.duplicate-group-card').forEach(el => {
+        el.setAttribute('open', '');
+    });
+}
+
+// Collapse All Groups (using native details elements)
+function collapseAllGroups() {
+    document.querySelectorAll('details.duplicate-group-card').forEach(el => {
+        el.removeAttribute('open');
+    });
+}
+
+// Deep linking support
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash) {
+        const target = document.querySelector(window.location.hash);
+        if (target) {
+            // Find the details element within the target group
+            const detailsEl = target.querySelector('details.duplicate-group-card');
+            if (detailsEl) {
+                detailsEl.setAttribute('open', '');
+                setTimeout(() => {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+    }
+
+    // Update URL hash when toggling groups
+    document.querySelectorAll('details.duplicate-group-card').forEach(details => {
+        details.addEventListener('toggle', function() {
+            if (this.open) {
+                const groupContainer = this.closest('[id^="group-"]');
+                if (groupContainer) {
+                    window.location.hash = '#' + groupContainer.id;
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

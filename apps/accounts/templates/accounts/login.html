@@ -1,0 +1,37 @@
+{% extends 'accounts/base_auth.html' %}
+
+{% block title %}Login - Agent Grey{% endblock %}
+
+{% block auth_title %}Login{% endblock %}
+
+{% block auth_content %}
+<form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        {% include 'components/alert.html' with variant='danger' message=form.non_field_errors|join:', ' %}
+    {% endif %}
+
+    {% include 'components/form-field.html' with field=form.email data_testid='email' input_type='email' %}
+
+    {% include 'components/form-field.html' with field=form.password data_testid='password' input_type='password' %}
+
+    <div class="flex flex-col gap-2">
+        <button type="submit" data-testid="login-btn"
+                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            Login
+        </button>
+    </div>
+
+    <hr class="my-6 border-border">
+
+    <div class="text-center text-sm">
+        <p class="mb-2">
+            <a href="{% url 'accounts:password_reset' %}" data-testid="link-forgot-password" class="text-primary hover:text-primary/80">Forgot your password?</a>
+        </p>
+        <p class="text-muted-foreground">
+            Don't have an account? <a href="{% url 'accounts:signup' %}" data-testid="link-signup" class="text-primary hover:text-primary/80">Sign up</a>
+        </p>
+    </div>
+</form>
+{% endblock %}

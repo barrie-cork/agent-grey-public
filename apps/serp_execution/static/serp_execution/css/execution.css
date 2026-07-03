@@ -1,0 +1,850 @@
+/**
+ * SERP Execution Styles
+ * Styles for search execution interface following search strategy design patterns
+ */
+
+/* Import design patterns from search strategy */
+
+/* Notification animation for auto-redirect */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Card enhancements matching search strategy */
+.card {
+    border-radius: 10px;
+    border: 1px solid #e3e6f0;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.25rem 2rem 0 rgba(58, 59, 69, 0.2);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #f8f9fc 0%, #f1f1f4 100%);
+    border-bottom: 1px solid #e3e6f0;
+    border-radius: 10px 10px 0 0 !important;
+    padding: 1rem 1.25rem;
+}
+
+.card-header h4, .card-header h6 {
+    color: #5a5c69;
+    margin-bottom: 0;
+    font-weight: 600;
+}
+
+.card-header h4 i, .card-header h6 i {
+    margin-right: 8px;
+}
+
+/* Statistics Cards Styling */
+.execution-stats-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    border: 1px solid #e3e6f0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+}
+
+.execution-stats-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.25rem 1.5rem 0 rgba(58, 59, 69, 0.2);
+}
+
+.stats-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    display: block;
+    transition: color 0.3s ease;
+}
+
+.stats-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Color variations for statistics cards */
+.stats-number.text-primary {
+    color: var(--tg-color-primary) !important;
+}
+
+.stats-number.text-success {
+    color: #28a745 !important;
+}
+
+.stats-number.text-warning {
+    color: #fd7e14 !important;
+}
+
+.stats-number.text-danger {
+    color: #dc3545 !important;
+}
+
+.stats-number.text-info {
+    color: #17a2b8 !important;
+}
+
+.stats-number.text-secondary {
+    color: #6c757d !important;
+}
+
+/* Session Detail Items */
+.session-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.session-detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 500;
+    color: #5a5c69;
+}
+
+.detail-value {
+    color: #858796;
+}
+
+/* Activity Items */
+.activity-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 30px;
+    text-align: center;
+}
+
+.activity-content .activity-title {
+    font-weight: 500;
+    color: #5a5c69;
+    margin-bottom: 0.25rem;
+}
+
+.activity-content .activity-description {
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.activity-content .activity-time {
+    font-size: 0.75rem;
+}
+
+/* Alert enhancements matching search strategy */
+.alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+}
+
+.alert-primary {
+    background: linear-gradient(135deg, #cce7ff 0%, #b3d9ff 100%);
+    color: #004085;
+}
+
+/* Button enhancements */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover,
+.btn-outline-info:hover,
+.btn-outline-success:hover,
+.btn-outline-warning:hover {
+    transform: translateY(-1px);
+}
+
+/* Badge enhancements */
+.badge {
+    border-radius: 4px;
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+}
+
+.badge-primary {
+    background-color: var(--tg-color-primary);
+}
+
+.badge-success {
+    background-color: #28a745;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+}
+
+/* Progress bar enhancements */
+.progress {
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Breadcrumb styling */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0.75rem 0;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: #6c757d;
+}
+
+/* Loading animations */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+/* Progress bars */
+.overall-progress {
+    margin-bottom: 2rem;
+}
+
+.overall-progress .progress {
+    height: 30px;
+    font-size: 1rem;
+}
+
+/* Status badges */
+.badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.badge i {
+    margin-right: 0.25rem;
+}
+
+/* Query table */
+.query-table {
+    font-size: 0.9rem;
+}
+
+.query-table th {
+    background-color: var(--bs-gray-100);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.query-table td {
+    vertical-align: middle;
+}
+
+.query-status .badge {
+    min-width: 100px;
+}
+
+/* Statistics cards */
+.stat-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .card-body {
+    padding: 1.25rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    color: var(--bs-gray-600);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Cost estimation */
+.cost-estimate {
+    background-color: var(--bs-light);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.cost-estimate .cost-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--bs-success);
+}
+
+.cost-breakdown {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.cost-breakdown dl {
+    margin-bottom: 0;
+}
+
+.cost-breakdown dt {
+    font-weight: 500;
+    color: var(--bs-gray-700);
+}
+
+.cost-breakdown dd {
+    color: var(--bs-gray-600);
+}
+
+/* Query preview */
+.query-preview {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.query-preview-item {
+    border-left: 3px solid var(--bs-primary);
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+.query-preview-item .query-text {
+    font-family: 'Courier New', monospace;
+    background-color: var(--bs-gray-100);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    word-break: break-all;
+}
+
+/* Error messages */
+.error-details {
+    background-color: var(--bs-danger-bg-subtle);
+    border: 1px solid var(--bs-danger);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+.error-details pre {
+    margin-bottom: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Recovery options */
+.recovery-options {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.recovery-option {
+    flex: 1;
+    min-width: 200px;
+    padding: 1rem;
+    border: 2px solid var(--bs-gray-300);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.recovery-option:hover {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.recovery-option.selected {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.recovery-option h6 {
+    margin-bottom: 0.5rem;
+    color: var(--bs-primary);
+}
+
+.recovery-option p {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    color: var(--bs-gray-600);
+}
+
+/* Timeline view */
+.execution-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.execution-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--bs-gray-300);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.375rem;
+    top: 0.5rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    border: 2px solid var(--bs-white);
+    box-shadow: 0 0 0 2px var(--bs-gray-300);
+}
+
+.timeline-item.completed::before {
+    background-color: var(--bs-success);
+}
+
+.timeline-item.failed::before {
+    background-color: var(--bs-danger);
+}
+
+.timeline-time {
+    font-size: 0.875rem;
+    color: var(--bs-gray-600);
+}
+
+.timeline-content {
+    background-color: var(--bs-gray-100);
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-top: 0.5rem;
+}
+
+/* Auto-refresh toggle */
+.auto-refresh-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.auto-refresh-toggle .form-check-input {
+    cursor: pointer;
+}
+
+/* Number animation for statistics */
+@keyframes numberPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.stats-number.updating {
+    animation: numberPulse 0.6s ease-in-out;
+}
+
+/* Notification animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.notification-toast {
+    animation: slideInRight 0.3s ease-out;
+}
+
+.notification-toast.removing {
+    animation: slideOutRight 0.3s ease-in;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--tg-color-primary);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+/* Pulse animation for status updates */
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+}
+
+.execution-stats-card.active {
+    animation: pulse 2s ease-in-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .execution-stats-card {
+        margin-bottom: 1rem;
+        padding: 1rem 0.75rem;
+    }
+
+    .stats-number {
+        font-size: 2rem;
+    }
+
+    .session-detail-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .activity-item {
+        padding: 0.5rem 0;
+    }
+
+    .activity-icon {
+        width: 25px;
+    }
+
+    .card-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .card-header h4 {
+        font-size: 1.25rem;
+    }
+
+    .card-header h6 {
+        font-size: 1rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .cost-estimate {
+        background-color: var(--bs-dark);
+    }
+
+    .query-preview-item .query-text {
+        background-color: var(--bs-gray-800);
+        color: var(--bs-gray-100);
+    }
+
+    .timeline-content {
+        background-color: var(--bs-gray-800);
+    }
+
+    .recovery-option {
+        border-color: var(--bs-gray-700);
+    }
+
+    .recovery-option:hover {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+}
+
+/* Query-Level Progress Table Styles */
+#query-progress-table {
+    font-size: 0.9rem;
+}
+
+#query-progress-table thead th {
+    background-color: #f8f9fc;
+    font-weight: 600;
+    color: #5a5c69;
+    border-bottom: 2px solid #e3e6f0;
+    padding: 0.75rem;
+}
+
+#query-progress-table tbody td {
+    vertical-align: middle;
+    padding: 0.75rem;
+    border-bottom: 1px solid #f1f1f4;
+}
+
+/* Query Status Badges */
+.query-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    min-width: 70px;
+    justify-content: center;
+}
+
+.query-status-badge.status-pending {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.query-status-badge.status-running {
+    background-color: #cce7ff;
+    color: #004085;
+    animation: queryPulse 1.5s ease-in-out infinite;
+}
+
+.query-status-badge.status-completed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.query-status-badge.status-failed {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.query-status-badge.status-retrying {
+    background-color: #fff3cd;
+    color: #856404;
+    animation: queryPulse 1.5s ease-in-out infinite;
+}
+
+/* Query Progress Bar */
+.query-progress-bar {
+    position: relative;
+    height: 20px;
+    background-color: #f1f1f4;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.query-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4e73df, #36b9cc);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.query-progress-bar-fill.complete {
+    background: linear-gradient(90deg, #1cc88a, #28a745);
+}
+
+.query-progress-bar-fill.failed {
+    background: linear-gradient(90deg, #e74a3b, #dc3545);
+}
+
+/* Current Query Indicator */
+#current-query-indicator .alert {
+    border-left: 4px solid #4e73df;
+    animation: slideInTop 0.3s ease-out;
+}
+
+/* Query text truncation */
+.query-text-truncate {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+}
+
+/* Current step styling */
+.query-current-step {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Pulse animation for active queries */
+@keyframes queryPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(0.98);
+    }
+}
+
+/* Slide in animation for current query */
+@keyframes slideInTop {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Highlight animation for newly updated rows */
+@keyframes highlightRow {
+    0% {
+        background-color: #fff3cd;
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.query-row-updated {
+    animation: highlightRow 1s ease-out;
+}
+
+/* Current executing query row highlight */
+.query-row-active {
+    background-color: #f0f8ff;
+    border-left: 3px solid #4e73df;
+}
+
+/* Results count badge */
+.query-results-count {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    background-color: #e7f3ff;
+    color: #0066cc;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Empty state styling */
+#query-progress-empty {
+    color: #6c757d;
+}
+
+#query-progress-empty i {
+    opacity: 0.3;
+}
+
+/* Loading state spinner customization */
+#query-progress-loading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Responsive adjustments for query table */
+@media (max-width: 768px) {
+    #query-progress-table {
+        font-size: 0.8rem;
+    }
+
+    #query-progress-table thead th,
+    #query-progress-table tbody td {
+        padding: 0.5rem;
+    }
+
+    .query-text-truncate {
+        max-width: 150px;
+    }
+
+    .query-progress-bar {
+        height: 16px;
+    }
+
+    .query-status-badge {
+        font-size: 0.7rem;
+        min-width: 60px;
+    }
+}
+
+/* Hover effects for table rows */
+#query-progress-table tbody tr:hover {
+    background-color: #f8f9fc;
+    transition: background-color 0.2s ease;
+}
+
+/* Icon animations for status */
+.status-icon-spin {
+    animation: spin 1s linear infinite;
+}
+
+.status-icon-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}

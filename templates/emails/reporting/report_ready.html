@@ -1,0 +1,39 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Report Ready - {{ report_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hello {{ user_name }},
+</div>
+
+<div class="content">
+    <p>Your report has been generated and is ready for download.</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ report_title }}</h2>
+    <p><span class="label">Session:</span> {{ session_title }}</p>
+    <p><span class="label">Report Type:</span> {{ report_type }}</p>
+    <p><span class="label">Format:</span> {{ export_format }}</p>
+    <p><span class="label">File Size:</span> {{ file_size }}</p>
+    {% if expires_at %}
+    <p><span class="label">Available Until:</span> {{ expires_at|date:"d F Y" }}</p>
+    {% endif %}
+</div>
+
+<div class="button-container">
+    <a href="{{ download_url }}" class="button">Download Report</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        You can also download this report from your
+        <a href="{{ session_url }}" style="color: #3498db;">session page</a>.
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you generated a report in Agent Grey.
+{% endblock %}

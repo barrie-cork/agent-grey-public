@@ -1,0 +1,432 @@
+name: Agent Grey - Automated Tests
+
+# Trigger tests on pull requests and pushes to main branches
+on:
+  # push disabled — was using 2,026 min/month (over 2,000 free budget)
+  # push:
+  #   branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Cancel previous runs when new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Test configuration
+  DJANGO_SETTINGS_MODULE: grey_lit_project.settings.test
+  SECRET_KEY: test-secret-key-for-github-actions
+  DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+  REDIS_URL: redis://localhost:6379/0
+
+jobs:
+  # Code Quality Checks
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'requirements/*.txt'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/local.txt
+
+    - name: Run ruff lint
+      run: |
+        ruff check apps/
+
+    - name: Check ruff formatting
+      run: |
+        ruff format --check apps/ grey_lit_project/
+
+  # Security Checks
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'requirements/*.txt'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit[toml]
+        pip install -r requirements/base.txt
+
+    - name: Run safety check
+      run: |
+        safety check --save-json safety-report.json --exit-code || true
+
+    - name: Run bandit security scan
+      run: |
+        bandit -r apps/ grey_lit_project/ -f json -o bandit-report.json -ll || true
+
+    - name: Upload bandit report (JSON format)
+      if: always()
+      run: |
+        # Note: Bandit doesn't support SARIF format natively
+        # We upload JSON format instead for security analysis
+        echo "Bandit report available in bandit-report.json"
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          safety-report.json
+          bandit-report.json
+
+  # Unit and Integration Tests
+  test:
+    name: Django Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    strategy:
+      matrix:
+        test-group:
+          - name: 'core-accounts'
+            apps: 'apps.core apps.accounts'
+          - name: 'review-search'
+            apps: 'apps.review_manager apps.search_strategy'
+          - name: 'serp-results'
+            apps: 'apps.serp_execution apps.results_manager'
+          - name: 'review-reporting'
+            apps: 'apps.review_results apps.reporting apps.health'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'requirements/*.txt'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          postgresql-client \
+          redis-tools \
+          libpq-dev \
+          libpango-1.0-0 \
+          libpangoft2-1.0-0 \
+          libgdk-pixbuf-2.0-0 \
+          libffi-dev \
+          shared-mime-info
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/local.txt
+        pip install coverage
+
+    - name: Wait for services
+      run: |
+        timeout 60 bash -c 'until pg_isready -h localhost -p 5432; do sleep 1; done'
+        timeout 60 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done'
+
+    - name: Run migrations
+      run: |
+        python manage.py migrate
+
+    - name: Create cache table
+      run: |
+        python manage.py createcachetable
+
+    - name: Run Django system check
+      run: |
+        python manage.py check
+
+    - name: Run tests with coverage
+      run: |
+        coverage run --source='.' manage.py test ${{ matrix.test-group.apps }} --verbosity=2 --keepdb
+
+    - name: Generate coverage report
+      run: |
+        coverage report
+        # Rename to a parallel-mode data file so the combine job can merge
+        # the raw coverage data (XML reports cannot be combined).
+        mv .coverage .coverage.${{ matrix.test-group.name }}
+
+    - name: Upload coverage data
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-${{ matrix.test-group.name }}
+        path: .coverage.${{ matrix.test-group.name }}
+        # upload-artifact@v4 skips dotfiles unless this is set.
+        include-hidden-files: true
+
+  # Type Checking (required gate — baseline suppresses known false-positives)
+  type-check:
+    name: Type Check (basedpyright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: false
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'requirements/*.txt'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/local.txt
+        pip install basedpyright==1.39.8  # pinned: unpinned 'latest' drifts the baseline silently
+
+    - name: Run basedpyright
+      run: |
+        basedpyright --baselinemode=auto apps/
+
+  # Migration Health Check
+  migration-check:
+    name: Migration Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.changed_files_names || '', 'models.py') ||
+      contains(github.event.pull_request.changed_files_names || '', 'migrations/')
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'requirements/*.txt'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client libpq-dev
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/local.txt
+
+    - name: Wait for PostgreSQL
+      run: |
+        timeout 60 bash -c 'until pg_isready -h localhost -p 5432; do sleep 1; done'
+
+    - name: Run migrations
+      run: |
+        python manage.py migrate
+
+    - name: Check for missing migrations
+      run: |
+        python manage.py makemigrations --check --dry-run
+
+    - name: Run migration health check
+      run: |
+        python scripts/check-migration-health.py
+
+  # Combine coverage reports
+  coverage-combine:
+    name: Combine Coverage
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    - name: Install coverage
+      run: pip install coverage
+
+    - name: Download all coverage artifacts
+      uses: actions/download-artifact@v4.1.3
+      with:
+        pattern: coverage-*
+        merge-multiple: true
+
+    - name: Combine coverage reports
+      run: |
+        # Merge the parallel-mode .coverage.<group> data files downloaded above.
+        coverage combine
+        coverage xml -o combined-coverage.xml
+        coverage report
+
+    - name: Upload combined coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: combined-coverage
+        path: combined-coverage.xml
+
+  # Staging Environment Validation
+  # NOTE: Docker build validation removed to reduce GitHub Actions usage.
+  # DigitalOcean App Platform builds independently from the repository.
+  # Docker image publishing handled by docker-publish.yml workflow (tags only).
+  # NOTE: Disabled after develop branch deletion. Use manual staging deployment workflow instead.
+  staging-validation:
+    name: Staging Validation (Disabled)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Disabled - develop branch has been deleted
+    if: false
+    needs: [code-quality, security, test]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create staging environment file
+      run: |
+        cp .env.staging.example .env.staging.local
+        echo "SERPER_API_KEY=${{ secrets.STAGING_SERPER_API_KEY || 'test-key' }}" >> .env.staging.local
+
+    - name: Start staging environment
+      run: |
+        docker compose -f docker-compose.staging.yml up -d --build
+
+    - name: Wait for services
+      run: |
+        timeout 180 bash -c 'until curl -f http://localhost:8080/health/ >/dev/null 2>&1; do sleep 5; done'
+
+    - name: Run staging health checks
+      run: |
+        # Check application health
+        curl -f http://localhost:8080/health/
+
+        # Check admin interface
+        curl -f http://localhost:8080/admin/
+
+        # Check static files
+        curl -f http://localhost:8080/static/admin/css/base.css
+
+        # Check nginx proxy
+        curl -f http://localhost:8090/health/
+
+    - name: Run basic functional tests
+      run: |
+        docker compose -f docker-compose.staging.yml exec -T web_staging python manage.py test apps.core.tests.test_health --verbosity=2
+
+    - name: Show staging logs
+      if: always()
+      run: |
+        echo "=== Web Staging Logs ==="
+        docker compose -f docker-compose.staging.yml logs web_staging
+        echo "=== Database Staging Logs ==="
+        docker compose -f docker-compose.staging.yml logs db_staging
+
+    - name: Cleanup staging environment
+      if: always()
+      run: |
+        docker compose -f docker-compose.staging.yml down -v
+
+  # NOTE: Smoke tests removed from PR checks. Post-deploy smoke tests run
+  # via .github/workflows/smoke-tests.yml (deployment_status / workflow_dispatch).
+
+  # Test Results Summary
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [code-quality, security, test]
+
+    steps:
+    - name: Summary
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Code Quality**: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Security Scan**: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Django Tests**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Note**: Docker build validation removed to reduce Actions usage." >> $GITHUB_STEP_SUMMARY
+        echo "DigitalOcean App Platform validates builds during deployment." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Core tests must pass
+        if [ "${{ needs.code-quality.result }}" = "success" ] && \
+           [ "${{ needs.security.result }}" = "success" ] && \
+           [ "${{ needs.test.result }}" = "success" ]; then
+          echo "✅ **All core tests passed!** Ready for deployment." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Some tests failed.** Please review the results above." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi

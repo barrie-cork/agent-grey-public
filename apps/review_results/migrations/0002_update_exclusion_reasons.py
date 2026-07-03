@@ -1,0 +1,32 @@
+# Generated migration for enhanced PRISMA exclusion reasons
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+    dependencies = [
+        ("review_results", "0001_initial"),
+    ]
+
+    operations = [
+        migrations.AlterField(
+            model_name="simplereviewdecision",
+            name="exclusion_reason",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("not_relevant", "Not relevant to research question"),
+                    ("not_grey_lit", "Not grey literature"),
+                    ("duplicate", "Duplicate result"),
+                    ("no_access", "Full text unavailable"),
+                    ("wrong_document_type", "Inappropriate document type"),
+                    ("language", "Language other than English"),
+                    ("wrong_population", "Wrong population"),
+                    ("wrong_intervention", "Wrong intervention/interest"),
+                    ("methodological_quality", "Poor methodological quality"),
+                    ("other", "Other reason"),
+                ],
+                max_length=25,
+            ),
+        ),
+    ]

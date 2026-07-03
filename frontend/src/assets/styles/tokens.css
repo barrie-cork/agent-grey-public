@@ -1,0 +1,176 @@
+/**
+ * Agent Grey Design System - Design Tokens (OKLCH)
+ * Tailwind CSS v4 @theme inline configuration
+ * All colours in OKLCH format for perceptually uniform colour space
+ */
+
+@theme {
+  /* ============================================================================
+     BRAND COLOURS (OKLCH) - PRESERVED PER USER FEEDBACK
+     ============================================================================ */
+
+  /* Primary Brand Colours - Agent Grey Style Guide */
+  --color-deep-navy: oklch(0.25 0.05 250);
+  --color-teal-blue: oklch(0.62 0.12 185);
+  --color-amber-gold: oklch(0.78 0.16 75);
+  --color-off-white: oklch(0.98 0.003 90);
+  --color-cool-grey-light: oklch(0.91 0.005 250);
+  --color-cool-grey-dark: oklch(0.58 0.02 250);
+
+  /* Brand Colour Variants */
+  --color-deep-navy-light: oklch(0.28 0.05 250);
+  --color-deep-navy-dark: oklch(0.18 0.04 250);
+  --color-teal-blue-light: oklch(0.72 0.10 185);
+  --color-teal-blue-dark: oklch(0.52 0.12 185);
+  --color-amber-gold-light: oklch(0.92 0.08 75);
+  --color-amber-gold-dark: oklch(0.68 0.16 75);
+
+  /* ============================================================================
+     STATUS COLOURS (OKLCH)
+     ============================================================================ */
+
+  /* Success - Green */
+  --color-success: oklch(0.52 0.14 145);
+  --color-success-light: oklch(0.92 0.05 145);
+  --color-success-dark: oklch(0.42 0.14 145);
+  --color-success-foreground: oklch(1 0 0);
+
+  /* Warning - Amber/Gold */
+  --color-warning: oklch(0.78 0.16 75);
+  --color-warning-light: oklch(0.95 0.06 75);
+  --color-warning-dark: oklch(0.68 0.16 75);
+  --color-warning-foreground: oklch(0.25 0.05 250);
+
+  /* Error/Danger - Red */
+  --color-error: oklch(0.52 0.20 25);
+  --color-error-light: oklch(0.92 0.06 25);
+  --color-error-dark: oklch(0.42 0.20 25);
+  --color-destructive: oklch(0.52 0.20 25);
+  --color-destructive-light: oklch(0.92 0.06 25);
+  --color-destructive-dark: oklch(0.42 0.20 25);
+  --color-destructive-foreground: oklch(1 0 0);
+
+  /* Info - Blue */
+  --color-info: oklch(0.55 0.18 250);
+  --color-info-light: oklch(0.92 0.05 250);
+  --color-info-dark: oklch(0.45 0.18 250);
+  --color-info-foreground: oklch(1 0 0);
+
+  /* ============================================================================
+     DECISION COLOURS (Consensus Discussion)
+     ============================================================================ */
+
+  /* Include - Green */
+  --color-decision-include: oklch(0.72 0.19 145);
+  --color-decision-include-light: oklch(0.88 0.10 145);
+  --color-decision-include-dark: oklch(0.62 0.19 145);
+  --color-decision-include-foreground: oklch(1 0 0);
+
+  /* Exclude - Red */
+  --color-decision-exclude: oklch(0.62 0.24 25);
+  --color-decision-exclude-light: oklch(0.88 0.10 25);
+  --color-decision-exclude-dark: oklch(0.52 0.24 25);
+  --color-decision-exclude-foreground: oklch(1 0 0);
+
+  /* Maybe - Amber */
+  --color-decision-maybe: oklch(0.76 0.17 70);
+  --color-decision-maybe-light: oklch(0.92 0.08 70);
+  --color-decision-maybe-dark: oklch(0.66 0.17 70);
+  --color-decision-maybe-foreground: oklch(0.25 0.05 250);
+
+  /* ============================================================================
+     SCHOLAR-GRADE UTILITY TOKENS (Academic Structure)
+     ============================================================================ */
+  --border-width-scholar: 1px;
+  --border-color-scholar: oklch(0.85 0.01 250);
+  --shadow-scholar: 0 1px 2px 0 oklch(0 0 0 / 0.05);
+
+  --spacing-scholar-list: 1rem;
+  --spacing-scholar-container: 2rem;
+  --spacing-comment-indent: 3.5rem;
+
+  /* ============================================================================
+     SEMANTIC TOKENS (Shadcn-vue Compatible)
+     ============================================================================ */
+
+  /* Base Colours */
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.15 0.02 250);
+
+  /* Primary - Deep Navy */
+  --color-primary: oklch(0.25 0.05 250);
+  --color-primary-foreground: oklch(1 0 0);
+
+  /* Secondary - Cool Grey */
+  --color-secondary: oklch(0.91 0.005 250);
+  --color-secondary-foreground: oklch(0.25 0.05 250);
+
+  /* Accent - Teal Blue */
+  --color-accent: oklch(0.62 0.12 185);
+  --color-accent-foreground: oklch(1 0 0);
+
+  /* Muted */
+  --color-muted: oklch(0.965 0.003 250);
+  --color-muted-foreground: oklch(0.45 0.02 250);
+
+  /* Card */
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.15 0.02 250);
+
+  /* Popover */
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.15 0.02 250);
+
+  /* Border, Input, Ring */
+  --color-border: oklch(0.92 0.005 250);
+  --color-input: oklch(0.92 0.005 250);
+  --color-ring: oklch(0.62 0.12 185);
+
+  /* ============================================================================
+     TYPOGRAPHY
+     ============================================================================ */
+
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-family-serif: 'PT Serif', Georgia, 'Times New Roman', serif;
+  --font-family-mono: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono',
+    'Source Code Pro', monospace;
+
+  /* Font Sizes */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --line-height-none: 1;
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+}
+
+.dark {
+  --color-background: oklch(0.15 0.02 250);
+  --color-foreground: oklch(0.98 0.003 90);
+
+  --color-card: oklch(0.18 0.02 250);
+  --color-card-foreground: oklch(0.98 0.003 90);
+
+  --color-primary: oklch(0.98 0.003 90);
+  --color-primary-foreground: oklch(0.25 0.05 250);
+
+  --color-border: oklch(0.25 0.02 250);
+  --color-input: oklch(0.25 0.02 250);
+  --color-ring: oklch(0.62 0.12 185);
+}

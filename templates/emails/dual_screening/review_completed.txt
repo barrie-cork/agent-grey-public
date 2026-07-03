@@ -1,0 +1,59 @@
+Review Completed - {{ session_title }}
+
+Congratulations {{ reviewer_name }}!
+
+The screening phase for your systematic review project is complete.
+
+{{ session_title }}
+Completed: {{ completed_at|date:"d F Y, H:i" }}
+
+===============================
+SCREENING SUMMARY
+===============================
+
+Total Results Screened: {{ total_results }}
+Included: {{ included_count }} ({{ included_percentage }}%)
+Excluded: {{ excluded_count }} ({{ excluded_percentage }}%)
+{% if maybe_count > 0 %}Maybe (Requires Discussion): {{ maybe_count }}{% endif %}
+
+===============================
+INTER-RATER RELIABILITY
+===============================
+
+Cohen's Kappa: {{ cohens_kappa }} ({{ kappa_interpretation }})
+Percentage Agreement: {{ percentage_agreement }}%
+Conflicts Resolved: {{ conflicts_resolved_count }}
+
+{% if reviewer_contributions %}
+===============================
+REVIEWER CONTRIBUTIONS
+===============================
+{% for contribution in reviewer_contributions %}
+{{ contribution.name }}: {{ contribution.decisions_count }} decisions, {{ contribution.time_spent }} time spent
+{% endfor %}
+{% endif %}
+
+Generate PRISMA Report: {{ prisma_report_url }}
+
+===============================
+NEXT STEPS
+===============================
+
+• Generate PRISMA report: Create your publication-ready systematic review report
+• Export audit trail: Download the complete decision history for your records
+• Document access: Access full documents via URL links for included results
+• Archive session: Move this session to your archive when finished
+
+PRISMA 2020 COMPLIANCE:
+This review has been conducted following PRISMA 2020 guidelines for systematic reviews.
+Your PRISMA report will include all required elements for Item 7 (Study Selection) including
+the number of studies screened, assessed for eligibility, and included in the review, with
+reasons for exclusions. The inter-rater reliability metrics ensure transparency in the review
+process.
+
+---
+This notification was sent because you participated in this systematic review and it has been completed.
+
+Manage notification preferences: {{ preferences_url }}
+
+© {% now "Y" %} Agent Grey. All rights reserved.

@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback Detail - Agent Grey{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        border-left: 4px solid oklch(0.55 0.2 250);
+    }
+    .metadata-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .metadata-item:last-child {
+        border-bottom: none;
+    }
+    .message-content {
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        white-space: pre-wrap;
+    }
+    .browser-info {
+        background-color: #f9fafb;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        font-family: monospace;
+        font-size: 0.875rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .rating-display {
+        color: #eab308;
+        font-size: 1.5rem;
+    }
+    .admin-notes-section {
+        background-color: #fef3c7;
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+    .status-update-section {
+        background-color: #eff6ff;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+    .critical-badge {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-4 px-4">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'feedback:list' %}" class="text-blue-600 hover:text-blue-800">Feedback Management</a>
+                </li>
+                <li class="text-gray-400">/</li>
+                <li class="text-gray-600" aria-current="page">
+                    Feedback Detail
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Feedback Details -->
+        <div class="lg:col-span-2">
+            <div class="card detail-card rounded-lg border border-gray-200 shadow-sm">
+                <div class="bg-gray-100 px-6 py-4 flex justify-between items-center rounded-t-lg">
+                    <h4 class="text-lg font-semibold m-0">
+                        {% if feedback.subject %}
+                            {{ feedback.subject }}
+                        {% else %}
+                            Feedback from {{ feedback.submitter_display }}
+                        {% endif %}
+                    </h4>
+                    {% if feedback.is_critical %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500 text-white critical-badge">
+                            <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.146.146 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.163.163 0 0 1-.054.06.116.116 0 0 1-.066.017H1.146a.115.115 0 0 1-.066-.017.163.163 0 0 1-.054-.06.176.176 0 0 1 .002-.183L7.884 2.073a.147.147 0 0 1 .054-.057zm1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566z"/><path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995z"/></svg> Critical
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="p-6">
+                    <!-- Feedback Type and Status -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="metadata-item">
+                            <small class="text-gray-500 block">Feedback Type</small>
+                            {% if feedback.feedback_type == 'bug' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500 text-white">
+                                    <svg class="inline-block w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M4.355.522a.5.5 0 0 1 .623.333l.291.956A4.979 4.979 0 0 1 8 1c1.007 0 1.946.298 2.731.811l.29-.956a.5.5 0 1 1 .957.29l-.41 1.352A4.985 4.985 0 0 1 13 6h.5a.5.5 0 0 0 .5-.5V5a.5.5 0 0 1 1 0v.5A1.5 1.5 0 0 1 13.5 7H13v1h1.5a.5.5 0 0 1 0 1H13v1h.5a1.5 1.5 0 0 1 1.5 1.5v.5a.5.5 0 1 1-1 0v-.5a.5.5 0 0 0-.5-.5H13a5 5 0 0 1-10 0h-.5a.5.5 0 0 0-.5.5v.5a.5.5 0 1 1-1 0v-.5A1.5 1.5 0 0 1 2.5 10H3V9H1.5a.5.5 0 0 1 0-1H3V7h-.5A1.5 1.5 0 0 1 1 5.5V5a.5.5 0 0 1 1 0v.5a.5.5 0 0 0 .5.5H3a5 5 0 0 1 1.432-3.503l-.41-1.352a.5.5 0 0 1 .333-.623zM4 7v4a4 4 0 0 0 3.5 3.97V7H4zm4.5 0v7.97A4 4 0 0 0 12 11V7H8.5zM12 6a3.989 3.989 0 0 0-1.334-2.982A3.983 3.983 0 0 0 8 2a3.983 3.983 0 0 0-2.667 1.018A3.989 3.989 0 0 0 4 6h8z"/></svg> Bug Report
+                                </span>
+                            {% elif feedback.feedback_type == 'suggestion' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">
+                                    <svg class="inline-block w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z"/></svg> Suggestion
+                                </span>
+                            {% elif feedback.feedback_type == 'idea' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
+                                    <svg class="inline-block w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z"/></svg> Feature Idea
+                                </span>
+                            {% elif feedback.feedback_type == 'general' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-gray-900">
+                                    <svg class="inline-block w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/></svg> General
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="metadata-item">
+                            <small class="text-gray-500 block">Current Status</small>
+                            {% if feedback.status == 'new' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">
+                                    <svg class="inline-block w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> New
+                                </span>
+                            {% elif feedback.status == 'in_progress' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-gray-900">
+                                    <svg class="inline-block w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M2.5 15a.5.5 0 1 1 0-1h1v-1a4.5 4.5 0 0 1 2.557-4.06c.29-.139.443-.377.443-.59v-.7c0-.213-.154-.451-.443-.59A4.5 4.5 0 0 1 3.5 3V2h-1a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-1v1a4.5 4.5 0 0 1-2.557 4.06c-.29.139-.443.377-.443.59v.7c0 .213.154.451.443.59A4.5 4.5 0 0 1 12.5 13v1h1a.5.5 0 0 1 0 1h-11zm2-13v1c0 .537.12 1.045.337 1.5h6.326c.216-.455.337-.963.337-1.5V2h-7zm3 6.35c0 .701-.478 1.236-1.011 1.492A3.5 3.5 0 0 0 4.5 13s.866-1.299 3-1.48V8.35zm1 0v3.17c2.134.181 3 1.48 3 1.48a3.5 3.5 0 0 0-1.989-3.158C8.978 9.586 8.5 9.052 8.5 8.351z"/></svg> In Progress
+                                </span>
+                            {% elif feedback.status == 'resolved' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
+                                    <svg class="inline-block w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/></svg> Resolved
+                                </span>
+                            {% elif feedback.status == 'dismissed' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500 text-white">
+                                    <svg class="inline-block w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg> Dismissed
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Submitter Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="metadata-item">
+                            <small class="text-gray-500 block">Submitted By</small>
+                            <strong>{{ feedback.submitter_display }}</strong>
+                            {% if feedback.is_anonymous %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500 text-white ml-1">Anonymous</span>
+                            {% endif %}
+                        </div>
+                        <div class="metadata-item">
+                            <small class="text-gray-500 block">Submitted</small>
+                            <strong>{{ feedback.created_at|date:"M d, Y g:i A" }}</strong>
+                        </div>
+                        {% if feedback.email %}
+                        <div class="metadata-item">
+                            <small class="text-gray-500 block">Contact Email</small>
+                            <a href="mailto:{{ feedback.email }}" class="text-blue-600 hover:text-blue-800">{{ feedback.email }}</a>
+                        </div>
+                        {% endif %}
+                        {% if feedback.updated_at != feedback.created_at %}
+                        <div class="metadata-item">
+                            <small class="text-gray-500 block">Last Updated</small>
+                            <strong>{{ feedback.updated_at|date:"M d, Y g:i A" }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Rating -->
+                    {% if feedback.rating %}
+                    <div class="mb-6">
+                        <small class="text-gray-500 block mb-2">User Rating</small>
+                        <div class="rating-display">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= feedback.rating %}
+                                    <svg class="inline-block w-6 h-6" fill="currentColor" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>
+                                {% else %}
+                                    <svg class="inline-block w-6 h-6" fill="currentColor" viewBox="0 0 16 16"><path d="M2.866 14.85c-.078.444.36.791.746.593l4.39-2.256 4.389 2.256c.386.198.824-.149.746-.592l-.83-4.73 3.522-3.356c.33-.314.16-.888-.282-.95l-4.898-.696L8.465.792a.513.513 0 0 0-.927 0L5.354 5.12l-4.898.696c-.441.062-.612.636-.283.95l3.523 3.356-.83 4.73zm4.905-2.767-3.686 1.894.694-3.957a.565.565 0 0 0-.163-.505L1.71 6.745l4.052-.576a.525.525 0 0 0 .393-.288L8 2.223l1.847 3.658a.525.525 0 0 0 .393.288l4.052.575-2.906 2.77a.565.565 0 0 0-.163.506l.694 3.957-3.686-1.894a.503.503 0 0 0-.461 0z"/></svg>
+                                {% endif %}
+                            {% endfor %}
+                            <span class="text-gray-900 text-base ml-2">({{ feedback.rating }}/5)</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Page Context -->
+                    <div class="mb-6">
+                        <small class="text-gray-500 block mb-2">Page Context</small>
+                        <div class="bg-gray-100 rounded-lg p-4">
+                            <div>
+                                <strong>Path:</strong> <code class="bg-gray-200 px-1 rounded">{{ feedback.page_path }}</code>
+                            </div>
+                            {% if feedback.page_title %}
+                            <div class="mt-2">
+                                <strong>Title:</strong> {{ feedback.page_title }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Message Content -->
+                    <div class="mb-6">
+                        <h5 class="text-base font-semibold mb-3">
+                            <svg class="inline-block w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/><path d="M4.5 5.5A.5.5 0 0 1 5 5h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM4.5 8A.5.5 0 0 1 5 7.5h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0 2.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/></svg>
+                            Feedback Message
+                        </h5>
+                        <div class="message-content">{{ feedback.message }}</div>
+                    </div>
+
+                    <!-- Admin Notes -->
+                    {% if feedback.admin_notes %}
+                    <div class="admin-notes-section mb-6">
+                        <h5 class="text-base font-semibold mb-3">
+                            <svg class="inline-block w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/><path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z"/><path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z"/></svg>
+                            Admin Notes
+                        </h5>
+                        <div style="white-space: pre-wrap;">{{ feedback.admin_notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Browser Information -->
+            {% if feedback.browser_info %}
+            <div class="mt-6 rounded-lg border border-gray-200 shadow-sm">
+                <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                    <h5 class="text-base font-semibold m-0">
+                        <svg class="inline-block w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M13.5 3a.5.5 0 0 1 .5.5V11H2V3.5a.5.5 0 0 1 .5-.5h11zm-11-1A1.5 1.5 0 0 0 1 3.5V12h14V3.5A1.5 1.5 0 0 0 13.5 2h-11zM0 12.5h16a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 12.5z"/></svg>
+                        Browser Information
+                    </h5>
+                </div>
+                <div class="p-6">
+                    <div class="browser-info">
+                        {% for key, value in feedback.browser_info.items %}
+                            <div class="mb-1">
+                                <strong>{{ key }}:</strong> {{ value }}
+                            </div>
+                        {% empty %}
+                            <span class="text-gray-500">No browser information available</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar: Actions -->
+        <div>
+            <!-- Status Update -->
+            <div class="status-update-section mb-6">
+                <h5 class="text-base font-semibold mb-3">
+                    <svg class="inline-block w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/></svg>
+                    Update Status
+                </h5>
+                <form method="post" action="{% url 'feedback:update_status' feedback.pk %}" id="statusForm">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">New Status</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" name="status" id="statusSelect">
+                            <option value="new" {% if feedback.status == 'new' %}selected{% endif %}>
+                                New
+                            </option>
+                            <option value="in_progress" {% if feedback.status == 'in_progress' %}selected{% endif %}>
+                                In Progress
+                            </option>
+                            <option value="resolved" {% if feedback.status == 'resolved' %}selected{% endif %}>
+                                Resolved
+                            </option>
+                            <option value="dismissed" {% if feedback.status == 'dismissed' %}selected{% endif %}>
+                                Dismissed
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Admin Notes</label>
+                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" name="notes" rows="3"
+                                  placeholder="Add notes about this status change..."></textarea>
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" data-testid="update-status-btn">
+                        <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/></svg>
+                        Update Status
+                    </button>
+                </form>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="rounded-lg border border-gray-200 shadow-sm mb-6">
+                <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                    <h5 class="text-base font-semibold m-0">Quick Actions</h5>
+                </div>
+                <div class="p-6">
+                    {% if feedback.email %}
+                    <a href="mailto:{{ feedback.email }}?subject=Re: Your Feedback on Agent Grey"
+                       class="inline-flex items-center justify-center w-full px-4 py-2 border border-blue-600 text-blue-600 font-medium rounded-md hover:bg-blue-50 mb-2">
+                        <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 16 16"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg>
+                        Reply by Email
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'feedback:list' %}" class="inline-flex items-center justify-center w-full px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50" data-testid="link-back-list">
+                        <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
+                        Back to List
+                    </a>
+                </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="rounded-lg border border-gray-200 shadow-sm">
+                <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                    <h5 class="text-base font-semibold m-0">Metadata</h5>
+                </div>
+                <div class="p-6">
+                    <div class="text-sm">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-500">ID:</span>
+                            <code class="bg-gray-100 px-1 rounded">{{ feedback.pk|truncatechars:13 }}</code>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-500">Created:</span>
+                            <span>{{ feedback.created_at|date:"Y-m-d H:i" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Updated:</span>
+                            <span>{{ feedback.updated_at|date:"Y-m-d H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle status form submission via AJAX
+        const statusForm = document.getElementById('statusForm');
+
+        statusForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(statusForm);
+
+            fetch(statusForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload page to show updated status
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to update status'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Fallback: submit form normally
+                statusForm.submit();
+            });
+        });
+    });
+</script>
+{% endblock %}

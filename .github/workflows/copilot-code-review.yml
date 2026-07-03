@@ -1,0 +1,414 @@
+name: 'GitHub Copilot Code Review'
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'apps/**/*.py'
+      - 'grey_lit_project/**/*.py'
+      - 'requirements.txt'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: write
+  copilot: read
+
+concurrency:
+  group: copilot-review-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    name: Risk-Based Triage
+    runs-on: ubuntu-latest
+    outputs:
+      should_review: ${{ steps.classify.outputs.should_review }}
+      priority: ${{ steps.classify.outputs.priority }}
+      risk_score: ${{ steps.classify.outputs.risk_score }}
+      changed_files: ${{ steps.classify.outputs.changed_files }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify PR risk level
+        id: classify
+        run: |
+          # Get changed files
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual dispatch: fetch PR branch
+            gh pr view ${{ inputs.pr_number }} > /dev/null || (echo "❌ PR ${{ inputs.pr_number }} not found" && exit 1)
+            BASE_REF="origin/main"
+            git fetch origin pull/${{ inputs.pr_number }}/head:pr-${{ inputs.pr_number }}
+            git checkout pr-${{ inputs.pr_number }}
+          else
+            BASE_REF="origin/${{ github.base_ref }}"
+          fi
+
+          # Calculate risk score based on file patterns
+          RISK=0
+          CHANGED_FILES=$(git diff --name-only $BASE_REF...HEAD | grep '\.py$' || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "should_review=false" >> $GITHUB_OUTPUT
+            echo "priority=none" >> $GITHUB_OUTPUT
+            echo "risk_score=0" >> $GITHUB_OUTPUT
+            echo "No Python files changed"
+            exit 0
+          fi
+
+          # High-risk patterns (exact values from ai-code-review.yml)
+          echo "$CHANGED_FILES" | while read file; do
+            case "$file" in
+              */models.py)
+                RISK=$((RISK + 10))
+                echo "High risk: models.py change (+10)"
+                ;;
+              */migrations/*)
+                RISK=$((RISK + 8))
+                echo "High risk: migration (+8)"
+                ;;
+              */tasks.py)
+                RISK=$((RISK + 7))
+                echo "High risk: Celery task (+7)"
+                ;;
+              */middleware/*.py)
+                RISK=$((RISK + 6))
+                echo "Medium-high risk: middleware (+6)"
+                ;;
+              */views.py|*/services/*.py)
+                RISK=$((RISK + 5))
+                echo "Medium risk: view/service (+5)"
+                ;;
+              */tests/*)
+                RISK=$((RISK + 1))
+                echo "Low risk: test file (+1)"
+                ;;
+            esac
+          done
+
+          # Save changed files for review
+          echo "$CHANGED_FILES" > changed_files.txt
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          cat changed_files.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "risk_score=$RISK" >> $GITHUB_OUTPUT
+
+          # Determine priority and whether to review
+          if [ $RISK -ge 20 ]; then
+            echo "priority=critical" >> $GITHUB_OUTPUT
+            echo "should_review=true" >> $GITHUB_OUTPUT
+            echo "Priority: CRITICAL (risk=$RISK)"
+          elif [ $RISK -ge 10 ]; then
+            echo "priority=high" >> $GITHUB_OUTPUT
+            echo "should_review=true" >> $GITHUB_OUTPUT
+            echo "Priority: HIGH (risk=$RISK)"
+          elif [ $RISK -ge 5 ]; then
+            echo "priority=medium" >> $GITHUB_OUTPUT
+            # Only review medium if labeled or manual trigger
+            if [ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ai-review') }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "should_review=true" >> $GITHUB_OUTPUT
+              echo "Priority: MEDIUM (risk=$RISK, labeled)"
+            else
+              echo "should_review=false" >> $GITHUB_OUTPUT
+              echo "Priority: MEDIUM (risk=$RISK, skipping to conserve quota)"
+            fi
+          else
+            echo "priority=low" >> $GITHUB_OUTPUT
+            echo "should_review=false" >> $GITHUB_OUTPUT
+            echo "Priority: LOW (risk=$RISK, skipping)"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload changed files
+        if: steps.classify.outputs.should_review == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: changed-files
+          path: changed_files.txt
+
+  copilot-review:
+    name: GitHub Copilot Review
+    needs: triage
+    if: needs.triage.outputs.should_review == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      review_status: ${{ steps.review.outputs.status }}
+      review_error: ${{ steps.review.outputs.error }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Download changed files list
+        uses: actions/download-artifact@v4.1.3
+        with:
+          name: changed-files
+
+      - name: Start Review Timer
+        id: review-timer
+        run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Check Copilot Quota
+        id: quota
+        run: |
+          QUOTA_DATA=$(python .github/scripts/copilot_integration.py --quota)
+
+          REMAINING=$(echo "$QUOTA_DATA" | jq -r '.remaining')
+          LIMIT=$(echo "$QUOTA_DATA" | jq -r '.limit')
+
+          echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
+          echo "limit=$LIMIT" >> $GITHUB_OUTPUT
+
+          if [ "$REMAINING" -lt 5 ]; then
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Quota low: $REMAINING/$LIMIT remaining"
+            echo "status=QUOTA_EXCEEDED" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "available=true" >> $GITHUB_OUTPUT
+            echo "✅ Quota available: $REMAINING/$LIMIT remaining"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Trigger Copilot Review
+        id: review
+        if: steps.quota.outputs.available == 'true'
+        timeout-minutes: 1
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number || inputs.pr_number }}
+
+          echo "Triggering Copilot review for PR #$PR_NUMBER..."
+
+          RESULT=$(python .github/scripts/copilot_integration.py --trigger-pr $PR_NUMBER)
+
+          STATUS=$(echo "$RESULT" | jq -r '.status')
+
+          if [ "$STATUS" = "SUCCESS" ]; then
+            REVIEW_ID=$(echo "$RESULT" | jq -r '.review_id')
+            echo "status=SUCCESS" >> $GITHUB_OUTPUT
+            echo "review_id=$REVIEW_ID" >> $GITHUB_OUTPUT
+            echo "✅ Review triggered: $REVIEW_ID"
+          elif [ "$STATUS" = "QUOTA_EXCEEDED" ] || [ "$STATUS" = "QUOTA_WARNING" ]; then
+            echo "status=QUOTA_EXCEEDED" >> $GITHUB_OUTPUT
+            echo "error=Copilot quota exhausted" >> $GITHUB_OUTPUT
+            echo "⚠️ Quota exhausted"
+            exit 1
+          else
+            ERROR=$(echo "$RESULT" | jq -r '.error_message // "Unknown error"')
+            echo "status=API_ERROR" >> $GITHUB_OUTPUT
+            echo "error=$ERROR" >> $GITHUB_OUTPUT
+            echo "❌ API error: $ERROR"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Poll Review Status
+        id: poll
+        if: steps.review.outputs.status == 'SUCCESS'
+        timeout-minutes: 1
+        run: |
+          REVIEW_ID=${{ steps.review.outputs.review_id }}
+          MAX_ATTEMPTS=12  # 12 attempts × 5s = 60s timeout
+
+          echo "Polling review status (max 60s)..."
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt $i/$MAX_ATTEMPTS: Checking review status..."
+
+            STATUS_DATA=$(python -c "
+          from pathlib import Path
+          import sys
+          import os
+          sys.path.insert(0, '.github/scripts')
+          import copilot_integration
+
+          result = copilot_integration.check_copilot_status(
+              '$REVIEW_ID',
+              os.environ.get('GITHUB_TOKEN')
+          )
+          import json
+          print(json.dumps(result))
+          ")
+
+            STATUS=$(echo "$STATUS_DATA" | jq -r '.status')
+
+            if [ "$STATUS" = "completed" ]; then
+              REVIEW_URL=$(echo "$STATUS_DATA" | jq -r '.review_url')
+              echo "review_url=$REVIEW_URL" >> $GITHUB_OUTPUT
+              echo "✅ Review completed: $REVIEW_URL"
+              exit 0
+            elif [ "$STATUS" = "failed" ]; then
+              echo "status=FAILED" >> $GITHUB_OUTPUT
+              echo "❌ Review failed"
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "status=TIMEOUT" >> $GITHUB_OUTPUT
+          echo "⏱️ Review timeout after 60s"
+          exit 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post PR Comment (Success)
+        if: steps.poll.outputs.review_url != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const priority = '${{ needs.triage.outputs.priority }}';
+            const riskScore = '${{ needs.triage.outputs.risk_score }}';
+            const reviewUrl = '${{ steps.poll.outputs.review_url }}';
+            const remaining = '${{ steps.quota.outputs.remaining }}';
+            const limit = '${{ steps.quota.outputs.limit }}';
+
+            const comment = [
+              '## 🤖 GitHub Copilot Code Review (Priority: ' + priority.toUpperCase() + ')',
+              '',
+              '**Status**: ✅ Review completed',
+              '**Model**: GPT-5 Codex',
+              '**Risk Score**: ' + riskScore + '/100',
+              '**Quota**: ' + remaining + '/' + limit + ' reviews remaining',
+              '',
+              '[View Review](' + reviewUrl + ')',
+              '',
+              'The review includes suggested changes you can apply with one click.',
+              '',
+              '---',
+              '*Powered by GitHub Copilot | [Custom Instructions](.github/copilot-instructions.md)*'
+            ].join('\n');
+
+            const prNumber = context.payload.pull_request?.number || ${{ inputs.pr_number || 0 }};
+            if (prNumber > 0) {
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+      - name: Calculate Elapsed Time
+        id: calculate-elapsed
+        if: always()
+        run: |
+          END=$(date +%s)
+          START=${{ steps.review-timer.outputs.start }}
+          ELAPSED=$((END - START))
+          echo "elapsed=$ELAPSED" >> $GITHUB_OUTPUT
+
+      - name: Record Review Metrics
+        if: always()
+        continue-on-error: true
+        run: |
+          LATENCY=${{ steps.calculate-elapsed.outputs.elapsed }}
+          OUTCOME="${{ job.status }}"
+          QUOTA_REMAINING=${{ steps.quota.outputs.remaining || 'null' }}
+
+          # Map job status to metric outcome
+          case "$OUTCOME" in
+            "success") METRIC_OUTCOME="success" ;;
+            "failure") METRIC_OUTCOME="failure" ;;
+            *) METRIC_OUTCOME="timeout" ;;
+          esac
+
+          python .github/scripts/review_metrics.py \
+            --service copilot \
+            --tier business \
+            --pr ${{ github.event.pull_request.number || inputs.pr_number }} \
+            --outcome "$METRIC_OUTCOME" \
+            --latency "$LATENCY" \
+            --quota-remaining "$QUOTA_REMAINING"
+
+  fallback-trigger:
+    name: Trigger Fallback if Needed
+    needs: [triage, copilot-review]
+    if: |
+      always() &&
+      needs.triage.outputs.should_review == 'true' &&
+      (needs.copilot-review.result == 'failure' ||
+       needs.copilot-review.outputs.review_status == 'QUOTA_EXCEEDED' ||
+       needs.copilot-review.outputs.review_status == 'API_ERROR' ||
+       needs.copilot-review.outputs.review_status == 'TIMEOUT')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine Fallback Reason
+        id: reason
+        run: |
+          STATUS="${{ needs.copilot-review.outputs.review_status }}"
+
+          if [ "$STATUS" = "QUOTA_EXCEEDED" ]; then
+            echo "reason=copilot_quota_exceeded" >> $GITHUB_OUTPUT
+            echo "reason_text=Copilot quota exhausted" >> $GITHUB_OUTPUT
+          elif [ "$STATUS" = "TIMEOUT" ]; then
+            echo "reason=copilot_timeout" >> $GITHUB_OUTPUT
+            echo "reason_text=Review timeout (>60s)" >> $GITHUB_OUTPUT
+          else
+            echo "reason=copilot_error" >> $GITHUB_OUTPUT
+            echo "reason_text=Copilot API error" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Fallback Workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number || inputs.pr_number }}
+          REASON=${{ steps.reason.outputs.reason }}
+
+          echo "Dispatching fallback workflow: reason=$REASON"
+
+          gh workflow run ai-code-review-fallback.yml \
+            -f pr_number=$PR_NUMBER \
+            -f reason=$REASON || echo "⚠️ Fallback workflow dispatch failed (workflow may not exist yet - Phase 03)"
+
+          echo "✅ Fallback workflow dispatched"
+
+      - name: Post Fallback Notice
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reasonText = '${{ steps.reason.outputs.reason_text }}';
+
+            const comment = [
+              '## ⚠️ GitHub Copilot Code Review',
+              '',
+              '**Status**: Fallback triggered',
+              '**Reason**: ' + reasonText,
+              '',
+              'A review using the GitHub Models API fallback will be posted shortly.',
+              '',
+              '---',
+              '*Powered by GitHub Copilot with GitHub Models Fallback*'
+            ].join('\n');
+
+            const prNumber = context.payload.pull_request?.number || ${{ inputs.pr_number || 0 }};
+            if (prNumber > 0) {
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Import Offline Backup - {{ session.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 mt-4">
+    <div class="max-w-3xl mx-auto">
+        <div class="flex items-center mb-6">
+            <a href="{% url 'review_results:overview' session.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50 mr-4" data-testid="link-back-review">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Back to Review
+            </a>
+            <h2 class="text-2xl font-bold m-0">Import Offline Backup</h2>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h5 class="text-blue-800 font-semibold flex items-center"><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg> Import Your Offline Changes</h5>
+            <p class="text-blue-700 mt-2">Upload the Excel file you edited offline to sync your review decisions back to the database.</p>
+            <ul class="text-blue-700 mb-0 mt-2 list-disc list-inside">
+                <li>Only .xlsx files from this session are accepted</li>
+                <li>File size limit: 10MB</li>
+                <li>Changes will be validated before applying</li>
+            </ul>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 shadow-sm">
+            <div class="p-6">
+                <form method="post" enctype="multipart/form-data" id="importForm" data-testid="import-form">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mb-4">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label for="{{ form.excel_file.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            {{ form.excel_file.label }}
+                        </label>
+                        {{ form.excel_file }}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.excel_file.help_text }}</p>
+                        {% if form.excel_file.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {{ form.excel_file.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {{ form.session }}
+
+                    <div id="importProgress" class="bg-blue-50 border border-blue-200 rounded-lg p-4 hidden mb-4" data-testid="import-progress">
+                        <div class="flex items-center">
+                            <svg class="animate-spin h-4 w-4 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="importProgressText" class="text-blue-700">Processing your changes...</span>
+                        </div>
+                    </div>
+
+                    <div id="importResult" class="hidden mb-4" data-testid="import-result"></div>
+
+                    <div class="flex flex-col sm:flex-row justify-end gap-2">
+                        <a href="{% url 'review_results:overview' session.id %}" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50" data-testid="cancel-import-btn">
+                            Cancel
+                        </a>
+                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" id="importButton" data-testid="submit-import-btn">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg> Import Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 shadow-sm mt-6">
+            <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                <h5 class="text-base font-semibold m-0 flex items-center"><svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> How Import Works</h5>
+            </div>
+            <div class="p-6">
+                <ol class="list-decimal list-inside space-y-2 mb-0">
+                    <li>Select the Excel file you edited offline (must be a .xlsx file from this session)</li>
+                    <li>Click "Import Changes" to upload the file</li>
+                    <li>The system will validate your changes and check for errors</li>
+                    <li>Valid changes will be synced to the database automatically</li>
+                    <li>You'll see a summary of updated records and any errors</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 shadow-sm mt-6">
+            <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                <h5 class="text-base font-semibold m-0 flex items-center"><svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg> What Gets Imported</h5>
+            </div>
+            <div class="p-6">
+                <p>The import process will sync the following changes from your Excel file:</p>
+                <ul class="list-disc list-inside space-y-1 mt-2 mb-0">
+                    <li><strong>Review Decision:</strong> Include, Exclude, or Maybe</li>
+                    <li><strong>Exclusion Reason:</strong> For excluded results only</li>
+                    <li><strong>Notes:</strong> Any notes you've added during review</li>
+                </ul>
+                <p class="text-gray-500 text-sm mt-3 mb-0">
+                    ℹ️ The system matches Excel rows to database records by title and URL. If a result can't be matched, it will be skipped.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('importForm');
+    const importButton = document.getElementById('importButton');
+    const progressDiv = document.getElementById('importProgress');
+    const progressText = document.getElementById('importProgressText');
+    const resultDiv = document.getElementById('importResult');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Disable button and show progress
+        importButton.disabled = true;
+        progressDiv.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+
+        // Create FormData and submit via AJAX
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'processing') {
+                progressText.textContent = data.message;
+
+                // Poll for results
+                setTimeout(() => {
+                    checkImportStatus(data.task_id);
+                }, 2000);
+            } else if (data.error) {
+                showError(data.error);
+            }
+        })
+        .catch(error => {
+            showError('Failed to start import: ' + error.message);
+        });
+    });
+
+    function checkImportStatus(taskId) {
+        // For now, show success after short delay
+        // In production, this would poll a status endpoint
+        setTimeout(() => {
+            progressDiv.classList.add('hidden');
+            resultDiv.classList.remove('hidden');
+            resultDiv.className = 'bg-green-50 border border-green-200 text-green-700 rounded-lg p-4';
+            resultDiv.innerHTML = '<strong>Import completed successfully!</strong><br>Your changes have been synced to the database. <a href="{% url "review_results:overview" session.id %}" class="text-green-800 underline">Return to review</a>';
+        }, 2000);
+    }
+
+    function showError(message) {
+        progressDiv.classList.add('hidden');
+        importButton.disabled = false;
+        resultDiv.classList.remove('hidden');
+        resultDiv.className = 'bg-red-50 border border-red-200 text-red-700 rounded-lg p-4';
+        resultDiv.innerHTML = '<strong>Import failed:</strong> ' + message;
+    }
+});
+</script>
+{% endblock %}

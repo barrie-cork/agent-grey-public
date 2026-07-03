@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Unified Monitoring Dashboard - Phase 2{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        border-left: 4px solid #007bff;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+        min-height: 120px;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .metric-card.warning {
+        border-left-color: #ffc107;
+    }
+    .metric-card.danger {
+        border-left-color: #dc3545;
+    }
+    .metric-card.success {
+        border-left-color: #28a745;
+    }
+
+    /* Circuit Breaker Status Indicators */
+    .circuit-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .circuit-closed {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .circuit-open {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .circuit-half-open {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .circuit-unknown {
+        background-color: #e2e3e5;
+        color: #6c757d;
+    }
+
+    /* Health Indicator */
+    .health-indicator {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(0.95); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    .health-healthy { background-color: #28a745; }
+    .health-warning { background-color: #ffc107; }
+    .health-critical { background-color: #dc3545; }
+
+    /* Database Connection Bar */
+    .connection-bar {
+        height: 24px;
+        background-color: #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+    }
+    .connection-fill {
+        height: 100%;
+        background-color: #28a745;
+        transition: width 0.5s ease;
+        display: flex;
+        align-items: center;
+        padding-left: 10px;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    .connection-fill.warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    .connection-fill.critical {
+        background-color: #dc3545;
+    }
+
+    /* Monitoring Metrics */
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #212529;
+        margin-bottom: 0;
+    }
+    .metric-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Auto-refresh indicator */
+    #refreshIndicator {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #007bff;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 1000;
+    }
+    #refreshIndicator.active {
+        opacity: 1;
+    }
+
+    /* Timeline for last run */
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 10px;
+    }
+    .timeline-item:before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 8px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #007bff;
+    }
+
+    /* Chart container */
+    .chart-container {
+        position: relative;
+        height: 200px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold mb-1">
+                <span class="health-indicator health-{{ health_status }}"></span>
+                Unified Monitoring Dashboard
+            </h1>
+            <small class="text-muted-foreground">Phase 2 - Consolidated monitoring running every 30 seconds</small>
+        </div>
+        <div class="flex items-center gap-2">
+            <span id="refreshIndicator">Auto-refresh active</span>
+            <button class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-secondary text-secondary-foreground bg-white hover:bg-secondary/10" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i> Refresh Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Monitor Status Overview -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="metric-card rounded-lg border border-border bg-card shadow-sm p-4 {% if is_healthy %}success{% else %}warning{% endif %}">
+            <div class="metric-label">Monitor Health</div>
+            <div class="metric-value">
+                {% if is_healthy %}
+                    <i class="fas fa-check-circle text-green-600"></i> Healthy
+                {% else %}
+                    <i class="fas fa-exclamation-triangle text-yellow-600"></i> Check
+                {% endif %}
+            </div>
+            <small class="text-muted-foreground">
+                Last run: {{ last_run|default:"Never" }}<br>
+                Next run: {{ next_run }}
+            </small>
+        </div>
+
+        <div class="metric-card rounded-lg border border-border bg-card shadow-sm p-4">
+            <div class="metric-label">Sessions Checked</div>
+            <div class="metric-value">{{ monitor_metrics.sessions_checked|default:"0" }}</div>
+            <small class="text-muted-foreground">In last run</small>
+        </div>
+
+        <div class="metric-card rounded-lg border border-border bg-card shadow-sm p-4 {% if monitor_metrics.stuck_fixed > 0 %}success{% endif %}">
+            <div class="metric-label">Auto-Fixed</div>
+            <div class="metric-value">{{ monitor_metrics.stuck_fixed|default:"0" }}</div>
+            <small class="text-muted-foreground">Sessions recovered</small>
+        </div>
+
+        <div class="metric-card rounded-lg border border-border bg-card shadow-sm p-4 {% if failure_rate > 10 %}danger{% elif failure_rate > 5 %}warning{% endif %}">
+            <div class="metric-label">Failure Rate</div>
+            <div class="metric-value">{{ failure_rate }}%</div>
+            <small class="text-muted-foreground">{{ monitor_metrics.failed_marked|default:"0" }} failed</small>
+        </div>
+    </div>
+
+    <!-- Circuit Breakers Status -->
+    <div class="mb-6">
+        <div class="rounded-lg border border-border bg-card shadow-sm">
+            <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                <h5 class="m-0 font-semibold">
+                    <i class="fas fa-shield-alt mr-2"></i>Circuit Breakers
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for key, breaker in circuit_breakers.items %}
+                    <div class="flex justify-between items-center p-3 border border-border rounded-lg">
+                        <div>
+                            <h6 class="font-medium mb-1">{{ breaker.name }}</h6>
+                            <small class="text-muted-foreground">Failures: {{ breaker.failures }}</small>
+                        </div>
+                        <div>
+                            <span class="circuit-status circuit-{{ breaker.state }}">
+                                {{ breaker.state|upper }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Connections -->
+    <div class="mb-6">
+        <div class="rounded-lg border border-border bg-card shadow-sm">
+            <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                <h5 class="m-0 font-semibold">
+                    <i class="fas fa-database mr-2"></i>Database Connections
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="mb-2">
+                    <div class="flex justify-between mb-1">
+                        <span>Active Connections</span>
+                        <span class="font-bold">{{ db_connections.active }} / {{ db_connections.max }}</span>
+                    </div>
+                    <div class="connection-bar">
+                        <div class="connection-fill {{ db_connections.status }}"
+                             style="width: {{ db_connections.percentage }}%">
+                            {{ db_connections.percentage }}%
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted-foreground">
+                    Status:
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if db_connections.status == 'healthy' %}bg-green-100 text-green-800{% elif db_connections.status == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ db_connections.status|upper }}
+                    </span>
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="mb-6">
+        <div class="rounded-lg border border-border bg-card shadow-sm">
+            <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                <h5 class="m-0 font-semibold">
+                    <i class="fas fa-chart-line mr-2"></i>Monitor Performance
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="timeline-item">
+                        <strong>Run Time:</strong>
+                        {{ monitor_metrics.monitor_run_time|floatformat:2|default:"0" }} seconds
+                    </div>
+                    <div class="timeline-item">
+                        <strong>Executions Checked:</strong>
+                        {{ monitor_metrics.executions_checked|default:"0" }}
+                    </div>
+                    <div class="timeline-item">
+                        <strong>Stuck Sessions:</strong>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if stuck_sessions > 5 %}bg-red-100 text-red-800{% elif stuck_sessions > 0 %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
+                            {{ stuck_sessions }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- History Chart Placeholder -->
+                <div class="chart-container mt-4" id="historyChart">
+                    <canvas id="monitorChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mb-6">
+        <div class="rounded-lg border border-border bg-card shadow-sm">
+            <div class="px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                <h5 class="m-0 font-semibold">
+                    <i class="fas fa-tools mr-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="p-6 flex flex-wrap gap-2">
+                <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="runMonitorNow()">
+                    <i class="fas fa-play"></i> Run Monitor Now
+                </button>
+                <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-yellow-500 text-white hover:bg-yellow-600" onclick="resetCircuitBreakers()">
+                    <i class="fas fa-redo"></i> Reset Circuit Breakers
+                </button>
+                <a href="{% url 'admin:index' %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                    <i class="fas fa-cog"></i> Admin Panel
+                </a>
+                <a href="/flower/" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-cyan-600 text-white hover:bg-cyan-700" target="_blank">
+                    <i class="fas fa-tasks"></i> Celery Flower
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Auto-refresh every 30 seconds
+    let refreshInterval;
+    let chart;
+
+    function initDashboard() {
+        // Initialize chart
+        const ctx = document.getElementById('monitorChart');
+        if (ctx) {
+            const historyData = {{ history|safe }};
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: historyData.map((d, i) => `Run ${i + 1}`),
+                    datasets: [{
+                        label: 'Sessions Checked',
+                        data: historyData.map(d => d.sessions_checked),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }, {
+                        label: 'Auto-Fixed',
+                        data: historyData.map(d => d.stuck_fixed),
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1
+                    }, {
+                        label: 'Failed',
+                        data: historyData.map(d => d.failed_marked),
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Start auto-refresh
+        startAutoRefresh();
+    }
+
+    function startAutoRefresh() {
+        refreshInterval = setInterval(refreshDashboard, 30000);
+    }
+
+    function stopAutoRefresh() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+    }
+
+    function refreshDashboard() {
+        const indicator = document.getElementById('refreshIndicator');
+        indicator.classList.add('active');
+
+        // In a real implementation, this would fetch new data via AJAX
+        setTimeout(() => {
+            location.reload();
+        }, 500);
+    }
+
+    function runMonitorNow() {
+        if (confirm('Run the unified monitor task immediately?')) {
+            fetch('/api/monitoring/run-now/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    alert('Monitor task triggered successfully');
+                    setTimeout(refreshDashboard, 2000);
+                } else {
+                    alert('Failed to trigger monitor task');
+                }
+            });
+        }
+    }
+
+    function resetCircuitBreakers() {
+        if (confirm('Reset all circuit breakers to closed state?')) {
+            fetch('/api/monitoring/reset-breakers/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    alert('Circuit breakers reset successfully');
+                    refreshDashboard();
+                } else {
+                    alert('Failed to reset circuit breakers');
+                }
+            });
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initDashboard);
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', stopAutoRefresh);
+</script>
+{% endblock %}

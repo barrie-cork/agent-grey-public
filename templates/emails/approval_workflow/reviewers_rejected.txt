@@ -1,0 +1,43 @@
+Hi {{ owner_name }},
+
+We wanted to inform you that the external reviewers you invited to your review session were not approved.
+
+APPROVAL REJECTED
+=================
+{{ rejected_count }} external reviewer{{ rejected_count|pluralize }} {{ rejected_count|pluralize:"was,were" }} rejected by {{ rejected_by_name }} on {{ rejected_at|date:"F j, Y" }} at {{ rejected_at|time:"g:i A" }}.
+
+SESSION: {{ session_title }}
+============================
+Rejected by: {{ rejected_by_name }}
+Rejection Date: {{ rejected_at|date:"F j, Y, g:i A" }}
+
+{% if rejection_reason %}REASON FOR REJECTION
+====================
+{{ rejection_reason }}
+
+{% endif %}REJECTED EXTERNAL REVIEWERS
+============================
+{% for reviewer in external_reviewers %}✗ {{ reviewer.first_name }} {{ reviewer.last_name }} ({{ reviewer.email }})
+{% endfor %}
+
+WHAT ARE YOUR OPTIONS?
+======================
+• Review the rejection reason and address any concerns
+• Invite different external reviewers who meet the requirements
+• Proceed with only internal reviewers from your organisation
+• Contact {{ rejected_by_name }} to discuss the rejection if you have questions
+
+View Session Dashboard: {{ session_url }}
+
+You can add new reviewers to your session at any time from the session dashboard. Internal reviewers from your organisation are invited immediately, while external reviewers will require approval.
+
+If you have questions about the rejection or need assistance, please contact your Information Specialist: {{ rejected_by_name }}.
+
+---
+This email was sent by Agent Grey
+
+You're receiving this email because you are the owner of this review session and your external reviewer invitations have been processed.
+
+Manage notification preferences: {{ preferences_url }}
+
+© {% now "Y" %} Agent Grey. All rights reserved.

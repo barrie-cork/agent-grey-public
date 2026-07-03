@@ -1,0 +1,132 @@
+{% load static session_tags %}
+<div class="rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200" data-testid="session-card">
+    <div class="p-5">
+        <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="flex-1 min-w-0">
+                <h3 class="text-base font-semibold text-foreground truncate">{{ session.title }}</h3>
+                {% if is_shared %}
+                <p class="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    Shared by {{ session.owner.get_full_name|default:session.owner.username }}
+                </p>
+                {% endif %}
+            </div>
+            {% include 'components/badge.html' with text=session.get_status_display variant=session.status|status_color %}
+        </div>
+
+        {% if session.description %}
+        <p class="text-sm text-muted-foreground mb-3">{{ session.description|truncatewords:20 }}</p>
+        {% endif %}
+
+        <div class="flex flex-wrap gap-4 text-xs text-muted-foreground">
+            <span class="flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Updated {{ session.updated_at|timesince }} ago
+            </span>
+            {% if session.total_results > 0 %}
+            <span class="flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                {{ session.total_results }} results
+            </span>
+            {% endif %}
+            {% if session.status == 'under_review' or session.status == 'executing' %}
+            <span class="flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                {% if session.status == 'executing' %}
+                    {{ session.progress_percentage }}% executed
+                {% else %}
+                    {{ session.progress_percentage }}% reviewed
+                {% endif %}
+            </span>
+            {% endif %}
+        </div>
+
+        {% if session.status == 'executing' or session.status == 'under_review' %}
+        {% include 'components/progress-bar.html' with percentage=session.progress_percentage height='h-1.5' extra_classes='mt-3' %}
+        {% endif %}
+    </div>
+
+    <div class="border-t border-border px-5 py-3.5 flex items-center justify-between">
+        <a href="{% url 'review_manager:session_navigate' session_id=session.id %}"
+           class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+           data-testid="session-action-btn">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            {% if session.status == 'draft' %}
+                Define Strategy
+            {% elif session.status == 'defining_search' %}
+                Continue Setup
+            {% elif session.status == 'ready_to_execute' %}
+                Execute Search
+            {% elif session.status == 'executing' %}
+                View Progress
+            {% elif session.status == 'processing_results' %}
+                Processing...
+            {% elif session.status == 'ready_for_review' %}
+                Start Review
+            {% elif session.status == 'under_review' %}
+                Continue Review
+            {% elif session.status == 'completed' %}
+                View Report
+            {% else %}
+                View Details
+            {% endif %}
+        </a>
+
+        <div class="relative" data-dropdown>
+            <button type="button" class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring" data-dropdown-toggle>
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            </button>
+            <div class="hidden absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-card shadow-lg ring-1 ring-black/5 focus:outline-none" data-dropdown-menu>
+                <div class="py-1">
+                    <a href="{% url 'review_manager:session_detail' session_id=session.id %}" class="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:bg-muted">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        View Details
+                    </a>
+                    {% if not is_shared %}
+                        {% if session.status in 'draft,defining_search' %}
+                        <a href="{% url 'review_manager:edit_session' session_id=session.id %}" class="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:bg-muted">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            Edit
+                        </a>
+                        {% endif %}
+                        <hr class="my-1 border-border">
+                        <form method="post" action="{% url 'review_manager:delete_session' session_id=session.id %}"
+                              class="delete-session-form">
+                            {% csrf_token %}
+                            <button type="submit" class="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive-light delete-session-btn"
+                                    data-session-title="{{ session.title|escapejs }}"
+                                    data-testid="delete-session-btn">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                Delete Session
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Dropdown toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-dropdown]').forEach(function(dropdown) {
+        const toggle = dropdown.querySelector('[data-dropdown-toggle]');
+        const menu = dropdown.querySelector('[data-dropdown-menu]');
+
+        if (toggle && menu) {
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                menu.classList.toggle('hidden');
+            });
+        }
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('[data-dropdown-menu]').forEach(function(menu) {
+            menu.classList.add('hidden');
+        });
+    });
+});
+</script>

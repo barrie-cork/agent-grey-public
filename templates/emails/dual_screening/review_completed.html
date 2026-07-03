@@ -1,0 +1,87 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Review Completed - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Congratulations {{ reviewer_name }}!
+</div>
+
+<div class="content">
+    <p>The screening phase for your systematic review project is complete:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ session_title }}</h2>
+    <p><span class="label">Completed:</span> {{ completed_at|date:"d F Y, H:i" }}</p>
+</div>
+
+<div class="alert-box success">
+    <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #155724;">✓ Screening Summary</h2>
+    <p><span class="label">Total Results Screened:</span> <strong>{{ total_results }}</strong></p>
+    <p><span class="label">Included:</span> <strong>{{ included_count }}</strong> ({{ included_percentage }}%)</p>
+    <p><span class="label">Excluded:</span> <strong>{{ excluded_count }}</strong> ({{ excluded_percentage }}%)</p>
+    {% if maybe_count > 0 %}
+    <p><span class="label">Maybe (Requires Discussion):</span> <strong>{{ maybe_count }}</strong></p>
+    {% endif %}
+</div>
+
+<div class="highlight-box">
+    <h2>Inter-Rater Reliability</h2>
+    <p><span class="label">Cohen's Kappa:</span> <strong>{{ cohens_kappa }}</strong> ({{ kappa_interpretation }})</p>
+    <p><span class="label">Percentage Agreement:</span> {{ percentage_agreement }}%</p>
+    <p><span class="label">Conflicts Resolved:</span> {{ conflicts_resolved_count }}</p>
+</div>
+
+{% if reviewer_contributions %}
+<div class="content">
+    <h3 style="color: #2c3e50;">Reviewer Contributions</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <thead>
+            <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <th style="padding: 10px; text-align: left;">Reviewer</th>
+                <th style="padding: 10px; text-align: center;">Decisions</th>
+                <th style="padding: 10px; text-align: center;">Time Spent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contribution in reviewer_contributions %}
+            <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 10px;">{{ contribution.name }}</td>
+                <td style="padding: 10px; text-align: center;">{{ contribution.decisions_count }}</td>
+                <td style="padding: 10px; text-align: center;">{{ contribution.time_spent }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="button-container">
+    <a href="{{ prisma_report_url }}" class="button">Generate PRISMA Report</a>
+</div>
+
+<div class="content">
+    <h3 style="color: #2c3e50;">Next Steps:</h3>
+    <ul style="color: #555555;">
+        <li><strong>Generate PRISMA report:</strong> Create your publication-ready systematic review report</li>
+        <li><strong>Export audit trail:</strong> Download the complete decision history for your records</li>
+        <li><strong>Document access:</strong> Access full documents via URL links for included results</li>
+        <li><strong>Archive session:</strong> Move this session to your archive when finished</li>
+    </ul>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d; background-color: #f8f9fa; padding: 15px; border-radius: 4px;">
+        <strong>PRISMA 2020 Compliance:</strong>
+        <br>This review has been conducted following PRISMA 2020 guidelines for systematic reviews.
+        Your PRISMA report will include all required elements for Item 7 (Study Selection) including
+        the number of studies screened, assessed for eligibility, and included in the review, with reasons
+        for exclusions. The inter-rater reliability metrics ensure transparency in the review process.
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you participated in this systematic review and it has been completed.
+{% endblock %}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>● Agent Grey — Recording</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #1e3a5f;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .card {
+        max-width: 520px;
+        padding: 32px 36px;
+        text-align: center;
+        line-height: 1.5;
+      }
+      .rec {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #dc2626;
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 14px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #fff;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+      h1 { font-size: 20px; margin: 20px 0 8px; }
+      p { font-size: 14px; color: #cbd5e1; margin: 8px 0; }
+      strong { color: #fff; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <span class="rec"><span class="dot"></span> RECORDING</span>
+      <h1>This is your Agent Grey capture window</h1>
+      <p>
+        Every page you open <strong>in this window</strong> is recorded and sent
+        to Agent Grey for your systematic review.
+      </p>
+      <p>
+        Keep <strong>all review browsing here</strong>. Pages opened in other
+        windows are not captured. Use a normal window for personal browsing.
+      </p>
+      <p>Close this window to stop capturing.</p>
+    </div>
+  </body>
+</html>

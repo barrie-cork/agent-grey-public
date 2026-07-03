@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="w-full max-w-7xl mx-auto px-6 mt-4">
+    <nav aria-label="Breadcrumb" class="mb-4">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li class="flex items-center">
+                <a href="{% url 'review_manager:dashboard' %}" class="text-muted-foreground hover:text-primary">Dashboard</a>
+            </li>
+            {% block breadcrumb_items %}{% endblock %}
+        </ol>
+    </nav>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'review_manager/js/messages.js' %}"></script>
+<script defer src="{% static 'review_manager/js/dashboard.js' %}"></script>
+{% endblock %}

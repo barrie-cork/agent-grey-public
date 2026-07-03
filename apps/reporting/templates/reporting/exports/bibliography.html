@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Bibliography - {{ report.title }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'DejaVu Serif', 'Liberation Serif', serif;
+            font-size: 12pt;
+            line-height: 1.8;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            font-size: 18pt;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+        .metadata {
+            text-align: center;
+            color: #666;
+            margin-bottom: 3rem;
+            font-style: italic;
+        }
+        .bibliography-entry {
+            margin-bottom: 1.5rem;
+            text-indent: -2rem;
+            padding-left: 2rem;
+        }
+        .entry-number {
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .title {
+            font-style: italic;
+        }
+        .year {
+            font-weight: bold;
+        }
+        .url {
+            color: #3498db;
+            word-break: break-all;
+        }
+        .document-type {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .section-header {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.5rem;
+        }
+        .statistics {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 2rem;
+        }
+        .stat-item {
+            display: inline-block;
+            margin-right: 2rem;
+        }
+        .footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            .bibliography-entry {
+                page-break-inside: avoid;
+            }
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Bibliography</h1>
+
+    <div class="metadata">
+        <p>{{ data.session.title }}</p>
+        <p>Systematic Literature Review - Included Studies</p>
+        <p>Generated: {{ generated_at|date:"F j, Y" }}</p>
+    </div>
+
+    <div class="statistics">
+        <div class="stat-item">
+            <strong>Total Included Studies:</strong> {{ data.results.count }}
+        </div>
+        <div class="stat-item">
+            <strong>Date Range:</strong>
+            {% if data.results %}
+                {% with first_result=data.results|first last_result=data.results|last %}
+                    {{ first_result.publication_year|default:"Unknown" }} -
+                    {{ last_result.publication_year|default:"Present" }}
+                {% endwith %}
+            {% else %}
+                N/A
+            {% endif %}
+        </div>
+    </div>
+
+    {% if data.results %}
+        {% regroup data.results by document_type as grouped_results %}
+
+        {% for group in grouped_results %}
+            <div class="section-header">
+                {{ group.grouper|default:"Unknown Type"|title }}
+            </div>
+
+            {% for result in group.list|dictsort:"publication_year" %}
+            <div class="bibliography-entry">
+                <span class="entry-number">[{{ forloop.parentloop.counter }}.{{ forloop.counter }}]</span>
+
+
+                {% if result.publication_year %}
+                    <span class="year">({{ result.publication_year }}).</span>
+                {% endif %}
+
+                <span class="title">{{ result.title }}.</span>
+
+                {% if result.source_organization %}
+                    <span>{{ result.source_organization }}.</span>
+                {% endif %}
+
+                {% if result.document_type %}
+                    <span class="document-type">[{{ result.document_type }}]</span>
+                {% endif %}
+
+                {% if result.url %}
+                    <br>
+                    <span>Available at: <a href="{{ result.url }}" class="url" target="_blank">{{ result.url }}</a></span>
+                {% endif %}
+
+                {% if result.doi %}
+                    <br>
+                    <span>DOI: {{ result.doi }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% endfor %}
+    {% else %}
+        <p>No studies have been included in this review yet.</p>
+    {% endif %}
+
+    <div class="footer">
+        <p>This bibliography was generated following standard citation formats.</p>
+        <p>For machine-readable format, please export using the JSON option.</p>
+        <p>Agent Grey - Systematic Literature Review Platform</p>
+    </div>
+</body>
+</html>

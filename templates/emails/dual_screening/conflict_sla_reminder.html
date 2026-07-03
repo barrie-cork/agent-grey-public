@@ -1,0 +1,46 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}{% if is_critical %}URGENT: {% endif %}SLA Reminder - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="content">
+    <p>A conflict in your review session is {% if is_overdue %}overdue{% elif is_critical %}approaching its deadline{% else %}past the halfway mark{% endif %}:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ result_title }}</h2>
+    <p><strong>Session:</strong> {{ session_title }}</p>
+    <p><strong>SLA:</strong> {{ sla_hours }} hours</p>
+</div>
+
+{% if is_critical %}
+<div class="alert-box danger">
+{% else %}
+<div class="alert-box">
+{% endif %}
+    {% if is_overdue %}
+    <p><strong>This conflict is overdue by {{ hours_overdue }} hours.</strong></p>
+    <p>Please prioritise resolving this discussion.</p>
+    {% else %}
+    <p><strong>{{ threshold }} of the SLA time has elapsed.</strong></p>
+    <p>Approximately {{ hours_remaining }} hours remaining.</p>
+    {% endif %}
+</div>
+
+<div class="button-container">
+    <a href="{{ conflict_url }}" class="button">View Discussion</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>Next Steps:</strong>
+        <br>- Review the discussion thread and any new comments
+        <br>- Engage with your co-reviewer to reach consensus
+        <br>- If stuck, consider proposing a re-vote or escalating
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you are involved in a conflict discussion that is approaching its SLA deadline.
+{% endblock %}

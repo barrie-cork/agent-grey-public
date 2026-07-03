@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}Extension Tokens - Agent Grey{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-8">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-foreground">Browser Extension Tokens</h1>
+    <p class="mt-1 text-sm text-muted-foreground">
+      Issue a token for the Agent Grey browser extension. Each token is tied to one
+      device and can be revoked at any time without affecting other devices.
+    </p>
+  </div>
+
+  {# Issue new token #}
+  <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+    <div class="border-b border-border px-6 py-4">
+      <h2 class="text-base font-semibold text-foreground">Issue a new token</h2>
+    </div>
+    <div class="px-6 py-4">
+      <form id="issue-form" class="flex gap-3 items-end">
+        {% csrf_token %}
+        <div class="flex-1">
+          <label for="token-name" class="block text-sm font-medium text-foreground mb-1">
+            Device name
+          </label>
+          <input id="token-name" type="text" name="name" placeholder="e.g. Work laptop"
+                 maxlength="64"
+                 class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-ring">
+        </div>
+        <button type="submit"
+                class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm
+                       font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none
+                       focus:ring-2 focus:ring-ring focus:ring-offset-2">
+          Issue token
+        </button>
+      </form>
+
+      {# Token reveal area -- hidden until a token is issued #}
+      <div id="token-reveal" class="hidden mt-4 rounded-md bg-muted px-4 py-3">
+        <p class="text-xs font-medium text-muted-foreground mb-1">
+          Copy this token now -- it will not be shown again.
+        </p>
+        <div class="flex items-center gap-2">
+          <code id="token-value"
+                class="flex-1 break-all rounded bg-background px-2 py-1 text-sm font-mono
+                       text-foreground border border-border"></code>
+          <button id="copy-btn" type="button"
+                  class="shrink-0 rounded border border-border px-2 py-1 text-xs
+                         text-muted-foreground hover:text-foreground">
+            Copy
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Existing tokens #}
+  <div class="rounded-lg border border-border bg-card shadow-sm">
+    <div class="border-b border-border px-6 py-4">
+      <h2 class="text-base font-semibold text-foreground">Active tokens</h2>
+    </div>
+
+    {% if tokens %}
+    <ul class="divide-y divide-border" id="token-list">
+      {% for token in tokens %}
+      <li class="flex items-center justify-between px-6 py-3" id="token-row-{{ token.pk }}">
+        <div>
+          <span class="text-sm font-mono text-foreground">{{ token.token_key }}…</span>
+          <span class="ml-2 text-xs text-muted-foreground">
+            issued {{ token.created|date:"d M Y H:i" }}
+          </span>
+          {% if token.expiry %}
+          <span class="ml-2 text-xs text-muted-foreground">
+            expires {{ token.expiry|date:"d M Y" }}
+          </span>
+          {% endif %}
+        </div>
+        <form class="revoke-form" data-pk="{{ token.pk }}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="text-xs text-destructive hover:underline focus:outline-none">
+            Revoke
+          </button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="px-6 py-4 text-sm text-muted-foreground" id="no-tokens">
+      No active tokens. Issue one above to connect the extension.
+    </p>
+    {% endif %}
+  </div>
+
+  <div class="mt-4">
+    <a href="{% url 'accounts:profile' %}"
+       class="text-sm text-primary hover:underline">&larr; Back to profile</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  const issueForm = document.getElementById('issue-form');
+  const reveal    = document.getElementById('token-reveal');
+  const tokenVal  = document.getElementById('token-value');
+  const copyBtn   = document.getElementById('copy-btn');
+  const noTokens  = document.getElementById('no-tokens');
+  const tokenList = document.getElementById('token-list');
+
+  function csrfToken() {
+    return issueForm.querySelector('[name=csrfmiddlewaretoken]').value;
+  }
+
+  issueForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(issueForm);
+    fd.set('action', 'issue');
+    const resp = await fetch(window.location.href, {
+      method: 'POST', body: fd,
+      headers: { 'X-CSRFToken': csrfToken() },
+    });
+    const data = await resp.json();
+    if (data.token) {
+      tokenVal.textContent = data.token;
+      reveal.classList.remove('hidden');
+      issueForm.reset();
+      // Add to active list without reloading (token reveal stays visible).
+      // Hide (not remove) the empty state so revoke can restore it later.
+      if (noTokens) noTokens.classList.add('hidden');
+      let list = document.getElementById('token-list');
+      if (!list) {
+        list = document.createElement('ul');
+        list.id = 'token-list';
+        list.className = 'divide-y divide-border';
+        document.querySelector('.rounded-lg:last-of-type .border-b').after(list);
+      }
+      const prefix = data.token.slice(0, 16) + '…';
+      const now = new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      const li = document.createElement('li');
+      li.className = 'flex items-center justify-between px-6 py-3';
+      if (data.pk) li.id = 'token-row-' + data.pk;
+      li.innerHTML = '<div><span class="text-sm font-mono text-foreground">' + prefix + '</span>'
+        + '<span class="ml-2 text-xs text-muted-foreground">issued ' + now + '</span></div>';
+      if (data.pk) {
+        const revokeForm = document.createElement('form');
+        revokeForm.className = 'revoke-form';
+        revokeForm.dataset.pk = data.pk;
+        revokeForm.innerHTML = '<button type="submit"'
+          + ' class="text-xs text-destructive hover:underline focus:outline-none">Revoke</button>';
+        wireRevoke(revokeForm);
+        li.appendChild(revokeForm);
+      }
+      list.prepend(li);
+    }
+  });
+
+  copyBtn && copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(tokenVal.textContent).then(() => {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+    });
+  });
+
+  function wireRevoke(form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pk = form.dataset.pk;
+      const fd = new FormData(form);
+      fd.set('action', 'revoke');
+      fd.set('token_pk', pk);
+      const resp = await fetch(window.location.href, {
+        method: 'POST', body: fd,
+        headers: { 'X-CSRFToken': csrfToken() },
+      });
+      const data = await resp.json();
+      if (data.revoked) {
+        document.getElementById('token-row-' + pk)?.remove();
+        if (!document.querySelector('#token-list li')) {
+          if (tokenList) tokenList.innerHTML = '';
+          if (noTokens) noTokens.classList.remove('hidden');
+        }
+      }
+    });
+  }
+  document.querySelectorAll('.revoke-form').forEach(wireRevoke);
+})();
+</script>
+{% endblock %}

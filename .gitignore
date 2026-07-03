@@ -1,0 +1,207 @@
+# Files and directories to exclude from public repository
+# This file is used by sync scripts to filter what goes to the public repo
+
+# Private documentation (CLAUDE.md, PRPs/, and docs/ now included in public repo)
+CLAUDE_DETAILED.md
+
+# Test outputs and caches (E2E test source files ARE tracked)
+.pytest_cache/
+test-results/
+playwright-report/
+.seeded-sessions.json
+**/test-results/
+**/playwright-report/
+**/__pycache__/
+
+# Exclude sensitive deployment documentation
+docs/deployment/
+
+# Exclude files with API token examples
+PRPs/ai_docs/cc_deployment.md
+
+# Environment files (keep only examples)
+
+# Deployment configurations with potential secrets
+deployment/
+deploy/
+.deploy/
+
+# Logs and monitoring
+logs/
+/monitoring/
+sentry_logs.json
+
+# User data and uploads
+media/
+staticfiles/
+
+# Vite build output (rebuilt on deploy)
+static/dist/
+
+# Development artifacts
+venv/
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+test-results/
+qdrant_storage/
+flake8_backups/
+
+# Test coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Runtime files
+celerybeat-schedule*
+cookies.txt
+*.pid
+*.seed
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database files
+*.sqlite3
+*.db
+db.sqlite3
+db.sqlite3-journal
+
+# Backup files
+*.bak
+*.backup
+backup/
+backups/
+
+# Private scripts and notes
+*_private.py
+*_private.sh
+*_local.py
+private_notes/
+TODO_PRIVATE.md
+
+# Legacy project references (if any remain)
+thesis-grey*
+thesis_grey*
+
+# Security sensitive scripts
+scripts/*credentials*
+scripts/*secret*
+scripts/*token*
+
+# Personal development files
+
+# CI/CD private configurations
+.github/secrets/
+.gitlab/private/
+
+# Temporary and cache files
+*.tmp
+*.temp
+*.cache
+.cache/
+
+# GitHub AI review cache
+.github/cache/api_usage.json
+
+# The sync scripts themselves (don't need them in public)
+sync_to_public.sh
+manage_public.sh
+.gitignore.public
+prepare_agent_grey_public.sh
+audit_agent_grey_public.py
+backup_pre_django52_*.sql
+.do/app-with-env.yaml
+
+# DigitalOcean App Spec with actual credentials (DO NOT COMMIT)
+.do/app-with-env.yaml
+.mcp.local.json
+
+# Claude Code Observability System
+observability/venv/
+observability/node_modules/
+observability/apps/*/node_modules/
+observability/data/*.db
+observability/data/*.db-wal
+observability/data/*.db-shm
+observability/data/*.pid
+observability/logs/*.log
+.claude/hooks/__pycache__/
+.claude/logs/
+.claude/prompts/
+.claude/worktrees/
+.pnpm-store/
+
+# Serena MCP (track config + memories, ignore cache)
+.serena/cache/
+.serena/project.local.yml
+
+# Responsive screenshot captures (manual review only)
+tests/screenshots/
+tests/e2e/visual/responsive-captures/
+
+# Root-level screenshot captures (ad-hoc visual checks)
+/sidebar-*.png
+/screenshot-*.png
+/*.png
+
+# macOS
+.DS_Store
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Test reporting artifacts
+.test_reporting.txt
+
+# Perplexity MCP output
+.claude/perplexity-output/
+.claude/perplexity-mcp/node_modules/
+
+# Temporary screenshots
+screenshots/
+invoice.csv
+
+# Project memory MCP (local SQLite)
+.project-memory/
+.junior/
+.aider*
+
+# Claude sync manifest
+.claude/.sync-manifest
+
+# MCP config (may contain credentials)
+.mcp.json
+
+# Test artifacts
+node_modules/
+playwright-report/
+test-results/
+
+# Generated reports / baselines / backups (untracked in plan 005)
+/comment.pdf
+/screenshot.pdf
+/*-report.json
+/*-report-*.json
+/safety-report.json
+/eval-report-*.json
+/test_baseline_*.txt
+/deprecations_baseline.txt
+/*.backup-*
+/audit-report.md
+/pm-validation-results.md
+/todo.txt
+
+.env.dev.local
+
+# Dual-screening manual test run state (runtime residue, untracked 2026-07-03)
+.claude/tasks/dual-screening-*-state.md

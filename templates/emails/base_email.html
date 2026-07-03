@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Agent Grey Notification{% endblock %}</title>
+    <style>
+        /* Reset styles for email clients */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f5f5;
+        }
+
+        /* Container */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        /* Header */
+        .email-header {
+            background-color: #2c3e50;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .email-header h1 {
+            margin: 0;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .email-header .logo {
+            color: #3498db;
+            font-weight: 700;
+        }
+
+        /* Body */
+        .email-body {
+            padding: 40px 30px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .content {
+            margin-bottom: 30px;
+        }
+
+        .content p {
+            margin: 0 0 15px 0;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .highlight-box h2 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+
+        .highlight-box p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .highlight-box .label {
+            font-weight: 600;
+            color: #555555;
+        }
+
+        /* Alert box (for warnings/errors) */
+        .alert-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .alert-box.danger {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .alert-box.success {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        /* Button */
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 14px 30px;
+            background-color: #3498db;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        /* Footer */
+        .email-footer {
+            background-color: #f8f9fa;
+            padding: 30px 20px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .email-footer p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .email-footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .email-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 20px 15px;
+            }
+
+            .email-header {
+                padding: 20px 15px;
+            }
+
+            .highlight-box {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <h1><span class="logo">Agent Grey</span> - Systematic Review Management</h1>
+        </div>
+
+        <!-- Body -->
+        <div class="email-body">
+            {% block content %}
+            <!-- Email content goes here -->
+            {% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <div class="email-footer">
+            <p>This email was sent by <strong>Agent Grey</strong></p>
+            <p>
+                {% block footer_text %}
+                This notification was sent because you are assigned to this review.
+                {% endblock %}
+            </p>
+            <p>
+                {% if preferences_url %}
+                <a href="{{ preferences_url }}">Manage notification preferences</a>
+                {% endif %}
+            </p>
+            <p>&copy; {% now "Y" %} Agent Grey. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

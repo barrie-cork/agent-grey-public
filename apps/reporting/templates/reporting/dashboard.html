@@ -1,0 +1,1074 @@
+{% extends "base.html" %}
+{% load static %}
+{% load report_tags %}
+
+{% block title %}Reporting Dashboard - Agent Grey{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        transition: transform 0.2s;
+        border-left: 4px solid;
+    }
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+    .metric-card.primary { border-left-color: #0d6efd; }
+    .metric-card.success { border-left-color: #198754; }
+    .metric-card.info { border-left-color: #0dcaf0; }
+    .metric-card.warning { border-left-color: #ffc107; }
+
+    .chart-container {
+        position: relative;
+        width: 100%;
+        overflow: auto;
+    }
+
+    .prisma-flow .chart-container {
+        height: auto;
+        max-height: 800px;
+        display: flex;
+        justify-content: center;
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 0.375rem;
+    }
+
+    #prismaFlowChart {
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 0.375rem;
+        max-width: 100%;
+        height: auto;
+    }
+
+    .report-list-item {
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem 0;
+    }
+    .report-list-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-4">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold m-0">Reporting Dashboard</h1>
+        <p class="text-gray-500 mt-1">Generate PRISMA-compliant systematic literature review reports</p>
+    </div>
+
+
+    <!-- Review Statistics -->
+    <div class="mb-6">
+        <h4 class="text-lg font-semibold mb-3">Review Statistics</h4>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-blue-600 stat-value" data-testid="total-count">{{ prisma_flow_data.raw_search_results|default:0 }}</h3>
+                    <small class="text-gray-500">Total Search Results</small>
+                </div>
+            </div>
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-cyan-600 stat-value" data-testid="duplicates-count">{{ prisma_flow_data.duplicates_removed|default:0 }}</h3>
+                    <small class="text-gray-500">Duplicates Removed</small>
+                </div>
+            </div>
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-gray-600 stat-value" data-testid="reviewed-count">{{ review_stats.total_reviewed|default:0 }}</h3>
+                    <small class="text-gray-500">Total Reviewed</small>
+                </div>
+            </div>
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-green-600 stat-value" data-testid="included-count">{{ prisma_flow_data.results_included|default:0 }}</h3>
+                    <small class="text-gray-500">Included</small>
+                </div>
+            </div>
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-red-600 stat-value" data-testid="excluded-count">{{ prisma_flow_data.results_excluded|default:0 }}</h3>
+                    <small class="text-gray-500">Excluded</small>
+                </div>
+            </div>
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-yellow-600 stat-value" data-testid="maybe-count">{{ prisma_flow_data.results_maybe|default:0 }}</h3>
+                    <small class="text-gray-500">Maybe</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Retrieval Statistics -->
+    <div class="mb-6">
+        <h4 class="text-lg font-semibold mb-3">Retrieval Statistics</h4>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-cyan-600">{{ prisma_flow_data.retrieval.reports_sought|default:0 }}</h3>
+                    <small class="text-gray-500">Reports Sought for Retrieval</small>
+                </div>
+            </div>
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-yellow-600">{{ prisma_flow_data.retrieval.reports_not_retrieved|default:0 }}</h3>
+                    <small class="text-gray-500">Reports Not Retrieved</small>
+                </div>
+            </div>
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-green-600">{{ prisma_flow_data.retrieval.reports_retrieved|default:0 }}</h3>
+                    <small class="text-gray-500">Reports Retrieved</small>
+                </div>
+            </div>
+            <div class="rounded-lg border border-gray-200 shadow-sm h-full">
+                <div class="p-4 text-center">
+                    <h3 class="text-2xl font-bold mb-1 text-blue-600">{{ prisma_flow_data.summary.retrieval_rate|default:0|floatformat:0 }}%</h3>
+                    <small class="text-gray-500">Retrieval Success Rate</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- PRISMA Flow Diagram Visualization -->
+        <div class="lg:col-span-2">
+            <div class="rounded-lg border border-gray-200 shadow-sm" data-testid="prisma-flow">
+                <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                    <h5 class="text-base font-semibold m-0">PRISMA Flow Diagram</h5>
+                </div>
+                <div class="p-6 prisma-flow">
+                    <div class="chart-container relative">
+                        <canvas id="prismaFlowChart" width="800" height="1000"></canvas>
+                        <!-- Subtle copy button in top right corner -->
+                        <button onclick="copyPrismaDiagram(this)" class="absolute top-2 right-2 px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-md hover:bg-gray-50 opacity-70 hover:opacity-100"
+                                title="Copy diagram to clipboard">
+                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>Copy
+                        </button>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <button onclick="exportPrismaDiagram('png')" class="inline-flex items-center px-3 py-1.5 text-sm border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 mr-2" data-testid="export-db-flow-png">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>Download Database Flow (PNG)
+                        </button>
+                        <button onclick="exportPrismaDiagram('pdf')" class="inline-flex items-center px-3 py-1.5 text-sm border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 mr-2" data-testid="export-db-flow-pdf">
+                            <svg class="w-4 h-4 mr-1 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>Download Database Flow (PDF)
+                        </button>
+                        <button disabled class="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 text-gray-400 rounded-md cursor-not-allowed" data-testid="export-full-prisma" title="Save other methods data first to enable full diagram download">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Download Full PRISMA Diagram
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Generation Form -->
+        <div>
+            <div class="rounded-lg border border-gray-200 shadow-sm">
+                <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                    <h5 class="text-base font-semibold m-0">Generate New Report</h5>
+                </div>
+                <div class="p-6">
+                    {% if session %}
+                    <form method="post" action="{% url 'reporting:generate_report' session_id=session.id %}">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="format" class="block text-sm font-medium text-gray-700 mb-1">Report Format</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" id="format" name="format" required>
+                                <option value="">Select format...</option>
+                                <option value="pdf">PDF Document</option>
+                                <option value="csv">CSV File</option>
+                                <option value="json">JSON Data</option>
+                            </select>
+                        </div>
+                        <div class="mb-4 space-y-2">
+                            <div class="flex items-center">
+                                <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" type="checkbox" id="include_prisma_flow" name="include_prisma_flow" checked>
+                                <label class="ml-2 text-sm text-gray-700" for="include_prisma_flow">
+                                    Include PRISMA flow diagram
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" type="checkbox" id="include_checklist" name="include_checklist" checked>
+                                <label class="ml-2 text-sm text-gray-700" for="include_checklist">
+                                    Include PRISMA checklist
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" type="checkbox" id="include_metadata" name="include_metadata" checked>
+                                <label class="ml-2 text-sm text-gray-700" for="include_metadata">
+                                    Include study metadata
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" data-testid="submit-generate-report-btn">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Generate Report
+                        </button>
+                    </form>
+                    {% else %}
+                    <p class="text-gray-500">No session context available.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Modify Search Strategy -->
+            {% if session.status in 'ready_to_execute,executing,processing_results,ready_for_review,under_review,completed' %}
+            <div class="rounded-lg border border-gray-200 shadow-sm mt-4">
+                <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                    <h5 class="text-base font-semibold m-0">Refine Your Search</h5>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-500 mb-3">Need to adjust your search strategy based on the results?</p>
+                    <a href="{% url 'search_strategy:strategy_form' session.id %}"
+                       class="w-full inline-flex items-center justify-center px-4 py-2 bg-yellow-500 text-white font-medium rounded-md hover:bg-yellow-600"
+                       onclick="return confirm('Warning: Modifying the search strategy may require re-running the search. Your current results will be preserved. Continue?');"
+                       data-testid="return-to-search-strategy-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Modify Search Strategy
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Archive Session -->
+            {% if session and session.status == 'completed' %}
+            <div class="rounded-lg border border-gray-200 shadow-sm mt-4">
+                <div class="bg-gray-100 px-6 py-4 rounded-t-lg">
+                    <h5 class="text-base font-semibold m-0">Session Management</h5>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-500 mb-3">Finished with this review? Archive it to keep your dashboard organised.</p>
+                    <form method="post" action="{% url 'review_manager:archive_session' session_id=session.id %}" onsubmit="return confirm('Archive this session? It will be moved to archived sessions and can be restored later if needed.');">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700" data-testid="archive-session-btn">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>Archive Session
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Other Methods Form Section -->
+    {% if session and other_methods_form %}
+    <div class="mt-6" data-testid="other-methods-section">
+        <div class="rounded-lg border border-gray-200 shadow-sm">
+            <div class="bg-gray-100 px-6 py-4 rounded-t-lg flex justify-between items-center cursor-pointer" onclick="document.getElementById('otherMethodsBody').classList.toggle('hidden')">
+                <h5 class="text-base font-semibold m-0">PRISMA 2020: Other Methods Identification</h5>
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <div id="otherMethodsBody" class="p-6">
+                <p class="text-sm text-gray-500 mb-4">
+                    Edit the "other methods" column data for the full PRISMA 2020 two-column flow diagram.
+                    Values are auto-populated from your session data but can be overridden.
+                </p>
+
+                {% if other_methods_auto.reports_sought %}
+                <p class="text-sm text-gray-600 mb-4 p-3 bg-gray-50 border border-gray-200 rounded-md" data-testid="capture-provenance-note">
+                    Search provenance:
+                    <strong>{{ other_methods_auto.de_personalised_visits|default:0 }}</strong>
+                    of <strong>{{ other_methods_auto.reports_sought }}</strong>
+                    captured pages used a de-personalised (incognito) session;
+                    <strong>{{ other_methods_auto.personalised_visits|default:0 }}</strong>
+                    used the signed-in browser profile, where results may be personalised.
+                </p>
+                {% endif %}
+
+                <form id="otherMethodsForm" data-testid="other-methods-form">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h6 class="font-medium text-sm mb-2">Identification</h6>
+                            {% for field in other_methods_form %}
+                                {% if field.name == 'websites' or field.name == 'organisations' or field.name == 'other_sources' or field.name == 'citation_searching' %}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="block text-sm text-gray-700 mb-1">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.help_text %}<small class="text-gray-400">{{ field.help_text }}</small>{% endif %}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div>
+                            <h6 class="font-medium text-sm mb-2">Retrieval and Eligibility</h6>
+                            {% for field in other_methods_form %}
+                                {% if field.name == 'reports_sought' or field.name == 'reports_not_retrieved' or field.name == 'reports_assessed' or field.name == 'reports_excluded' %}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="block text-sm text-gray-700 mb-1">{{ field.label }}</label>
+                                    {{ field }}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {% if exclusion_reasons %}
+                    <div class="mt-4 p-3 bg-gray-50 rounded-md">
+                        <h6 class="font-medium text-sm mb-2">Exclusion Reasons (auto-populated)</h6>
+                        <ul class="text-sm text-gray-600 mb-0 list-disc list-inside">
+                            {% for reason, count in exclusion_reasons.items %}
+                            <li>{{ reason }}: {{ count }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div id="otherMethodsWarnings" class="hidden mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800" data-testid="other-methods-warnings"></div>
+                    <div id="otherMethodsSuccess" class="hidden mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-800" data-testid="other-methods-success"></div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md shadow-sm hover:bg-primary/90" data-testid="save-other-methods-btn">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Save Other Methods Data
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Reports List -->
+    <div class="mt-6">
+        <div class="rounded-lg border border-gray-200 shadow-sm">
+            <div class="bg-gray-100 px-6 py-4 rounded-t-lg flex justify-between items-center">
+                <h5 class="text-base font-semibold m-0">Recent Reports</h5>
+                <a href="{% url 'reporting:report_list' %}" class="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                    View All Reports
+                </a>
+            </div>
+            <div class="p-6" id="recent-reports-list">
+                {% if recent_reports %}
+                    {% for report in recent_reports %}
+                    <div class="report-list-item">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                            <div class="md:col-span-6">
+                                <h6 class="font-medium mb-1">
+                                    <a href="{% url 'reporting:report_detail' report.id %}" class="text-blue-600 hover:text-blue-800 no-underline">
+                                        {{ report.title|default:"Untitled Report" }}
+                                    </a>
+                                </h6>
+                                <small class="text-gray-500">
+                                    Generated {{ report.created_at|timesince }} ago
+                                </small>
+                            </div>
+                            <div class="md:col-span-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ report.export_format|format_badge_class }} text-white">
+                                    {{ report.export_format|upper }}
+                                </span>
+                            </div>
+                            <div class="md:col-span-2">
+                                {% if report.status == 'completed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">Completed</span>
+                                {% elif report.status == 'pending' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white">Pending</span>
+                                {% elif report.status == 'generating' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">Generating</span>
+                                {% elif report.status == 'failed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500 text-white">Failed</span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500 text-white">{{ report.status|title }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="md:col-span-2 text-right">
+                                {% if report.status == 'completed' and report.file_path %}
+                                    <a href="{% url 'reporting:download_report' report.id %}" class="inline-flex items-center px-3 py-1.5 text-sm border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Download
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500 text-center py-4 mb-0">
+                        No reports generated yet. Create your first report using the form above.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script defer src="{% static 'reporting/js/prisma2020.js' %}"></script>
+<script>
+    // Global PRISMA diagram instance
+    let prismaDiagram;
+
+    // Wait for DOM to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize PRISMA 2020 Flow Diagram
+        console.log('Initializing PRISMA diagram...');
+
+        // Check if canvas element exists before initializing
+        const canvasElement = document.getElementById('prismaFlowChart');
+        console.log('Canvas element:', canvasElement);
+
+        if (!canvasElement) {
+            console.error('Canvas element #prismaFlowChart not found in DOM');
+            return;
+        }
+
+        prismaDiagram = new PRISMA2020Diagram('prismaFlowChart');
+
+    // Prepare PRISMA database flow data for Canvas renderer
+    {% if prisma_flow_data %}
+    const prismaData = {
+        identification: {
+            databases: {{ prisma_flow_data.identification.database|default:prisma_flow_data.raw_search_results|default:0 }},
+            registers: 0
+        },
+        screening: {
+            duplicates_removed: {{ prisma_flow_data.screening.duplicates_removed|default:prisma_flow_data.duplicates_removed|default:0 }},
+            records_screened: {{ prisma_flow_data.screening.records_screened|default:prisma_flow_data.processed_results|default:0 }},
+            records_excluded: {{ prisma_flow_data.screening.excluded|default:0 }}
+        },
+        retrieval: {
+            reports_sought: {{ prisma_flow_data.retrieval.reports_sought|default:prisma_flow_data.processed_results|default:0 }},
+            reports_not_retrieved: {{ prisma_flow_data.retrieval.reports_not_retrieved|default:0 }}
+        },
+        eligibility: {
+            reports_assessed: {{ prisma_flow_data.eligibility.reports_assessed|default:prisma_flow_data.processed_results|default:0 }},
+            excluded: {{ prisma_flow_data.eligibility.excluded|default:prisma_flow_data.results_excluded|default:0 }},
+            exclusion_reasons: {
+                {% if prisma_flow_data.eligibility.exclusion_reasons %}
+                {% for reason, count in prisma_flow_data.eligibility.exclusion_reasons.items %}
+                '{{ reason|escapejs }}': {{ count }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+                {% endif %}
+            }
+        },
+        included: {
+            total: {{ prisma_flow_data.included.total|default:prisma_flow_data.results_included|default:0 }}
+        }
+    };
+    const hasRealData = true;
+    {% else %}
+    const prismaData = {
+        identification: { databases: 0, registers: 0 },
+        screening: { duplicates_removed: 0, records_screened: 0, records_excluded: 0 },
+        retrieval: { reports_sought: 0, reports_not_retrieved: 0 },
+        eligibility: { reports_assessed: 0, excluded: 0, exclusion_reasons: {} },
+        included: { total: 0 }
+    };
+    const hasRealData = false;
+    {% endif %}
+
+    // Draw the diagram
+    if (!prismaDiagram) {
+        console.error('PRISMA diagram instance not created');
+        return;
+    }
+
+    if (prismaDiagram.canvas && prismaDiagram.ctx) {
+        try {
+            prismaDiagram.draw(prismaData);
+
+            if (!hasRealData) {
+                prismaDiagram.ctx.fillStyle = '#6c757d';
+                prismaDiagram.ctx.font = '16px Arial';
+                prismaDiagram.ctx.textAlign = 'center';
+                prismaDiagram.ctx.fillText('PRISMA flow diagram data is being generated.', 300, 500);
+                prismaDiagram.ctx.fillText('Please refresh the page in a few moments.', 300, 525);
+            }
+        } catch (error) {
+            console.error('Error drawing PRISMA diagram:', error);
+        }
+    } else {
+        console.error('Canvas not properly initialized');
+    }
+
+    // Export functions
+    window.exportPrismaDiagram = function(format) {
+        if (format === 'png') {
+            prismaDiagram.exportAsPNG('prisma-2020-flow-diagram.png');
+        } else if (format === 'pdf') {
+            prismaDiagram.exportAsPDF('prisma-2020-flow-diagram.pdf');
+        }
+    }
+
+    // Copy to clipboard function
+    window.copyPrismaDiagram = function(btn) {
+        // Check if canvas and context are properly initialized
+        if (!prismaDiagram || !prismaDiagram.canvas) {
+            console.error('PRISMA diagram not initialized');
+            alert('Diagram not ready. Please wait for the page to load.');
+            return;
+        }
+
+        // Store original button state
+        const originalHTML = btn.innerHTML;
+
+        // Helper to show success feedback
+        function showSuccess() {
+            btn.innerHTML = '<svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Copied!';
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+            }, 2000);
+        }
+
+        // Helper to show error feedback
+        function showError(message) {
+            console.error('Failed to copy:', message);
+            btn.innerHTML = '<svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>Failed';
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+            }, 2000);
+            // More user-friendly error message
+            alert('Could not copy to clipboard. Try right-clicking the image and selecting "Copy Image" instead.');
+        }
+
+        // Convert canvas to blob
+        prismaDiagram.canvas.toBlob(function(blob) {
+            if (!blob) {
+                showError('Failed to create image from diagram');
+                return;
+            }
+
+            // Check for modern Clipboard API with ClipboardItem support
+            if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+                try {
+                    const item = new ClipboardItem({ 'image/png': blob });
+                    navigator.clipboard.write([item]).then(() => {
+                        showSuccess();
+                    }).catch(err => {
+                        showError(err.message || 'Clipboard write failed');
+                    });
+                } catch (err) {
+                    showError(err.message || 'ClipboardItem not supported');
+                }
+            } else {
+                // Fallback: Show message that clipboard copy is not supported
+                showError('Clipboard API not supported in this browser');
+            }
+        }, 'image/png');
+    }
+
+    // Other Methods form handling
+    const otherMethodsForm = document.getElementById('otherMethodsForm');
+    if (otherMethodsForm) {
+        // Auto-validation on input change
+        otherMethodsForm.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', function() {
+                const warningsDiv = document.getElementById('otherMethodsWarnings');
+                const warnings = [];
+
+                const sought = parseInt(otherMethodsForm.querySelector('#id_reports_sought')?.value) || 0;
+                const notRetrieved = parseInt(otherMethodsForm.querySelector('#id_reports_not_retrieved')?.value) || 0;
+                const assessed = parseInt(otherMethodsForm.querySelector('#id_reports_assessed')?.value) || 0;
+                const excluded = parseInt(otherMethodsForm.querySelector('#id_reports_excluded')?.value) || 0;
+
+                const expected = sought - notRetrieved;
+                if (sought > 0 && assessed !== expected) {
+                    warnings.push(`Reports assessed (${assessed}) does not equal reports sought (${sought}) minus not retrieved (${notRetrieved}) = ${expected}.`);
+                }
+                if (excluded > assessed && assessed > 0) {
+                    warnings.push(`Reports excluded (${excluded}) exceeds reports assessed (${assessed}).`);
+                }
+
+                if (warnings.length > 0) {
+                    warningsDiv.innerHTML = warnings.map(w => '<p class="mb-1">' + w + '</p>').join('');
+                    warningsDiv.classList.remove('hidden');
+                } else {
+                    warningsDiv.classList.add('hidden');
+                }
+            });
+        });
+
+        // AJAX save
+        otherMethodsForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(otherMethodsForm);
+            const successDiv = document.getElementById('otherMethodsSuccess');
+            const warningsDiv = document.getElementById('otherMethodsWarnings');
+
+            try {
+                const response = await fetch('{% if session %}{% url "reporting:prisma_other_methods_save" session_id=session.id %}{% endif %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'saved') {
+                    successDiv.textContent = 'Other methods data saved successfully.';
+                    successDiv.classList.remove('hidden');
+                    setTimeout(() => successDiv.classList.add('hidden'), 5000);
+
+                    // Enable full PRISMA diagram button
+                    const fullBtn = document.querySelector('[data-testid="export-full-prisma"]');
+                    if (fullBtn) {
+                        fullBtn.disabled = false;
+                        fullBtn.classList.remove('border-gray-300', 'text-gray-400', 'cursor-not-allowed');
+                        fullBtn.classList.add('border-blue-600', 'text-blue-600', 'hover:bg-blue-50');
+                    }
+
+                    if (data.warnings && data.warnings.length > 0) {
+                        warningsDiv.innerHTML = data.warnings.map(w => '<p class="mb-1">' + w + '</p>').join('');
+                        warningsDiv.classList.remove('hidden');
+                    }
+                } else if (data.errors) {
+                    warningsDiv.innerHTML = '<p class="mb-1">Validation errors: ' + JSON.stringify(data.errors) + '</p>';
+                    warningsDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error saving other methods:', error);
+                warningsDiv.innerHTML = '<p class="mb-1">Failed to save. Please try again.</p>';
+                warningsDiv.classList.remove('hidden');
+            }
+        });
+
+        // Enable full PRISMA button if other methods already saved
+        {% if has_other_methods %}
+        const fullBtn = document.querySelector('[data-testid="export-full-prisma"]');
+        if (fullBtn) {
+            fullBtn.disabled = false;
+            fullBtn.classList.remove('border-gray-300', 'text-gray-400', 'cursor-not-allowed');
+            fullBtn.classList.add('border-blue-600', 'text-blue-600', 'hover:bg-blue-50');
+        }
+        {% endif %}
+    }
+
+    // Handle export requests from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('export') === 'prisma') {
+        const format = urlParams.get('format');
+        if (format) {
+            setTimeout(() => exportPrismaDiagram(format), 1000);
+        }
+    }
+
+    // Report Status Polling
+    const reportStatusPolling = {
+        activePolls: new Map(),
+        pollInterval: 2000, // 2 seconds
+        maxRetries: 60, // 2 minutes max polling
+
+        startPolling: function(reportId) {
+            if (this.activePolls.has(reportId)) {
+                return; // Already polling
+            }
+
+            const pollData = {
+                retries: 0,
+                intervalId: setInterval(() => {
+                    this.checkReportStatus(reportId);
+                }, this.pollInterval)
+            };
+
+            this.activePolls.set(reportId, pollData);
+            console.log(`Started polling for report ${reportId}`);
+        },
+
+        stopPolling: function(reportId) {
+            const pollData = this.activePolls.get(reportId);
+            if (pollData) {
+                clearInterval(pollData.intervalId);
+                this.activePolls.delete(reportId);
+                console.log(`Stopped polling for report ${reportId}`);
+            }
+        },
+
+        checkReportStatus: async function(reportId) {
+            const pollData = this.activePolls.get(reportId);
+            if (!pollData) return;
+
+            try {
+                const response = await fetch(`/reporting/api/reports/${reportId}/status/`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log(`Report ${reportId} status:`, data.status);
+
+                // Update UI based on status
+                this.updateReportUI(reportId, data);
+
+                // Stop polling if completed, failed, or max retries reached
+                if (data.status === 'completed' || data.status === 'failed' || pollData.retries >= this.maxRetries) {
+                    this.stopPolling(reportId);
+
+                    if (data.status === 'completed') {
+                        this.showSuccessNotification(data);
+                    } else if (data.status === 'failed') {
+                        this.showErrorNotification(data);
+                    }
+                }
+
+                pollData.retries++;
+
+            } catch (error) {
+                console.error(`Error polling report ${reportId}:`, error);
+                pollData.retries++;
+
+                if (pollData.retries >= this.maxRetries) {
+                    this.stopPolling(reportId);
+                }
+            }
+        },
+
+        updateReportUI: function(reportId, data) {
+            console.log(`Updating UI for report ${reportId}, status: ${data.status}`);
+            // Find the report item in the list
+            const reportItems = document.querySelectorAll('.report-list-item');
+            console.log(`Found ${reportItems.length} report items in the list`);
+
+            let reportFound = false;
+            reportItems.forEach(item => {
+                const link = item.querySelector('a[href*="' + reportId + '"]');
+                if (link) {
+                    reportFound = true;
+                    console.log(`Found report item for ${reportId}, updating UI`);
+
+                    // Update status badge with progress indication
+                    const statusCol = item.querySelector('.md\\:col-span-2:not(.text-right):last-of-type');
+                    if (statusCol) {
+                        let badgeHTML = '';
+                        const badgeClass = this.getStatusBadgeClass(data.status);
+                        if (data.status === 'generating' || data.status === 'pending') {
+                            const progress = data.progress_percentage || 0;
+                            badgeHTML = `
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass} text-white">
+                                    <svg class="animate-spin -ml-1 mr-2 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    ${data.status.charAt(0).toUpperCase() + data.status.slice(1)} ${progress > 0 ? progress + '%' : ''}
+                                </span>
+                            `;
+                        } else {
+                            badgeHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass} text-white">${data.status.charAt(0).toUpperCase() + data.status.slice(1)}</span>`;
+                        }
+                        statusCol.innerHTML = badgeHTML;
+                        console.log(`Updated status badge to: ${data.status} (${data.progress_percentage || 0}%)`);
+                    }
+
+                    // Update or add download button if completed
+                    if (data.status === 'completed' && data.download_url) {
+                        const actionCol = item.querySelector('.md\\:col-span-2.text-right');
+                        if (actionCol && !actionCol.querySelector('a')) {
+                            actionCol.innerHTML = `
+                                <a href="${data.download_url}" class="inline-flex items-center px-3 py-1.5 text-sm border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Download
+                                </a>
+                            `;
+                            console.log(`Added download button for report ${reportId}`);
+                        }
+                    }
+                }
+            });
+
+            if (!reportFound) {
+                console.warn(`Report ${reportId} not found in the list - may need to refresh page`);
+            }
+        },
+
+        getStatusBadgeClass: function(status) {
+            const statusClasses = {
+                'completed': 'bg-green-500',
+                'generating': 'bg-blue-500',
+                'pending': 'bg-yellow-500',
+                'failed': 'bg-red-500'
+            };
+            return statusClasses[status] || 'bg-gray-500';
+        },
+
+        showSuccessNotification: function(data) {
+            // Create a success alert with auto-dismiss and sound
+            const alertHtml = `
+                <div class="relative bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-sm mb-4 success-notification" role="alert">
+                    <h6 class="font-semibold mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        Report Ready!
+                    </h6>
+                    <p class="mb-2 text-sm">Your ${data.export_format.toUpperCase()} report "${data.title}" has been generated successfully.</p>
+                    <a href="${data.download_url}" class="inline-flex items-center px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 mr-2">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Download Now
+                    </a>
+                    <button type="button" class="absolute top-2 right-2 text-green-600 hover:text-green-800" onclick="this.parentElement.remove()" aria-label="Close">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+            `;
+            this.insertAlert(alertHtml);
+
+            // Auto-dismiss after 10 seconds
+            setTimeout(() => {
+                const alert = document.querySelector('.success-notification');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 10000);
+
+            // Play notification sound if user has interacted with page
+            this.playNotificationSound();
+        },
+
+        showErrorNotification: function(data) {
+            const alertHtml = `
+                <div class="relative bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-sm mb-4 error-notification" role="alert">
+                    <strong class="font-semibold">Report Generation Failed!</strong> ${data.error_message || 'An error occurred while generating your report.'}
+                    <button type="button" class="absolute top-2 right-2 text-red-600 hover:text-red-800" onclick="this.parentElement.remove()" aria-label="Close">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+            `;
+            this.insertAlert(alertHtml);
+        },
+
+        insertAlert: function(alertHtml) {
+            // Insert alert at the top of the container with smooth animation
+            const container = document.querySelector('.container');
+            if (container) {
+                const alertDiv = document.createElement('div');
+                alertDiv.innerHTML = alertHtml;
+                const alertElement = alertDiv.firstChild;
+                alertElement.style.opacity = '0';
+                alertElement.style.transform = 'translateY(-20px)';
+                alertElement.style.transition = 'all 0.3s ease-in-out';
+
+                container.insertBefore(alertElement, container.firstChild);
+
+                // Trigger animation
+                setTimeout(() => {
+                    alertElement.style.opacity = '1';
+                    alertElement.style.transform = 'translateY(0)';
+                }, 10);
+            }
+        },
+
+        playNotificationSound: function() {
+            // Simple beep using Web Audio API
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.1;
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {
+                // Audio not supported, silently fail
+                console.log('Audio notification not supported');
+            }
+        },
+
+        showGenerationStarted: function(data) {
+            // Show info alert that generation has started
+            const alertHtml = `
+                <div class="relative bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg shadow-sm mb-4 info-notification" role="alert">
+                    <h6 class="font-semibold mb-2 flex items-center">
+                        <svg class="animate-spin mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Report Generation Started
+                    </h6>
+                    <p class="mb-0 text-sm">Your ${data.export_format ? data.export_format.toUpperCase() : 'PDF'} report is being generated in the background. You'll receive a notification when it's ready for download.</p>
+                    <button type="button" class="absolute top-2 right-2 text-blue-600 hover:text-blue-800" onclick="this.parentElement.remove()" aria-label="Close">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+            `;
+            this.insertAlert(alertHtml);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.querySelector('.info-notification');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        },
+
+        // Initialize polling for any "generating" reports on page load
+        initializeActivePolling: function() {
+            console.log('Initializing active polling...');
+            const generatingReports = document.querySelectorAll('.report-list-item');
+            generatingReports.forEach(item => {
+                // Look for status badges that indicate report is generating
+                const statusBadges = item.querySelectorAll('.inline-flex.items-center.rounded-full');
+                let isGenerating = false;
+
+                statusBadges.forEach(badge => {
+                    const badgeText = badge.textContent.toLowerCase().trim();
+                    if (badgeText === 'generating' || badgeText === 'pending' || badgeText === 'processing') {
+                        isGenerating = true;
+                    }
+                });
+
+                if (isGenerating) {
+                    // Extract report ID from the link
+                    const link = item.querySelector('a[href*="/reporting/reports/"]');
+                    if (link) {
+                        const match = link.href.match(/reports\/([a-f0-9-]+)\//);
+                        if (match) {
+                            console.log('Starting polling for existing report:', match[1]);
+                            this.startPolling(match[1]);
+                        }
+                    }
+                }
+            });
+        },
+
+        // Add new report to the list dynamically
+        addNewReportToList: function(reportData) {
+            const reportListContainer = document.querySelector('#recent-reports-list');
+            if (!reportListContainer) {
+                console.error('Recent reports container not found');
+                return;
+            }
+            console.log('Adding new report to list:', reportData);
+            const noReportsMessage = reportListContainer.querySelector('.text-gray-500.text-center');
+
+            // Remove "no reports" message if present
+            if (noReportsMessage) {
+                noReportsMessage.remove();
+            }
+
+            // Create new report item HTML
+            const newReportHtml = `
+                <div class="report-list-item">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                        <div class="md:col-span-6">
+                            <h6 class="font-medium mb-1">
+                                <a href="/reporting/reports/${reportData.report_id}/" class="text-blue-600 hover:text-blue-800 no-underline">
+                                    ${reportData.title || 'Untitled Report'}
+                                </a>
+                            </h6>
+                            <small class="text-gray-500">
+                                Generated just now
+                            </small>
+                        </div>
+                        <div class="md:col-span-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getStatusBadgeClass('generating')} text-white">
+                                ${reportData.export_format ? reportData.export_format.toUpperCase() : 'PDF'}
+                            </span>
+                        </div>
+                        <div class="md:col-span-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">Generating</span>
+                        </div>
+                        <div class="md:col-span-2 text-right">
+                            <!-- Download button will appear when ready -->
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Insert at the beginning of the report list
+            const firstReportItem = reportListContainer.querySelector('.report-list-item');
+            if (firstReportItem) {
+                firstReportItem.insertAdjacentHTML('beforebegin', newReportHtml);
+                console.log('Inserted new report before first item');
+            } else {
+                reportListContainer.insertAdjacentHTML('beforeend', newReportHtml);
+                console.log('Inserted new report at end of list');
+            }
+            console.log('New report added to DOM successfully');
+        }
+    };
+
+    // Initialize polling for any active reports
+    reportStatusPolling.initializeActivePolling();
+
+    // Convert form submission to AJAX for better UX
+    const reportForm = document.querySelector('form[action*="generate_report"]');
+    if (reportForm) {
+        reportForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(reportForm);
+            const submitButton = reportForm.querySelector('button[type="submit"]');
+
+            // Disable submit button and show loading state
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generating...';
+            }
+
+            try {
+                const response = await fetch(reportForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    redirect: 'manual'  // Don't follow redirects automatically
+                });
+
+                // Handle redirect (shouldn't happen with XMLHttpRequest header but just in case)
+                if (response.type === 'opaqueredirect' || response.status === 0) {
+                    console.warn('Unexpected redirect response from server');
+                    // Server returned a redirect instead of JSON - reload the page
+                    window.location.reload();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Check content type
+                const contentType = response.headers.get("content-type");
+
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    // Handle JSON response
+                    const data = await response.json();
+                    console.log('Received JSON response:', data);
+                    if (data.report_id) {
+                        // Show success message with info about background processing
+                        reportStatusPolling.showGenerationStarted(data);
+
+                        // Add the new report to the list without page reload
+                        reportStatusPolling.addNewReportToList(data);
+                        // Start polling immediately for the new report
+                        reportStatusPolling.startPolling(data.report_id);
+                        reportForm.reset();
+                        console.log('Started polling for report:', data.report_id);
+                    } else if (data.error) {
+                        console.error('Server error:', data.error);
+                        alert('Error generating report: ' + data.error);
+                    } else {
+                        console.error('No report_id in response:', data);
+                    }
+                } else {
+                    // Unexpected response type (probably HTML)
+                    console.error('Expected JSON response but got:', contentType);
+                    console.log('Response status:', response.status);
+                    // Try to read the response text for debugging
+                    const text = await response.text();
+                    console.log('Response text (first 500 chars):', text.substring(0, 500));
+                    // Reload the page as a fallback
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error submitting report generation:', error);
+                alert('Failed to generate report. Please try again.');
+            } finally {
+                // Re-enable submit button
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<svg class="w-4 h-4 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Generate Report';
+                }
+            }
+        });
+    }
+
+    // Export for debugging
+    window.reportStatusPolling = reportStatusPolling;
+
+    }); // End DOMContentLoaded
+</script>
+{% endblock %}

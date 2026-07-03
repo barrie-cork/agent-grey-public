@@ -1,0 +1,25 @@
+# grype configuration for the production image vulnerability gate.
+#
+# The deploy-production workflow runs grype with `--fail-on high --only-fixed`.
+# The ignore rules below are the ONLY accepted exceptions: high-severity CPython
+# interpreter CVEs whose fix lands exclusively on the 3.13/3.14 lines. The
+# project mandates Python 3.12 (see CLAUDE.md), and the official python:3.12-slim
+# base ships source-built CPython 3.12.13 with no 3.12 patch available, so these
+# cannot be remediated by a dependency bump. All are low-likelihood (EPSS <0.8%).
+#
+# Scope is intentionally narrow (matched to the `python` package). Anything else
+# high/critical with a fix still fails the build. Revisit and remove these when
+# CPython backports to 3.12 or the base image moves to 3.13+.
+ignore:
+  # No 3.12 fix; fixed only in 3.13.14 / 3.14.6 / 3.15.0b2
+  - vulnerability: CVE-2026-7210
+    package:
+      name: python
+  # No 3.12 fix; fixed only in 3.13.13 / 3.14.4 / 3.15.0a8
+  - vulnerability: CVE-2026-4224
+    package:
+      name: python
+  # No 3.12 fix; fixed only in 3.13.13 / 3.14.4 / 3.15.0a8
+  - vulnerability: CVE-2026-3644
+    package:
+      name: python

@@ -1,0 +1,36 @@
+# Bandit Security Configuration for Agent Grey
+# https://bandit.readthedocs.io/en/latest/config.html
+
+# Exclude test files and migrations from security scanning
+exclude_dirs:
+  - /tests/
+  - /migrations/
+  - /node_modules/
+  - /staticfiles/
+  - /media/
+  - /.venv/
+  - /venv/
+
+# Test IDs to skip globally
+# B703: django_mark_safe - Template tags use mark_safe with user-controlled input sanitised via escape()
+skips:
+  - B703  # mark_safe - reviewed and documented in template tags
+
+# Severity and confidence thresholds
+# LOW: Include all findings
+# MEDIUM: Focus on medium+ severity
+# HIGH: Only critical issues (for --severity-level flag)
+tests:
+
+# Report format
+# Use -f json for CI/CD pipelines
+# Use -f screen for local development
+
+# Configuration for specific tests
+[bandit.plugins.shell_injection]
+# Skip shell injection checks for subprocess calls with shell=False
+no_shell = true
+
+[bandit.plugins.hardcoded_password]
+# Skip password checks in test files
+exclude = ["test_*.py", "*_test.py", "tests.py"]

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Search Strategy Report - {{ report.title }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'DejaVu Sans', 'Liberation Sans', sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+        }
+        .metadata {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 2rem;
+        }
+        .pic-framework {
+            margin: 2rem 0;
+        }
+        .pic-component {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .pic-component h3 {
+            margin-top: 0;
+            color: #388e3c;
+        }
+        .term-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .term {
+            background: #fff;
+            border: 1px solid #c8e6c9;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .query-section {
+            background: #f8f9fa;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+        .query-string {
+            font-family: monospace;
+            background: #263238;
+            color: #aed581;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .effectiveness-meter {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        .effectiveness-fill {
+            height: 100%;
+            background: #3498db;
+            transition: width 0.3s;
+        }
+        .footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Search Strategy Report</h1>
+
+    <div class="metadata">
+        <p><strong>Session:</strong> {{ data.session.title }}</p>
+        <p><strong>Created:</strong> {{ data.session.created_at|date:"F j, Y" }}</p>
+        <p><strong>Status:</strong> {{ data.session.get_status_display }}</p>
+    </div>
+
+    <h2>1. PIC Framework Analysis</h2>
+
+    <div class="pic-framework">
+        <div class="pic-component">
+            <h3>Population</h3>
+            <p>{{ data.analysis.pic_analysis.population_count }} terms defining the target population</p>
+            <div class="term-list">
+                {% for term in data.analysis.pic_analysis.population_terms %}
+                <span class="term">{{ term }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="pic-component">
+            <h3>Interest</h3>
+            <p>{{ data.analysis.pic_analysis.interest_count }} terms defining the area of interest</p>
+            <div class="term-list">
+                {% for term in data.analysis.pic_analysis.interest_terms %}
+                <span class="term">{{ term }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="pic-component">
+            <h3>Context</h3>
+            <p>{{ data.analysis.pic_analysis.context_count }} terms defining the contextual factors</p>
+            <div class="term-list">
+                {% for term in data.analysis.pic_analysis.context_terms %}
+                <span class="term">{{ term }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <h2>2. Search Query Construction</h2>
+
+    <p>The following search queries were generated based on the PIC framework:</p>
+
+    {% for query in data.queries %}
+    <div class="query-section">
+        <h4>Query {{ forloop.counter }}</h4>
+        <div class="query-string">{{ query.query_text }}</div>
+        <table>
+            <tr>
+                <th>Search Engines</th>
+                <td>{{ query.parameters.search_engines|join:", "|default:"Google" }}</td>
+            </tr>
+            <tr>
+                <th>Total Results</th>
+                <td>{{ query.execution_results.total_results|default:"Pending execution" }}</td>
+            </tr>
+            <tr>
+                <th>Success Rate</th>
+                <td>{{ query.execution_results.success_rate|default:"N/A" }}%</td>
+            </tr>
+        </table>
+    </div>
+    {% endfor %}
+
+    <h2>3. Query Effectiveness Analysis</h2>
+
+    {% if data.effectiveness %}
+    <table>
+        <tr>
+            <th>Metric</th>
+            <th>Value</th>
+            <th>Interpretation</th>
+        </tr>
+        <tr>
+            <td>Precision</td>
+            <td>{{ data.effectiveness.precision|floatformat:2 }}</td>
+            <td>Relevance of retrieved results</td>
+        </tr>
+        <tr>
+            <td>Recall</td>
+            <td>{{ data.effectiveness.recall|floatformat:2 }}</td>
+            <td>Coverage of relevant results</td>
+        </tr>
+        <tr>
+            <td>F1 Score</td>
+            <td>{{ data.effectiveness.f1_score|floatformat:2 }}</td>
+            <td>Harmonic mean of precision and recall</td>
+        </tr>
+        <tr>
+            <td>Coverage Score</td>
+            <td>{{ data.effectiveness.coverage_score|floatformat:2 }}</td>
+            <td>Breadth of search coverage</td>
+        </tr>
+    </table>
+
+    <h3>Overall Effectiveness</h3>
+    <div class="effectiveness-meter">
+        <div class="effectiveness-fill" style="width: {{ data.effectiveness.overall_percentage }}%"></div>
+    </div>
+    <p><strong>{{ data.effectiveness.overall_effectiveness }}</strong> - {{ data.effectiveness.overall_percentage|floatformat:0 }}% effective</p>
+    {% else %}
+    <p>Query effectiveness analysis is pending search execution and result review.</p>
+    {% endif %}
+
+    <h2>4. Search Configuration</h2>
+
+    <table>
+        <tr>
+            <th>Parameter</th>
+            <th>Value</th>
+        </tr>
+        <tr>
+            <td>Search Engine</td>
+            <td>Google (via Serper API)</td>
+        </tr>
+        <tr>
+            <td>Number of Results</td>
+            <td>{{ data.analysis.search_config.num_results|default:100 }}</td>
+        </tr>
+        <tr>
+            <td>Language</td>
+            <td>{{ data.analysis.search_config.language|default:"English" }}</td>
+        </tr>
+        <tr>
+            <td>File Types</td>
+            <td>{{ data.analysis.search_config.file_types|join:", "|default:"All types" }}</td>
+        </tr>
+        <tr>
+            <td>Date Range</td>
+            <td>{{ data.analysis.search_config.date_range|default:"All dates" }}</td>
+        </tr>
+    </table>
+
+    <h2>5. Recommendations</h2>
+
+    {% if data.analysis.recommendations %}
+    <ul>
+        {% for recommendation in data.analysis.recommendations %}
+        <li>{{ recommendation }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No specific recommendations at this time.</p>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generated by Agent Grey - Search Strategy Documentation</p>
+        <p>{{ report.generated_at|date:"F j, Y g:i A" }}</p>
+    </div>
+</body>
+</html>

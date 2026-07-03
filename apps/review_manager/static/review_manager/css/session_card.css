@@ -1,0 +1,10 @@
+.session-progress {
+    height: 5px;
+    margin-top: 10px;
+    background-color: #e9ecef;
+    border-radius: .25rem;
+}
+
+.session-progress .progress-bar {
+    background-color: #0d6efd;
+}

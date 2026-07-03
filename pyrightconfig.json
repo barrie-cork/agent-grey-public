@@ -1,0 +1,32 @@
+{
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": true,
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "warning",
+  "reportRedeclaration": "warning",
+  "reportInvalidTypeForm": "none",
+  "reportAttributeAccessIssue": "warning",
+  "reportOptionalCall": "error",
+  "reportInvalidTypeArguments": "warning",
+  "reportGeneralTypeIssues": "error",
+  "reportOptionalSubscript": "error",
+  "reportUnusedExpression": "error",
+  "exclude": [
+    ".venv",
+    "venv",
+    "**/migrations",
+    "**/node_modules",
+    "frontend",
+    "static",
+    "staticfiles",
+    "docker",
+    "**/__pycache__",
+    "**/tests",
+    "**/test_*.py"
+  ],
+  "include": [
+    "apps"
+  ]
+}

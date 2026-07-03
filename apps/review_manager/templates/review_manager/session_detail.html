@@ -1,0 +1,590 @@
+{% extends "review_manager/base.html" %}
+{% load static session_tags %}
+
+{% block title %}{{ session.title }} - Agent Grey{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="text-muted-foreground" aria-current="page">{{ session.title|truncatewords:5 }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Notifications -->
+    <div id="notifications"></div>
+
+    <!-- Session Header Card -->
+    <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+        <div class="px-6 py-4">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-xl font-semibold text-foreground truncate">{{ session.title }}</h1>
+                </div>
+                <span id="session-status"
+                      class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {% if session.status == 'completed' %}bg-success-light text-success{% elif session.status == 'under_review' %}bg-primary/10 text-primary{% elif session.status == 'executing' or session.status == 'processing_results' %}bg-warning-light text-warning{% elif session.status == 'draft' %}bg-muted text-muted-foreground{% else %}bg-primary/10 text-primary{% endif %}"
+                      data-testid="session-status-badge">
+                    {{ session.get_status_display }}
+                </span>
+            </div>
+
+            {% if session.description %}
+            <p class="text-muted-foreground mb-4">{{ session.description }}</p>
+            {% endif %}
+
+            <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div class="flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    {{ session.owner.username }}
+                </div>
+                <div class="flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Created {{ session.created_at|date:"M d, Y" }}
+                </div>
+                <div id="last-updated" class="flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Updated {{ session.updated_at|timesince }} ago
+                </div>
+            </div>
+
+            <!-- Progress Bar and Results Count -->
+            {% if session.status not in 'draft,defining_search' %}
+            <div class="mt-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-muted-foreground">Progress</span>
+                    <span id="results-count" class="text-sm text-muted-foreground">
+                        {{ session.reviewed_results|default:0 }} / {{ session.total_results|default:0 }} results
+                    </span>
+                </div>
+                {% include 'components/progress-bar.html' with percentage=progress_percentage bar_id='session-progress-bar' %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Status Explanation Alert -->
+    {% include 'components/alert.html' with variant=session.status|status_color title=session.get_status_display message=status_explanation %}
+
+    <!-- Role Indicator for Invited Reviewers -->
+    {% if user_role == 'reviewer' %}
+    <div class="mt-4">
+        {% include 'components/alert.html' with variant='info' title='Reviewer Access' message='You are a <strong>reviewer</strong> on this session. You can view results and submit decisions, but cannot modify search strategy or settings.' %}
+    </div>
+    {% endif %}
+
+    {% if session.is_executing_or_processing %}
+    <!-- Execution Feed Container -->
+    <div class="rounded-lg border border-border bg-card shadow-sm mb-6 mt-6" id="execution-feed-container" role="region" aria-label="Live search execution feed">
+        <div class="bg-primary text-primary-foreground px-6 py-4 rounded-t-lg">
+            <div class="flex justify-between items-center">
+                <h5 class="font-semibold flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+                    Search Execution in Progress
+                </h5>
+                <span id="execution-timer" class="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm" aria-live="polite" aria-atomic="true">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span id="execution-duration">0:00</span>
+                </span>
+            </div>
+        </div>
+        <div class="px-6 py-4">
+            <div id="current-query-section" class="mb-6" style="display: none;" role="status" aria-live="polite" aria-atomic="true">
+                <div class="flex justify-between items-center mb-2">
+                    <h6 class="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        Currently Executing:
+                    </h6>
+                    <span id="query-page-badge" class="inline-flex items-center rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium" aria-label="Current page">Waiting...</span>
+                </div>
+
+                <div class="relative">
+                    <div class="p-3 bg-muted rounded-lg border border-border">
+                        <code id="current-query-text" class="text-foreground text-sm" title="Full query will appear here" role="status" aria-label="Current query text">
+                            Waiting for query to start...
+                        </code>
+                    </div>
+                    <button class="absolute top-2 right-2 p-1.5 rounded border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground copy-query-btn" type="button" onclick="copyQueryText()" title="Copy query text to clipboard" aria-label="Copy query text to clipboard">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <span class="sr-only">Copy query</span>
+                    </button>
+                </div>
+
+                <div class="mt-3">
+                    <div class="flex justify-between text-sm text-muted-foreground mb-1">
+                        <span aria-live="polite" aria-atomic="true">
+                            <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                            <strong id="results-so-far">0</strong> results found
+                        </span>
+                        <span id="pagination-status" aria-live="polite" aria-atomic="true">Initializing...</span>
+                    </div>
+                    <div class="w-full bg-muted rounded-full h-2 overflow-hidden" role="progressbar" aria-label="Page progress">
+                        <div class="bg-primary/60 h-full rounded-full transition-all duration-300 animate-pulse" id="page-progress-bar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Current page progress">
+                            <span class="sr-only">Page <span id="progress-percentage">0</span>% complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="recent-queries-section" role="region" aria-label="Recently completed queries">
+                <h6 class="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1">
+                    <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Recently Completed:
+                </h6>
+                <div id="completed-queries-list" class="space-y-2" role="list" aria-label="Completed queries timeline">
+                    <p class="text-sm text-muted-foreground flex items-center gap-1">
+                        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Waiting for first query to complete...
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-border px-6 py-3 bg-muted rounded-b-lg">
+            <p class="text-sm text-muted-foreground flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Updates automatically every 2 seconds. Last update:
+                <span id="last-update-time" aria-live="polite" aria-atomic="true">Just now</span>
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Primary Action Card -->
+    <div class="rounded-lg border border-border bg-card shadow-sm mb-6 mt-6">
+        <div class="px-6 py-8 text-center">
+            <h5 class="text-lg font-semibold text-foreground mb-2">What's Next?</h5>
+            <p class="text-muted-foreground mb-4">{{ nav_info.help }}</p>
+            <a href="{{ nav_info.url }}"
+               class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-base font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+               data-testid="{% if session.status == 'draft' or session.status == 'defining_search' %}link-search-strategy{% elif session.status == 'ready_for_review' or session.status == 'under_review' %}link-start-review{% else %}primary-action-btn{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                {{ nav_info.text }}
+            </a>
+        </div>
+    </div>
+
+    <!-- Modify Search Strategy (Owner Only) -->
+    {% if user_role == 'owner' %}
+        {% if session.status in 'executing,processing_results,ready_for_review' %}
+        <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+            <div class="px-6 py-4">
+                <h5 class="text-lg font-semibold text-foreground mb-2">Modify Search Strategy</h5>
+                <p class="text-muted-foreground mb-4">Need to adjust your search terms or domains? You can return to modify your search strategy.</p>
+                <a href="{% url 'search_strategy:strategy_form' session.id %}"
+                   class="inline-flex items-center justify-center gap-2 rounded-md bg-warning px-4 py-2 text-sm font-medium text-warning-foreground hover:bg-warning/90 focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 transition-colors"
+                   onclick="if(!confirm('Warning: Returning to modify the search strategy may require re-running the search. Any results already collected will be preserved. Continue?')) { event.preventDefault(); return false; }"
+                   data-testid="return-to-search-strategy-btn">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    Return to Search Strategy
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    {% else %}
+        <!-- Reviewer Information: Strategy is Managed by Owner -->
+        <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+            <div class="px-6 py-4">
+                {% include 'components/alert.html' with variant='info' title='Search Strategy' message='The search strategy is managed by the session owner. You will be able to review results once searches are complete. This ensures blind review integrity per PRISMA 2020 guidelines.' %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Statistics -->
+    {% if session.total_results > 0 %}
+    <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+        <div class="border-b border-border px-6 py-4">
+            <h5 class="font-semibold text-foreground">Review Progress</h5>
+        </div>
+        <div class="px-6 py-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center p-4">
+                    <p class="text-3xl font-bold text-foreground">{{ session.total_results }}</p>
+                    <p class="text-sm text-muted-foreground">Total Results</p>
+                </div>
+                <div class="text-center p-4">
+                    <p class="text-3xl font-bold text-foreground">{{ session.reviewed_results }}</p>
+                    <p class="text-sm text-muted-foreground">Reviewed</p>
+                </div>
+                <div class="text-center p-4">
+                    <p class="text-3xl font-bold text-foreground">{{ session.included_results }}</p>
+                    <p class="text-sm text-muted-foreground">Included</p>
+                </div>
+            </div>
+
+            {% if session.total_results > 0 %}
+            <div class="mt-4">
+                <label class="block text-sm text-muted-foreground mb-2">Progress: {{ progress_percentage }}%</label>
+                {% include 'components/progress-bar.html' with percentage=progress_percentage data_testid='review-progress-bar' %}
+            </div>
+
+            {% if session.reviewed_results > 0 %}
+            <div class="mt-2">
+                <p class="text-sm text-muted-foreground">
+                    Inclusion Rate: {{ inclusion_rate }}%
+                </p>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Invited Reviewer Progress (Phase 2: Completion Tracking Integration) -->
+    {% if reviewer_completions %}
+    <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+        <div class="border-b border-border px-6 py-4">
+            <h5 class="font-semibold text-foreground flex items-center gap-2">
+                <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                Invited Reviewer Progress
+            </h5>
+        </div>
+        <div class="px-6 py-4">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-border">
+                    <thead>
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Reviewer</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Progress</th>
+                            <th class="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border/50">
+                        {% for completion in reviewer_completions %}
+                        <tr class="hover:bg-muted">
+                            <td class="px-3 py-3 whitespace-nowrap">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span class="text-sm text-foreground">{{ completion.reviewer.get_full_name|default:completion.reviewer.username }}</span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-3" style="min-width: 200px;">
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 bg-muted rounded-full h-4 overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-300 {% if completion.is_complete %}bg-success{% else %}bg-primary{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ completion.progress_percentage }}%"
+                                             aria-valuenow="{{ completion.progress_percentage }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <span class="text-xs text-muted-foreground whitespace-nowrap">
+                                        {{ completion.reviewed_results }} / {{ completion.total_results }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-3 text-right whitespace-nowrap">
+                                {% if completion.is_complete %}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-success-light text-success-dark px-2.5 py-0.5 text-xs font-medium">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                        Complete
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-warning-light text-warning-dark px-2.5 py-0.5 text-xs font-medium">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                                        In Progress
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Show button for current user if they have incomplete review -->
+            {% if my_completion and not my_completion.is_complete %}
+            <div class="mt-4 pt-4 border-t border-border">
+                {% include 'components/alert.html' with variant='info' message='<strong>Your Progress:</strong> You have reviewed '|add:my_completion.reviewed_results|add:' of '|add:my_completion.total_results|add:' results ('|add:my_completion.progress_percentage|add:'% complete).' %}
+                <div class="mt-3">
+                    <a href="{% url 'review_results:overview' session.id %}"
+                       class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+                       data-testid="link-start-review">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                        Continue Reviewing
+                    </a>
+                </div>
+            </div>
+            {% elif my_completion and my_completion.is_complete %}
+            <div class="mt-4 pt-4 border-t border-border">
+                {% include 'components/alert.html' with variant='success' message='<strong>Review Complete!</strong> You completed your review on '|add:my_completion.completed_at|date:"M d, Y"|add:' at '|add:my_completion.completed_at|time:"H:i"|add:'.' %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Approval History for External Reviewers -->
+    {% if session.current_configuration %}
+        {% with config=session.current_configuration %}
+            {% if config.external_reviewers_pending_approval or config.external_reviewers_approved_at or config.external_reviewers_rejected_at %}
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+                <div class="border-b border-border px-6 py-4">
+                    <h5 class="font-semibold text-foreground flex items-center gap-2">
+                        <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        External Reviewer Approval History
+                    </h5>
+                </div>
+                <div class="px-6 py-4 space-y-4">
+                    <!-- Pending Approval -->
+                    {% if config.external_reviewers_pending_approval %}
+                    <div class="rounded-lg border-l-4 border-warning bg-warning-light p-4" role="alert">
+                        <h6 class="font-semibold text-warning-dark flex items-center gap-2 mb-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Pending Approval
+                        </h6>
+                        <p class="text-sm text-warning mb-2">{{ config.external_reviewers_pending_approval|length }} external reviewer(s) awaiting Information Specialist approval:</p>
+                        <ul class="list-disc list-inside text-sm text-warning">
+                            {% for reviewer in config.external_reviewers_pending_approval %}
+                            <li>{{ reviewer.first_name }} {{ reviewer.last_name }} ({{ reviewer.email }})</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- Approved -->
+                    {% if config.external_reviewers_approved_at %}
+                    <div class="rounded-lg border-l-4 border-success bg-success-light p-4" role="alert">
+                        <h6 class="font-semibold text-success-dark flex items-center gap-2 mb-2">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            External Reviewers Approved
+                        </h6>
+                        <p class="text-sm text-success">
+                            <strong>Approved by:</strong> {{ config.external_reviewers_approved_by.get_full_name|default:config.external_reviewers_approved_by.username }}<br>
+                            <strong>Date:</strong> {{ config.external_reviewers_approved_at|date:"F j, Y, g:i A" }}
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Rejected -->
+                    {% if config.external_reviewers_rejected_at %}
+                    <div class="rounded-lg border-l-4 border-destructive bg-error-light p-4" role="alert">
+                        <h6 class="font-semibold text-error-dark flex items-center gap-2 mb-2">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                            External Reviewers Rejected
+                        </h6>
+                        <p class="text-sm text-error mb-2">
+                            <strong>Rejected by:</strong> {{ config.external_reviewers_rejected_by.get_full_name|default:config.external_reviewers_rejected_by.username }}<br>
+                            <strong>Date:</strong> {{ config.external_reviewers_rejected_at|date:"F j, Y, g:i A" }}
+                        </p>
+                        {% if config.external_reviewers_rejection_reason %}
+                        <div class="border-l-2 border-destructive/50 pl-3 text-sm text-error">
+                            <strong>Reason:</strong> {{ config.external_reviewers_rejection_reason }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Activity Timeline -->
+                    {% with approval_activities=session.activities.all %}
+                        {% if approval_activities %}
+                        <hr class="border-border">
+                        <h6 class="font-medium text-foreground">Approval Activity Timeline</h6>
+                        <div class="space-y-4 mt-3">
+                            {% for activity in approval_activities %}
+                                {% if activity.activity_type in "external_reviewers_pending_approval,external_reviewers_approved,external_reviewers_rejected" %}
+                                <div class="flex items-start gap-3">
+                                    <div class="flex-shrink-0">
+                                        {% if activity.activity_type == 'external_reviewers_approved' %}
+                                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-success-light text-success">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                        </span>
+                                        {% elif activity.activity_type == 'external_reviewers_rejected' %}
+                                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-error-light text-destructive">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-warning-light text-warning">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex justify-between items-start">
+                                            <h6 class="text-sm font-medium text-foreground">{{ activity.get_activity_type_display }}</h6>
+                                            <span class="text-xs text-muted-foreground">{{ activity.created_at|date:"M j, Y g:i A" }}</span>
+                                        </div>
+                                        <p class="text-sm text-muted-foreground mt-1">{{ activity.description }}</p>
+                                        {% if activity.metadata.rejection_reason %}
+                                        <div class="mt-2 rounded bg-muted px-3 py-2">
+                                            <p class="text-xs text-muted-foreground"><strong>Reason:</strong> {{ activity.metadata.rejection_reason }}</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+
+    <!-- Recent Activities -->
+    {% if recent_activities %}
+    <div class="rounded-lg border border-border bg-card shadow-sm">
+        <div class="border-b border-border px-6 py-4">
+            <h5 class="font-semibold text-foreground">Recent Activity</h5>
+        </div>
+        <div class="divide-y divide-border/50">
+            {% for activity in recent_activities %}
+            <div class="px-6 py-4 hover:bg-muted">
+                <div class="flex justify-between items-start">
+                    <h6 class="text-sm font-medium text-foreground">{{ activity.get_activity_type_display }}</h6>
+                    <span class="text-xs text-muted-foreground">{{ activity.created_at|timesince }} ago</span>
+                </div>
+                <p class="text-sm text-muted-foreground mt-1">{{ activity.description }}</p>
+                <p class="text-xs text-muted-foreground/60 mt-1">by {{ activity.user.username }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script defer src="{% static 'js/session_monitor_sse.js' %}?v={{ VERSION|default:'3.0.0' }}"></script>
+<script defer src="{% static 'serp_execution/js/simple_monitor.js' %}?v={{ VERSION|default:'2.0.0' }}"></script>
+
+<!-- SSE Real-Time Updates -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize SSE monitor
+        const monitor = new SessionMonitor('{{ session.id }}');
+
+        // Setup callbacks
+        monitor.onConnected = function(data) {
+            console.log('[SSE] Connected to session:', data.session_id);
+            showNotification('Connected to real-time updates', 'success');
+        };
+
+        monitor.onStatusUpdate = function(data) {
+            console.log('[SSE] Status update:', data.status, '(' + data.progress + '%)');
+
+            // Show notification on ready_for_review
+            if (data.status === 'ready_for_review') {
+                showNotification('Session ready for review!', 'success');
+            }
+        };
+
+        monitor.onComplete = function(data) {
+            console.log('[SSE] Session complete:', data.final_status);
+            showNotification('Session completed', 'info');
+
+            // Reload page after 2 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        };
+
+        monitor.onError = function(error) {
+            console.error('[SSE] Error:', error);
+            showNotification('Connection error, falling back to polling', 'warning');
+        };
+
+        // Connect to SSE endpoint
+        monitor.connect();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            monitor.disconnect();
+        });
+    });
+
+    function showNotification(message, type = 'info') {
+        // Tailwind CSS alert classes using semantic tokens
+        const alertClasses = {
+            'success': 'border-success bg-success-light text-success-dark',
+            'info': 'border-info bg-info-light text-info-dark',
+            'warning': 'border-warning bg-warning-light text-warning-dark',
+            'danger': 'border-destructive bg-error-light text-error-dark'
+        };
+
+        const alertClass = alertClasses[type] || alertClasses['info'];
+
+        const alert = `
+            <div class="rounded-lg border-l-4 p-4 ${alertClass} flex items-center justify-between" role="alert">
+                <span>${message}</span>
+                <button type="button" onclick="this.parentElement.remove()" class="ml-4 -mx-1.5 -my-1.5 rounded-lg p-1.5 hover:bg-white/50 focus:ring-2 focus:ring-current" aria-label="Close">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                </button>
+            </div>
+        `;
+
+        const container = document.getElementById('notifications');
+        if (container) {
+            container.innerHTML = alert;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+    }
+</script>
+
+{% if session.is_executing_or_processing %}
+<script>
+    (function() {
+        const initMonitor = () => {
+            if (!window.SimpleSessionMonitor) {
+                return;
+            }
+
+            if (!window.executionMonitor) {
+                window.executionMonitor = new SimpleSessionMonitor('{{ session.id }}', {
+                    autoRedirect: true,
+                    pollingInterval: 2000,
+                    maxRetries: 5
+                });
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMonitor);
+        } else {
+            initMonitor();
+        }
+    })();
+
+    function copyQueryText() {
+        const element = document.getElementById('current-query-text');
+        if (!element) {
+            return;
+        }
+
+        const text = element.textContent.trim();
+        if (!text) {
+            return;
+        }
+
+        navigator.clipboard.writeText(text).then(() => {
+            const button = document.querySelector('#execution-feed-container .copy-query-btn');
+            if (!button) {
+                return;
+            }
+
+            const original = button.innerHTML;
+            button.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Copied!';
+            button.classList.remove('border-border', 'text-muted-foreground', 'hover:bg-muted');
+            button.classList.add('border-success', 'bg-success', 'text-white');
+
+            setTimeout(() => {
+                button.innerHTML = original;
+                button.classList.remove('border-success', 'bg-success', 'text-white');
+                button.classList.add('border-border', 'text-muted-foreground', 'hover:bg-muted');
+            }, 2000);
+        });
+    }
+</script>
+{% endif %}
+<script>
+    // Autofocus primary action button for keyboard navigation
+    document.addEventListener('DOMContentLoaded', function() {
+        const primaryBtn = document.querySelector('[data-testid="primary-action-btn"], [data-testid="link-search-strategy"], [data-testid="link-start-review"]');
+        if (primaryBtn) {
+            primaryBtn.focus();
+        }
+    });
+</script>
+{% endblock %}

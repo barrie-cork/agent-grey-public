@@ -1,0 +1,13 @@
+Hi {{ reviewer_name }},
+
+Consensus has been reached through re-vote in {{ session_title }}.
+
+Result: {{ result_title }}
+
+Final Decision: {{ consensus_decision }}
+
+All reviewers agreed on this decision after discussion and re-voting.
+
+View Discussion History: {{ discussion_url }}
+
+This notification was sent by Agent Grey because you are a reviewer on this conflict.

@@ -1,0 +1,186 @@
+name: 'Weekly Bug Scan'
+
+on:
+  schedule:
+    # Monday 2am UTC (conserves daily quota)
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Scan type'
+        required: true
+        type: choice
+        options:
+          - all
+          - state-machine
+          - query-optimization
+          - celery-tasks
+          - security
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  bug-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Check rate limits
+        id: rate-check
+        run: |
+          python .github/scripts/rate_limit_tracker.py check low
+          if [ $? -eq 0 ]; then
+            echo "quota_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "quota_available=false" >> $GITHUB_OUTPUT
+            echo "::warning::API quota exhausted, skipping scan"
+          fi
+
+      - name: Load scan prompts
+        if: steps.rate-check.outputs.quota_available == 'true'
+        run: |
+          pip install pyyaml
+          python << 'EOF'
+          import yaml
+
+          with open('.github/prompts/agent_grey_context.yml') as f:
+              prompts = yaml.safe_load(f)
+
+          scan_type = "${{ github.event.inputs.scan_type || 'all' }}"
+
+          # Base context
+          system_prompt = prompts['system_prompt']
+
+          # Add focus based on scan type
+          if scan_type in ['all', 'security']:
+              system_prompt += "\n\n" + prompts['security_focus_prompt']
+          elif scan_type == 'query-optimization':
+              system_prompt += "\n\n" + prompts['performance_focus_prompt']
+          elif scan_type == 'celery-tasks':
+              system_prompt += "\n\n" + prompts['celery_focus_prompt']
+
+          with open('scan_prompt.txt', 'w') as f:
+              f.write(system_prompt)
+          EOF
+
+      - name: Collect files for scanning
+        if: steps.rate-check.outputs.quota_available == 'true'
+        run: |
+          SCAN_TYPE="${{ github.event.inputs.scan_type || 'all' }}"
+
+          case "$SCAN_TYPE" in
+            state-machine|all)
+              find apps/review_manager -name "*.py" -not -path "*/tests/*" >> scan_code.txt
+              ;;
+            query-optimization)
+              find apps -name "views.py" -o -name "services.py" >> scan_code.txt
+              ;;
+            celery-tasks)
+              find apps -name "tasks.py" >> scan_code.txt
+              find grey_lit_project -name "celery.py" >> scan_code.txt
+              ;;
+            security)
+              find apps -name "models.py" -o -name "views.py" >> scan_code.txt
+              ;;
+          esac
+
+          # Concatenate file contents (truncate at 30KB)
+          for file in $(cat scan_code.txt | head -10); do
+            if [ -f "$file" ]; then
+              echo "=== $file ===" >> code_content.txt
+              cat "$file" >> code_content.txt
+              echo "" >> code_content.txt
+            fi
+          done
+
+          if [ $(wc -c < code_content.txt) -gt 30000 ]; then
+            head -c 30000 code_content.txt > code_truncated.txt
+            echo "[... truncated ...]" >> code_truncated.txt
+            mv code_truncated.txt code_content.txt
+          fi
+
+      - name: Run AI bug detection
+        if: steps.rate-check.outputs.quota_available == 'true'
+        id: scan
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+        run: |
+          SYSTEM_PROMPT=$(cat scan_prompt.txt)
+          CODE=$(cat code_content.txt)
+
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $MINIMAX_API_KEY" \
+            -H "Content-Type: application/json" \
+            https://api.minimax.io/v1/chat/completions \
+            -d "{
+              \"messages\": [
+                {\"role\": \"system\", \"content\": $(echo "$SYSTEM_PROMPT" | jq -Rs .)},
+                {\"role\": \"user\", \"content\": $(echo "Scan this Django code for bugs, security issues, and quality problems:\n\n$CODE" | jq -Rs .)}
+              ],
+              \"model\": \"MiniMax-M3\",
+              \"thinking\": {\"type\": \"disabled\"},
+              \"temperature\": 0.2,
+              \"max_tokens\": 4000
+            }")
+
+          FINDINGS=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "ERROR"')
+
+          echo "$FINDINGS" > scan_results.md
+
+          # Record usage
+          TOKENS=$(echo "$RESPONSE" | jq -r '.usage.total_tokens // 0')
+          python .github/scripts/rate_limit_tracker.py record low "MiniMax-M3" $TOKENS
+
+          # Check if critical issues found
+          if echo "$FINDINGS" | grep -iq "CRITICAL"; then
+            echo "critical_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "critical_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create issue for critical findings
+        if: steps.scan.outputs.critical_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const findings = fs.readFileSync('scan_results.md', 'utf8');
+            const scanType = '${{ github.event.inputs.scan_type || 'all' }}';
+
+            const title = '🚨 Critical ' + scanType + ' Issues Found by AI Scan';
+            const body = [
+              '# AI Bug Scan Results',
+              '',
+              '**Scan Type**: ' + scanType,
+              '**Date**: ' + new Date().toISOString().split('T')[0],
+              '**Severity**: CRITICAL',
+              '',
+              findings,
+              '',
+              '---',
+              '',
+              '**Action Required**:',
+              '1. Review findings above',
+              '2. Prioritise CRITICAL issues for immediate fix',
+              '3. Create PRs to address issues',
+              '4. Re-run scan after fixes',
+              '',
+              '*Automated scan via MiniMax M3*'
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['bug', 'ai-detected', 'critical', scanType]
+            });

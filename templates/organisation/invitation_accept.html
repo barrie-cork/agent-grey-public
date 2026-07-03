@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Organisation Invitation - Agent Grey{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-xl px-4 sm:px-6 lg:px-8 py-8">
+    <div class="rounded-lg border border-border bg-card shadow-sm">
+        <div class="border-b border-border px-6 py-4">
+            <h3 class="text-lg font-semibold text-foreground">Organisation Invitation</h3>
+            <p class="mt-1 text-sm text-muted-foreground">
+                You have been invited to join <strong>{{ invitation.organisation.name }}</strong>
+                as a {{ invitation.get_role_display }}.
+            </p>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-sm text-muted-foreground mb-4">
+                This invitation was sent to {{ invitation.email }}. You must be signed in
+                with the account registered to that email address to accept it.
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" data-testid="accept-org-invitation-btn"
+                        class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    Accept Invitation
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

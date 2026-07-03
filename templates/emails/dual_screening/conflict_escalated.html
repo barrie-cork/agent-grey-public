@@ -1,0 +1,46 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Conflict Escalated - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hi {{ owner_name }},
+</div>
+
+<div class="content">
+    <p>A conflict has been escalated to arbitration in your review session:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ result_title }}</h2>
+    <p><strong>Session:</strong> {{ session_title }}</p>
+</div>
+
+<div class="alert-box">
+    <p><span class="label">Escalated by:</span> <strong>{{ escalated_by_name }}</strong></p>
+    {% if reason %}
+    <p><span class="label">Reason:</span> {{ reason }}</p>
+    {% endif %}
+</div>
+
+<div class="content">
+    <p>The reviewers were unable to reach consensus and have requested arbitration. Please review the conflict and make a final decision.</p>
+</div>
+
+<div class="button-container">
+    <a href="{{ conflict_url }}" class="button">Review Conflict</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>Next Steps:</strong>
+        <br>- Review the conflicting decisions and discussion thread
+        <br>- Make a final include/exclude decision as arbitrator
+        <br>- Record your reasoning for the audit trail
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you are the session owner and a conflict in your review has been escalated for arbitration.
+{% endblock %}

@@ -1,0 +1,11 @@
+Hi {{ reviewer_name }},
+
+{{ commenter_name }} added a comment to a conflict discussion in {{ session_title }}.
+
+Result: {{ result_title }}
+
+Comment: {{ comment_preview }}
+
+View Discussion: {{ discussion_url }}
+
+This notification was sent by Agent Grey because you are a reviewer on this conflict.

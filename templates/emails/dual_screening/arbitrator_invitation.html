@@ -1,0 +1,60 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Invitation to Arbitrate Conflicts - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Dear {{ invitee_name }},
+</div>
+
+<div class="content">
+    <p>You have been invited by <strong>{{ invited_by_name }}</strong> to serve as an arbitrator for the systematic review project:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ session_title }}</h2>
+    <p><span class="label">Lead Reviewer:</span> {{ invited_by_name }}</p>
+    <p><span class="label">Review Stage:</span> Grey Literature Screening</p>
+    {% if session_description %}
+    <p><span class="label">Description:</span> {{ session_description|truncatewords:50 }}</p>
+    {% endif %}
+</div>
+
+<div class="content">
+    <h3 style="color: #2c3e50;">As an arbitrator, you will:</h3>
+    <ul style="color: #555555;">
+        <li>Review conflicts where two reviewers disagree on inclusion/exclusion decisions</li>
+        <li>See both reviewers' original decisions and their reasoning</li>
+        <li>Make final binding decisions to resolve conflicts</li>
+        <li>Help maintain the quality and rigour of the systematic review process</li>
+    </ul>
+</div>
+
+<div class="highlight-box">
+    <h3 style="margin: 0 0 10px 0; font-size: 16px;">Current Conflicts</h3>
+    <p><span class="label">Pending Conflicts:</span> {{ pending_conflicts_count }}</p>
+    <p><span class="label">Estimated Time:</span> ~{{ estimated_time_minutes }} minutes</p>
+</div>
+
+<div class="button-container">
+    <a href="{{ invitation_url }}" class="button">Accept Invitation</a>
+</div>
+
+<div class="alert-box">
+    <p style="margin: 0;"><strong>⏰ This invitation expires in 7 days.</strong></p>
+    <p style="margin: 5px 0 0 0; font-size: 14px;">If you cannot accept this invitation, please contact {{ invited_by_name }} as soon as possible.</p>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>Why Arbitration Matters:</strong>
+        <br>Third-party arbitration is a critical component of PRISMA 2020-compliant systematic reviews.
+        Your independent assessment helps ensure the review meets the highest standards of academic rigour
+        and reduces potential bias in the selection process.
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This invitation was sent by {{ invited_by_name }} who believes your expertise would be valuable to this review.
+{% endblock %}

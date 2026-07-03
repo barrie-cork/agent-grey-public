@@ -1,0 +1,111 @@
+{% load simple_review_tags %}
+{% load multi_reviewer_tags %}
+
+<div class="result-card mb-3 p-4 border border-border rounded-lg hover:border-border/80 transition-colors {% if session.current_configuration.is_workflow_2 %}{% reviewer_decision_card_class result %}{% else %}{% quick_decision_card_class result %}{% endif %}"
+    data-result-id="{{ result.id }}" data-testid="result-row">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div class="md:col-span-1 flex items-start">
+            <div class="flex items-center h-5">
+                <input
+                    class="h-4 w-4 rounded border-input text-primary focus:ring-ring result-checkbox"
+                    type="checkbox" value="{{ result.id }}" id="check_{{ result.id }}"
+                    data-testid="result-checkbox" onchange="updateBulkSelection()">
+                <label class="sr-only" for="check_{{ result.id }}">Select result</label>
+            </div>
+        </div>
+        <div class="md:col-span-7">
+            <div class="flex flex-wrap items-start gap-2 mb-2">
+                <h6 class="font-medium text-foreground">
+                    <a href="{{ result.url }}" target="_blank" rel="noopener noreferrer"
+                        class="hover:text-primary hover:underline" data-testid="result-title-link">
+                        {{ result.title }}
+                    </a>
+                </h6>
+                {% if result.document_type %}
+                <span
+                    class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">[{{ result.document_type|upper }}]</span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-muted-foreground mb-2 flex flex-wrap items-center gap-1">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                <span class="truncate max-w-xs">{{ result.get_display_url }}</span>
+                {% if result.publication_year %}
+                <span class="text-muted-foreground/50">|</span>
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                {{ result.publication_year }}
+                {% endif %}
+                {% if result.has_full_text %}
+                <span class="text-muted-foreground/50">|</span>
+                <span
+                    class="inline-flex items-center rounded-full bg-success-light px-2 py-0.5 text-xs font-medium text-success-dark">
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    Full Text
+                </span>
+                {% endif %}
+            </p>
+            {% if result.snippet %}
+            <p class="text-sm text-muted-foreground mb-2">{{ result.snippet|truncatewords:30 }}</p>
+            {% endif %}
+
+            <!-- Review Notes Preview -->
+            <div class="review-notes-preview">
+                <small class="text-sm text-muted-foreground/60 flex items-center">
+                    {% if session.current_configuration.is_workflow_2 %}
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    {{ result|reviewer_notes_preview:request.user }}
+                    {% else %}
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    {{ result|review_notes_preview }}
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+        <div class="md:col-span-4">
+            <div class="review-controls flex flex-col items-end gap-2">
+                <!-- Decision Buttons -->
+                <div class="decision-buttons">
+                    {% if session.current_configuration.is_workflow_2 %}
+                    {% reviewer_decision_buttons result %}
+                    {% else %}
+                    {% quick_decision_buttons result %}
+                    {% endif %}
+                </div>
+
+                <!-- Additional Actions -->
+                <div class="additional-actions flex gap-2">
+                    <button
+                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded border border-border bg-card text-foreground hover:bg-muted"
+                        data-testid="notes-btn"
+                        onclick="showNotesModal('{{ result.id }}', '{{ result.title|escapejs }}')">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                        Notes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

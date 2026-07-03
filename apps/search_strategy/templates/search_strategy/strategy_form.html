@@ -1,0 +1,1077 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit Search Strategy - {{ session.title }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'search_strategy/css/strategy_form.css' %}" rel="stylesheet">
+<style>
+.strategy-progress-item {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Pagination toggle JS moved to extra_js block */
+.strategy-progress-item.complete {
+    background-color: #d4edda;
+    color: #155724;
+}
+.strategy-progress-item.partial {
+    background-color: #fff3cd;
+    color: #856404;
+}
+.strategy-progress-item.empty {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+.pic-section {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.pic-section h5 {
+    margin-bottom: 15px;
+    color: #495057;
+}
+.query-preview {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 10px 0;
+}
+.query-item {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+.badge-counter {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+/* Tag input styling */
+.keyword-input-container {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    min-height: 2.5rem;
+    background-color: #fff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: flex-start;
+    cursor: text;
+    max-height: 300px;
+    overflow-y: auto;
+    transition: min-height 0.2s ease;
+}
+
+.keyword-input-container:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.keyword-tag {
+    background-color: #e9ecef;
+    border: 1px solid #adb5bd;
+    border-radius: 1rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.8125rem;
+    color: #495057;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    max-width: 100%;
+    overflow: hidden;
+    height: 1.75rem;
+}
+
+.keyword-tag.population {
+    background-color: #cfe2ff;
+    border-color: #86b7fe;
+    color: #084298;
+}
+
+.keyword-tag.interest {
+    background-color: #fff3cd;
+    border-color: #ffda6a;
+    color: #664d03;
+}
+
+.keyword-tag.context {
+    background-color: #d1e7dd;
+    border-color: #a3d3b7;
+    color: #0f5132;
+}
+
+.keyword-tag.domains {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.keyword-tag .tag-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.keyword-tag .remove-tag {
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    transition: all 0.15s ease-in-out;
+}
+
+.keyword-tag .remove-tag:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #dc3545;
+}
+
+.keyword-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    flex: 1;
+    min-width: 120px;
+    padding: 0.125rem;
+    font-size: 0.875rem;
+    height: 1.5rem;
+}
+
+.keyword-input::placeholder {
+    color: #6c757d;
+    font-style: italic;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4">
+    <!-- Header with breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li><a href="{% url 'review_manager:dashboard' %}" class="text-muted-foreground hover:text-foreground">Dashboard</a></li>
+            <li class="text-muted-foreground">/</li>
+            <li><a href="{% url 'review_manager:session_detail' session_id=session.id %}" class="text-muted-foreground hover:text-foreground">{{ session.title }}</a></li>
+            <li class="text-muted-foreground">/</li>
+            <li class="text-foreground font-medium">Edit Strategy</li>
+        </ol>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main content area -->
+        <div class="lg:col-span-2">
+            <div class="rounded-lg border border-border bg-card shadow-sm">
+                <div class="flex justify-between items-center px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                    <h4 class="m-0 text-lg font-semibold">
+                        <i class="fas fa-edit"></i> Edit Search Strategy
+                    </h4>
+                    <div class="flex gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">{{ session.get_status_display }}</span>
+                        {% if strategy.is_complete %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" data-completion-status="true">Complete</span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" data-completion-status="true">In Progress</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="p-6" id="strategy-form-body">
+                    <p class="text-muted-foreground mb-4">
+                        Update your search strategy for <strong>{{ session.title }}</strong>
+                    </p>
+
+                    {% if validation_errors %}
+                        <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4 mb-4">
+                            <h6 class="font-semibold mb-2">Please address these issues:</h6>
+                            <ul class="list-disc list-inside text-sm">
+                                {% for field, error in validation_errors.items %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <form method="post" id="strategy-form">
+                        {% csrf_token %}
+
+                        <!-- Update PIC Framework Strategy Alert -->
+                        <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 mb-4" role="alert">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Update PIC Framework Strategy</strong>
+                        </div>
+
+                        <!-- Population Section -->
+                        <div class="pic-section">
+                            <h5>
+                                <i class="fas fa-users text-primary"></i> Population
+                                <small class="text-muted-foreground">Who is the target population? (optional if relevant)</small>
+                            </h5>
+                            <div class="keyword-input-container" data-field="population" data-testid="population-input-container" onclick="focusKeywordInput(this)">
+                                <div class="tags-container" data-field="population"></div>
+                                <input type="text" class="keyword-input" data-testid="population-input" placeholder="Type keyword and press Enter..."
+                                       onkeydown="handleKeywordInput(event, 'population')"
+                                       onblur="handleInputBlur(event)"
+                                       autofocus>
+                            </div>
+                            <small class="text-sm text-muted-foreground mt-1 block">
+                                Enter population terms and press Enter to add them. These describe who the research focuses on.
+                            </small>
+                            <div style="display: none;">
+                                {{ form.population_terms_text }}
+                                {{ form.population_terms }}
+                            </div>
+                        </div>
+
+                        <!-- Interest/Intervention Section -->
+                        <div class="pic-section">
+                            <h5>
+                                <i class="fas fa-lightbulb text-yellow-500"></i> Interest/Intervention
+                                <small class="text-muted-foreground">What is the intervention or interest? (optional if relevant)</small>
+                            </h5>
+                            <div class="keyword-input-container" data-field="interest" data-testid="interest-input-container" onclick="focusKeywordInput(this)">
+                                <div class="tags-container" data-field="interest"></div>
+                                <input type="text" class="keyword-input" data-testid="interest-input" placeholder="Type keyword and press Enter..."
+                                       onkeydown="handleKeywordInput(event, 'interest')"
+                                       onblur="handleInputBlur(event)">
+                            </div>
+                            <small class="text-sm text-muted-foreground mt-1 block">
+                                Enter intervention or interest terms and press Enter to add them. These describe what you're studying.
+                            </small>
+                            <div style="display: none;">
+                                {{ form.interest_terms_text }}
+                                {{ form.interest_terms }}
+                            </div>
+                        </div>
+
+                        <!-- Context Section -->
+                        <div class="pic-section">
+                            <h5>
+                                <i class="fas fa-map-marker-alt text-green-600"></i> Context
+                                <small class="text-muted-foreground">In what context or setting? (optional if relevant)</small>
+                            </h5>
+                            <div class="keyword-input-container" data-field="context" data-testid="context-input-container" onclick="focusKeywordInput(this)">
+                                <div class="tags-container" data-field="context"></div>
+                                <input type="text" class="keyword-input" data-testid="context-input" placeholder="Type keyword and press Enter..."
+                                       onkeydown="handleKeywordInput(event, 'context')"
+                                       onblur="handleInputBlur(event)">
+                            </div>
+                            <small class="text-sm text-muted-foreground mt-1 block">
+                                Enter context terms and press Enter to add them. These describe where or under what conditions.
+                            </small>
+                            <div style="display: none;">
+                                {{ form.context_terms_text }}
+                                {{ form.context_terms }}
+                            </div>
+                        </div>
+
+                        <!-- Search Configuration Section -->
+                        <div class="pic-section">
+                            <h5>
+                                <i class="fas fa-cog text-cyan-600"></i> Search Configuration
+                            </h5>
+
+                            <!-- Organization Domains -->
+                           <div class="mb-4">
+                               <label for="domains-input" class="block font-medium text-sm text-foreground mb-1" title="Enter specific domains (e.g., 'who.int', 'nice.org.uk') to limit searches to those sites.">
+                                   <i class="fas fa-globe"></i> Organization Domains
+                                   <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 ml-2" id="domains-count">0</span>
+                               </label>
+                               <div class="keyword-input-container" data-field="domains" onclick="focusKeywordInput(this)">
+                                    <div class="tags-container" data-field="domains"></div>
+                                    <input type="text" class="keyword-input" id="domains-input" placeholder="Type domain and press Enter (e.g., nice.org.uk)..."
+                                           onkeydown="handleKeywordInput(event, 'domains')"
+                                           onkeyup="highlightPendingInput(event, 'domains')"
+                                           onblur="handleInputBlur(event)">
+                                    <!-- Visual warning for unsaved input -->
+                                    <div class="pending-input-warning" id="domains-pending-warning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>Press Enter to save this domain</span>
+                                    </div>
+                                </div>
+                                <small class="text-sm text-muted-foreground mt-1 block">
+                                    <strong>How to add domains:</strong>
+                                    <ul class="text-xs mt-1 space-y-0.5 list-disc list-inside">
+                                        <li>Type a domain (e.g., <code class="bg-muted px-1 rounded">nice.org.uk</code>) and press <kbd class="bg-muted px-1.5 py-0.5 rounded text-xs">Enter</kbd></li>
+                                        <li>Use <kbd class="bg-muted px-1.5 py-0.5 rounded text-xs">,</kbd> (comma) or <kbd class="bg-muted px-1.5 py-0.5 rounded text-xs">Space</kbd> to quickly add multiple domains</li>
+                                        <li>Example: <code class="bg-muted px-1 rounded">www.hse.ie nice.org.uk who.int</code> <kbd class="bg-muted px-1.5 py-0.5 rounded text-xs">Enter</kbd></li>
+                                        <li>✓ Valid formats: <code class="bg-muted px-1 rounded">nice.org.uk</code>, <code class="bg-muted px-1 rounded">www.who.int</code></li>
+                                        <li>✗ Invalid: <code class="bg-muted px-1 rounded">http://nice.org.uk</code> (no http://)</li>
+                                    </ul>
+                                </small>
+                                <div style="display: none;">
+                                    {{ form.organization_domains }}
+                                </div>
+                            </div>
+
+                            <!-- General Search Option -->
+                            <div class="flex items-start gap-2 mb-3">
+                                {{ form.include_general_search }}
+                                <div>
+                                    <label class="text-sm font-medium text-foreground" for="{{ form.include_general_search.id_for_label }}" title="Perform a standard web search in addition to any domain-specific searches.">
+                                        Include General Web Search
+                                    </label>
+                                    <small class="text-xs text-muted-foreground block mt-0.5">
+                                        Include a general web search without domain restrictions.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Guidelines Filter Option -->
+                            <div class="flex items-start gap-2 mb-3">
+                                {{ form.include_guidelines_filter }}
+                                <div>
+                                    <label class="text-sm font-medium text-foreground" for="{{ form.include_guidelines_filter.id_for_label }}" title="Add guideline-specific terms to all search queries to focus on guidelines and recommendations.">
+                                        {{ form.include_guidelines_filter.label }}
+                                    </label>
+                                    <small class="text-xs text-muted-foreground block mt-0.5">
+                                        {{ form.include_guidelines_filter.help_text }}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- File Types -->
+                            <div class="mb-4">
+                                <label class="block font-medium text-sm text-foreground mb-2" title="Restrict searches to specific file types.">File Types:</label>
+                                <div class="flex items-center gap-2 mb-1">
+                                    {{ form.search_pdf }}
+                                    <label class="text-sm text-foreground" for="{{ form.search_pdf.id_for_label }}">
+                                        {{ form.search_pdf.label }}
+                                    </label>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    {{ form.search_doc }}
+                                    <label class="text-sm text-foreground" for="{{ form.search_doc.id_for_label }}">
+                                        {{ form.search_doc.label }}
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Query Length Management -->
+                            <div class="mb-4">
+                                <label class="block font-medium text-sm text-foreground mb-2" title="Manage long queries to avoid search engine limits">
+                                    Query Length Management:
+                                </label>
+
+                                <!-- Length Warning Alert (hidden by default) -->
+                                <div id="query-length-warning" class="hidden bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3 mb-2" role="alert">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span id="warning-message"></span>
+                                </div>
+
+                                <!-- Enable Splitting Checkbox -->
+                                <div class="flex items-center gap-2 mb-2">
+                                    {{ form.enable_query_splitting }}
+                                    <label class="text-sm text-foreground" for="{{ form.enable_query_splitting.id_for_label }}">
+                                        {{ form.enable_query_splitting.label }}
+                                    </label>
+                                </div>
+
+                                <!-- Splitting Options (collapsible) -->
+                                <div class="hidden mt-3" id="splittingOptions">
+                                    <div class="rounded-lg border border-border bg-muted/30 p-4">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                            <div>
+                                                <label for="{{ form.splitting_strategy.id_for_label }}" class="block text-sm font-medium text-foreground mb-1">
+                                                    Splitting Strategy:
+                                                </label>
+                                                {{ form.splitting_strategy }}
+                                                <small class="text-xs text-muted-foreground">{{ form.splitting_strategy.help_text }}</small>
+                                            </div>
+                                            <div>
+                                                <label for="{{ form.max_query_length.id_for_label }}" class="block text-sm font-medium text-foreground mb-1">
+                                                    Maximum Query Length:
+                                                </label>
+                                                {{ form.max_query_length }}
+                                                <small class="text-xs text-muted-foreground">{{ form.max_query_length.help_text }}</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Split Preview -->
+                                        <div id="split-preview" class="hidden bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3">
+                                            <i class="fas fa-info-circle"></i>
+                                            <span id="split-preview-message"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Search Providers -->
+                            <div class="mb-4">
+                                <label class="block font-medium text-sm text-foreground mb-2">Search Providers:</label>
+                                {% for checkbox in form.serp_providers %}
+                                    <div class="flex items-center gap-2 mb-1">
+                                        {{ checkbox.tag }}
+                                        <label class="text-sm text-foreground" for="{{ checkbox.id_for_label }}">
+                                            {{ checkbox.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                                <small class="text-xs text-muted-foreground block mt-1">
+                                    Select which search API providers to use. Selecting multiple providers increases coverage.
+                                </small>
+                            </div>
+
+                            <!-- Search Engines -->
+                            <div class="mb-4">
+                                <label class="block font-medium text-sm text-foreground mb-2">Search Engines:</label>
+                                <div class="flex items-center gap-2 mb-1">
+                                    {{ form.use_google_search }}
+                                    <label class="text-sm text-foreground" for="{{ form.use_google_search.id_for_label }}">
+                                        {{ form.use_google_search.label }}
+                                    </label>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    {{ form.use_google_scholar }}
+                                    <label class="text-sm text-foreground" for="{{ form.use_google_scholar.id_for_label }}">
+                                        {{ form.use_google_scholar.label }}
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Maximum Results -->
+                            <div class="mb-4 flex items-center gap-4">
+                                <label for="{{ form.max_results_per_query.id_for_label }}" class="text-sm font-medium text-foreground whitespace-nowrap">
+                                    Maximum Results per Query:
+                                </label>
+                                <div class="w-24">
+                                    {{ form.max_results_per_query }}
+                                </div>
+                            </div>
+
+                            <!-- Pagination Settings -->
+                            <div class="mb-4">
+                                <label class="block font-medium text-sm text-foreground mb-2" title="Fetch multiple result pages to maximise coverage">
+                                    Pagination:
+                                </label>
+                                <div class="flex items-center gap-2 mb-1">
+                                    {{ form.enable_pagination }}
+                                    <label class="text-sm text-foreground" for="{{ form.enable_pagination.id_for_label }}">
+                                        {{ form.enable_pagination.label }}
+                                    </label>
+                                </div>
+                                <small class="text-xs text-muted-foreground block mb-2">{{ form.enable_pagination.help_text }}</small>
+
+                                <div class="flex items-center gap-4" data-pagination-settings>
+                                    <label class="text-sm font-medium text-foreground whitespace-nowrap" for="{{ form.max_pages.id_for_label }}">
+                                        Maximum Pages:
+                                    </label>
+                                    <div class="w-20">
+                                        {{ form.max_pages }}
+                                    </div>
+                                    <small class="text-xs text-muted-foreground">{{ form.max_pages.help_text }}</small>
+                                </div>
+                            </div>
+
+                            <!-- Hidden fields -->
+                            {{ form.search_config }}
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex flex-col sm:flex-row justify-between gap-3 mt-6">
+                            <div class="flex gap-2">
+                                <a href="{% url 'review_manager:session_detail' session_id=session.id %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90" data-testid="cancel-strategy-btn">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                                <a href="{% url 'review_manager:session_detail' session_id=session.id %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-secondary text-secondary-foreground bg-white hover:bg-secondary/10">
+                                    <i class="fas fa-arrow-left"></i> Back to Session
+                                </a>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="submit" name="save" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-secondary text-secondary-foreground bg-white hover:bg-secondary/10" data-testid="save-strategy-btn">
+                                    <i class="fas fa-save"></i> Save Strategy
+                                </button>
+                                <button type="submit" name="action" value="save_and_monitor" class="inline-flex items-center gap-2 px-5 py-2.5 text-base font-medium rounded-md shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" data-testid="execute-search-btn" data-session-status="{{ session.status }}" id="execute-search-btn">
+                                    <i class="fas fa-rocket"></i> Execute Search
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar with progress and preview -->
+        <div>
+            <!-- Strategy Progress -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-4">
+                <div class="px-4 py-3 border-b border-border bg-muted/50 rounded-t-lg">
+                    <h6 class="m-0 text-sm font-semibold">
+                        <i class="fas fa-chart-pie"></i> Strategy Progress
+                    </h6>
+                </div>
+                <div class="p-4" id="strategy-progress-body">
+                    <div class="strategy-progress-item {% if stats.population_count > 0 %}complete{% else %}empty{% endif %}">
+                        <span>Population Terms</span>
+                        <span class="badge-counter">{{ stats.population_count }}</span>
+                    </div>
+                    <div class="strategy-progress-item {% if stats.interest_count > 0 %}complete{% else %}empty{% endif %}">
+                        <span>Interest Terms</span>
+                        <span class="badge-counter">{{ stats.interest_count }}</span>
+                    </div>
+                    <div class="strategy-progress-item {% if stats.context_count > 0 %}complete{% else %}empty{% endif %}">
+                        <span>Context Terms</span>
+                        <span class="badge-counter">{{ stats.context_count }}</span>
+                    </div>
+                    <hr class="my-3 border-border">
+                    <div class="text-center">
+                        <strong>Total Terms: {{ stats.total_terms }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Preview -->
+            <div class="rounded-lg border border-border bg-card shadow-sm">
+                <div class="px-4 py-3 border-b border-border bg-muted/50 rounded-t-lg">
+                    <h6 class="m-0 text-sm font-semibold">
+                        <i class="fas fa-eye"></i> Updated Query Preview
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <div id="query-preview">
+                        {% if queries %}
+                            <p class="text-muted-foreground text-sm mb-3">
+                                Base preview - actual query may include additional filters
+                            </p>
+                            {% for query in queries %}
+                                <div class="query-item">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="font-semibold">
+                                            {% if query.domain %}
+                                                {{ query.domain }}
+                                            {% else %}
+                                                General Search
+                                            {% endif %}
+                                        </span>
+                                        <small class="text-muted-foreground">{{ query.type }}</small>
+                                    </div>
+                                    <code class="text-sm">{{ query.query }}</code>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted-foreground">
+                                <i class="fas fa-search text-2xl mb-2"></i>
+                                <p>Add PIC terms to see query preview</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'search_strategy/js/strategy_form.js' %}"></script>
+<script>
+// Prevent duplicate initialization
+window.keywordFormInitialized = window.keywordFormInitialized || false;
+// Global keyword storage
+let keywordData = {
+    population: [],
+    interest: [],
+    context: [],
+    domains: []
+};
+
+// Initialize keywords from existing data
+if (!window.keywordFormInitialized) {
+    window.keywordFormInitialized = true;
+    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize from form data if available
+    const populationText = document.getElementById('{{ form.population_terms_text.id_for_label }}').value;
+    const interestText = document.getElementById('{{ form.interest_terms_text.id_for_label }}').value;
+    const contextText = document.getElementById('{{ form.context_terms_text.id_for_label }}').value;
+    const domainsText = document.getElementById('{{ form.organization_domains.id_for_label }}').value;
+
+    if (populationText) {
+        keywordData.population = populationText.split('\n').filter(t => t.trim());
+    }
+    if (interestText) {
+        keywordData.interest = interestText.split('\n').filter(t => t.trim());
+    }
+    if (contextText) {
+        keywordData.context = contextText.split('\n').filter(t => t.trim());
+    }
+    if (domainsText) {
+        keywordData.domains = domainsText.split('\n').filter(t => t.trim());
+    }
+
+    // Render existing tags
+    renderTags('population');
+    renderTags('interest');
+    renderTags('context');
+    renderTags('domains');
+
+    // Update hidden fields
+    updateHiddenFields();
+
+    // NEW: Form submission validation
+    const strategyForm = document.getElementById('strategy-form');
+    if (strategyForm) {
+        strategyForm.addEventListener('submit', function(e) {
+            let hasUnsavedInput = false;
+            const unsavedFields = [];
+
+            // Check all keyword input fields for unsaved data
+            document.querySelectorAll('.keyword-input').forEach(input => {
+                const value = input.value.trim();
+                if (value) {
+                    hasUnsavedInput = true;
+                    const container = input.closest('.keyword-input-container');
+                    const fieldType = container.dataset.field;
+                    unsavedFields.push({
+                        field: fieldType,
+                        value: value
+                    });
+                }
+            });
+
+            if (hasUnsavedInput) {
+                e.preventDefault();
+
+                // Show confirmation dialog
+                const fieldList = unsavedFields.map(f =>
+                    `• ${f.field}: "${f.value}"`
+                ).join('\n');
+
+                const confirmMsg = `You have unsaved input:\n\n${fieldList}\n\nPress Enter to save these items, or click Cancel to discard them.`;
+
+                if (confirm(confirmMsg)) {
+                    // Auto-save all pending inputs
+                    unsavedFields.forEach(({field, value}) => {
+                        const input = document.querySelector(`[data-field="${field}"] .keyword-input`);
+                        if (input) {
+                            addKeywordTag(field, value, input);
+                        }
+                    });
+
+                    // Submit form after saving
+                    setTimeout(() => {
+                        strategyForm.submit();
+                    }, 100);
+                }
+            }
+        });
+    }
+    });
+}
+
+// NEW: Real-time visual feedback for pending input
+function highlightPendingInput(event, fieldType) {
+    const input = event.target;
+    const value = input.value.trim();
+    const container = input.closest('.keyword-input-container');
+    const warning = document.getElementById(`${fieldType}-pending-warning`);
+
+    if (value) {
+        input.classList.add('has-pending-input');
+        if (warning) {
+            warning.style.display = 'flex';
+        }
+    } else {
+        input.classList.remove('has-pending-input');
+        if (warning) {
+            warning.style.display = 'none';
+        }
+    }
+}
+
+// NEW: Domain validation
+function validateDomain(domain) {
+    // Basic domain format check
+    const domainRegex = /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i;
+
+    if (!domainRegex.test(domain)) {
+        return {
+            valid: false,
+            error: `"${domain}" is not a valid domain format. Example: nice.org.uk`
+        };
+    }
+
+    return { valid: true };
+}
+
+// NEW: Show validation error
+function showValidationError(inputElement, message) {
+    const container = inputElement.closest('.keyword-input-container');
+
+    // Create or update error message
+    let errorDiv = container.querySelector('.domain-validation-error');
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.className = 'domain-validation-error';
+        container.appendChild(errorDiv);
+    }
+
+    errorDiv.innerHTML = `<i class="fas fa-times-circle"></i> ${message}`;
+    errorDiv.style.display = 'flex';
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+    }, 3000);
+}
+
+// NEW: Show success feedback
+function showSuccessFlash(inputElement) {
+    inputElement.style.borderColor = '#28a745';
+    setTimeout(() => {
+        inputElement.style.borderColor = '';
+    }, 500);
+}
+
+// NEW: Update domain count badge
+function updateDomainCount(fieldType) {
+    const badge = document.getElementById(`${fieldType}-count`);
+    if (badge) {
+        const count = keywordData[fieldType].length;
+        badge.textContent = count;
+        badge.className = count > 0 ? 'badge badge-success' : 'badge badge-info';
+    }
+}
+
+// NEW: Centralized tag addition logic with validation
+function addKeywordTag(fieldType, value, inputElement) {
+    const cleanValue = value.trim();
+
+    if (!cleanValue) {
+        return false;
+    }
+
+    // Domain-specific validation
+    if (fieldType === 'domains') {
+        const domainValidation = validateDomain(cleanValue);
+        if (!domainValidation.valid) {
+            showValidationError(inputElement, domainValidation.error);
+            return false;
+        }
+    }
+
+    // Check for duplicates
+    if (keywordData[fieldType].includes(cleanValue)) {
+        showValidationError(inputElement, `"${cleanValue}" already added`);
+        inputElement.value = '';
+        return false;
+    }
+
+    // Add tag
+    keywordData[fieldType].push(cleanValue);
+    inputElement.value = '';
+    inputElement.classList.remove('has-pending-input');
+
+    // Hide warning
+    const warning = document.getElementById(`${fieldType}-pending-warning`);
+    if (warning) {
+        warning.style.display = 'none';
+    }
+
+    renderTags(fieldType);
+    updateHiddenFields();
+    updateDomainCount(fieldType);
+    updateProgressIndicators(getStats());
+    previewChanges();
+
+    // Show success feedback
+    showSuccessFlash(inputElement);
+
+    return true;
+}
+
+// ENHANCED: Handle multiple input methods (Enter, comma, space for domains)
+function handleKeywordInput(event, fieldType) {
+    const input = event.target;
+    const value = input.value.trim();
+
+    // Handle Enter and comma for all fields
+    if (event.key === 'Enter' || event.key === ',') {
+        event.preventDefault();
+        addKeywordTag(fieldType, value, input);
+        return false;
+    }
+
+    // For domains field: also split on space
+    if (fieldType === 'domains' && event.key === ' ' && value) {
+        event.preventDefault();
+
+        // Extract the domain before the space
+        const parts = value.split(' ');
+        if (parts.length > 0 && parts[0].trim()) {
+            addKeywordTag(fieldType, parts[0].trim(), input);
+            // Keep remaining text in input
+            input.value = parts.slice(1).join(' ').trim();
+        }
+        return false;
+    }
+}
+
+// ENHANCED: Improved blur handler with confirmation
+function handleInputBlur(event) {
+    const input = event.target;
+    const container = input.closest('.keyword-input-container');
+    const fieldType = container.dataset.field;
+    const value = input.value.trim();
+
+    // If there's pending input, save it automatically
+    if (value) {
+        const added = addKeywordTag(fieldType, value, input);
+        if (added) {
+            console.log(`Auto-saved ${fieldType} on blur: "${value}"`);
+        }
+    }
+}
+
+// Focus keyword input when container is clicked
+function focusKeywordInput(container) {
+    const input = container.querySelector('.keyword-input');
+    if (input) {
+        input.focus();
+    }
+}
+
+// Render tags for a specific field
+function renderTags(fieldType) {
+    const container = document.querySelector(`.tags-container[data-field="${fieldType}"]`);
+
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    keywordData[fieldType].forEach((keyword, index) => {
+        const tag = document.createElement('div');
+        tag.className = `keyword-tag ${fieldType}`;
+        tag.innerHTML = `
+            <span class="tag-text" title="${keyword}">${keyword}</span>
+            <button type="button" class="remove-tag" onclick="removeKeyword('${fieldType}', ${index})" title="Remove">
+                ×
+            </button>
+        `;
+        container.appendChild(tag);
+    });
+}
+
+// ENHANCED: Remove keyword with animation
+function removeKeyword(fieldType, index) {
+    const tag = document.querySelectorAll(`.keyword-tag.${fieldType}`)[index];
+    if (tag) {
+        tag.classList.add('removing');
+        setTimeout(() => {
+            keywordData[fieldType].splice(index, 1);
+            renderTags(fieldType);
+            updateHiddenFields();
+            updateDomainCount(fieldType);
+            updateProgressIndicators(getStats());
+            previewChanges();
+        }, 200);
+    }
+}
+
+// Update hidden form fields
+function updateHiddenFields() {
+    document.getElementById('{{ form.population_terms_text.id_for_label }}').value = keywordData.population.join('\n');
+    document.getElementById('{{ form.interest_terms_text.id_for_label }}').value = keywordData.interest.join('\n');
+    document.getElementById('{{ form.context_terms_text.id_for_label }}').value = keywordData.context.join('\n');
+    document.getElementById('{{ form.organization_domains.id_for_label }}').value = keywordData.domains.join('\n');
+}
+
+// Get statistics for progress indicators
+function getStats() {
+    return {
+        population_count: keywordData.population.length,
+        interest_count: keywordData.interest.length,
+        context_count: keywordData.context.length,
+        total_terms: keywordData.population.length + keywordData.interest.length + keywordData.context.length
+    };
+}
+
+// Basic real-time preview functionality
+function previewChanges() {
+    // Collect form data
+    const formData = {
+        population_terms: keywordData.population,
+        interest_terms: keywordData.interest,
+        context_terms: keywordData.context,
+        search_config: {
+            domains: keywordData.domains,
+            include_general_search: document.getElementById('{{ form.include_general_search.id_for_label }}').checked,
+            include_guidelines_filter: document.getElementById('{{ form.include_guidelines_filter.id_for_label }}').checked,
+            file_types: [
+                ...(document.getElementById('{{ form.search_pdf.id_for_label }}').checked ? ['pdf'] : []),
+                ...(document.getElementById('{{ form.search_doc.id_for_label }}').checked ? ['doc'] : [])
+            ]
+        }
+    };
+
+    console.log('Preview data:', formData); // Debug log
+
+    // Send AJAX request
+    fetch('{% url "search_strategy:update_strategy_ajax" session_id=session.id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => {
+        console.log('Response status:', response.status); // Debug log
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data); // Debug log
+        if (data.success) {
+            updateQueryPreview(data.queries);
+            updateProgressIndicators(data.stats);
+        } else {
+            console.error('Preview failed:', data.error);
+            console.error('Validation errors:', data.validation_errors);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function updateQueryPreview(queries) {
+    const preview = document.getElementById('query-preview');
+    if (queries && queries.length > 0) {
+        let html = '<p class="text-muted small mb-3">Base preview - actual query may include additional filters</p>';
+        queries.forEach(query => {
+            html += `
+                <div class="query-item">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="font-weight-bold">${query.domain || 'General Search'}</span>
+                        <small class="text-muted">${query.type}</small>
+                    </div>
+                    <code class="small">${query.query}</code>
+                </div>
+            `;
+        });
+        preview.innerHTML = html;
+    } else {
+        preview.innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-search fa-2x mb-2"></i>
+                <p>Add PIC terms to see query preview</p>
+            </div>
+        `;
+    }
+}
+
+function updateProgressIndicators(stats) {
+    // Update progress counters
+    document.querySelectorAll('.badge-counter').forEach((counter, index) => {
+        const counts = [stats.population_count, stats.interest_count, stats.context_count];
+        counter.textContent = counts[index] || 0;
+    });
+
+    // Update progress item classes
+    const items = document.querySelectorAll('.strategy-progress-item');
+    const counts = [stats.population_count, stats.interest_count, stats.context_count];
+
+    items.forEach((item, index) => {
+        item.className = 'strategy-progress-item ' + (counts[index] > 0 ? 'complete' : 'empty');
+    });
+}
+
+
+
+
+// All validation is now handled by SearchStrategyForm class in strategy_form.js
+// This prevents duplicate validation popups
+
+// Auto-preview on input changes (debounced)
+let previewTimeout;
+document.querySelectorAll('textarea, input[type="checkbox"]').forEach(input => {
+    input.addEventListener('input', () => {
+        clearTimeout(previewTimeout);
+        previewTimeout = setTimeout(previewChanges, 1000);
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Pagination toggle (replaces Bootstrap d-none toggle)
+    const paginationToggle = document.getElementById('{{ form.enable_pagination.id_for_label }}');
+    const maxPagesInput = document.getElementById('{{ form.max_pages.id_for_label }}');
+    const paginationSettingsRow = document.querySelector('[data-pagination-settings]');
+
+    if (paginationToggle && maxPagesInput && paginationSettingsRow) {
+        const updatePaginationUI = () => {
+            const enabled = paginationToggle.checked;
+            paginationSettingsRow.classList.toggle('hidden', !enabled);
+            maxPagesInput.disabled = !enabled;
+            if (enabled) {
+                const currentValue = parseInt(maxPagesInput.value, 10);
+                if (Number.isNaN(currentValue) || currentValue < 2) {
+                    maxPagesInput.value = 10;
+                }
+            }
+        };
+        paginationToggle.addEventListener('change', updatePaginationUI);
+        updatePaginationUI();
+    }
+
+    // Query splitting toggle (replaces Bootstrap collapse)
+    const splittingCheckbox = document.getElementById('{{ form.enable_query_splitting.id_for_label }}');
+    const splittingOptions = document.getElementById('splittingOptions');
+
+    if (splittingCheckbox && splittingOptions) {
+        const updateSplittingUI = () => {
+            splittingOptions.classList.toggle('hidden', !splittingCheckbox.checked);
+        };
+        splittingCheckbox.addEventListener('change', updateSplittingUI);
+        updateSplittingUI();
+    }
+
+    // Disable Execute Search button if session is in ready_to_execute state
+    const executeBtn = document.getElementById('execute-search-btn');
+    if (executeBtn) {
+        const sessionStatus = executeBtn.getAttribute('data-session-status');
+        if (sessionStatus === 'ready_to_execute') {
+            executeBtn.disabled = true;
+            executeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting execution...';
+            executeBtn.classList.remove('bg-primary', 'hover:bg-primary/90');
+            executeBtn.classList.add('bg-secondary', 'cursor-not-allowed');
+
+            // Also add a message above the button
+            const buttonContainer = executeBtn.parentElement;
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3 mb-2';
+            alertDiv.innerHTML = '<i class="fas fa-info-circle"></i> Validation complete. System is automatically starting execution...';
+            buttonContainer.insertBefore(alertDiv, executeBtn);
+        }
+    }
+});
+</script>
+{% endblock %}

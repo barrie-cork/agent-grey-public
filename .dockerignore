@@ -1,0 +1,98 @@
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.production.template
+
+# Git files
+.git/
+.github/
+.gitignore
+
+# Python virtual environments (CRITICAL - 776MB)
+venv/
+env/
+ENV/
+.venv/
+*.egg-info/
+
+# Development files
+node_modules/
+npm-debug.log*
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation files
+README.md
+CONTRIBUTING.md
+LICENSE
+*.md
+docs/
+feature_changes/
+monitoring/
+
+# Observability (160MB - local monitoring stack)
+observability/
+
+# Test files
+tests/
+test-results/
+playwright-report/
+playwright-tests/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+
+# Development tools
+.pre-commit-config.yaml
+.flake8
+pytest.ini
+
+# Build artifacts
+staticfiles/
+static/dist/
+media/
+
+# Additional temp files and logs
+logs/
+temp_fixes/
+
+# Celery scheduler database
+celerybeat-schedule
+celerybeat.pid
+
+# Database backups
+*.sql
+*.dump
+
+# Security reports
+bandit-report*.json
+*.report.json
+
+# PRPs (large documentation - 7.4MB)
+PRPs/
+
+# Windows checkout: these are tracked symlinks (mode 120000) that git
+# materializes as plain FILES on Windows (symlink support off). The
+# directory-form ignores above (media/, staticfiles/, logs/, etc.) don't
+# match files, so COPY . . would copy them in and break the volume mounts
+# at /app/media and /app/staticfiles. Exclude the file forms too.
+media
+staticfiles
+logs
+node_modules
+test-results
+playwright-report
+.playwright-mcp

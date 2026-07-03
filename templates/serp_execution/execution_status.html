@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Search Execution - {{ session.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'serp_execution/css/session_monitor.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-4" data-testid="execution-status-container">
+    <!-- Header -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'review_manager:dashboard' %}" class="text-muted-foreground hover:text-foreground">Dashboard</a>
+                </li>
+                <li class="text-muted-foreground">/</li>
+                <li>
+                    <a href="{% url 'review_manager:session_detail' session.id %}" class="text-muted-foreground hover:text-foreground">
+                        {{ session.title|truncatechars:30 }}
+                    </a>
+                </li>
+                <li class="text-muted-foreground">/</li>
+                <li class="text-foreground font-medium">Execution Status</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <!-- Session Status Card -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-4">
+                <div class="flex justify-between items-center px-6 py-4 border-b border-border bg-muted/50 rounded-t-lg">
+                    <h4 class="m-0 text-lg font-semibold">
+                        <i class="fas fa-rocket"></i> {{ session.title }}
+                    </h4>
+                    <div class="flex items-center gap-2">
+                        <span id="status-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" data-testid="status-badge">
+                            {{ session.get_status_display }}
+                        </span>
+                        <span id="transition-indicator" class="hidden">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <!-- Status Message -->
+                    <div id="status-message" class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 mb-4">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="status-message-text">Initializing search execution...</span>
+                    </div>
+
+                    <!-- Current Activity -->
+                    <div class="mb-4">
+                        <label class="block font-semibold text-foreground mb-1">Current Activity</label>
+                        <div id="current-activity" class="text-muted-foreground">
+                            <i class="fas fa-clock"></i> Waiting for updates...
+                        </div>
+                    </div>
+
+                    <!-- Activity History -->
+                    <div class="mb-4">
+                        <label class="block font-semibold text-foreground mb-1">Recent Activity History</label>
+                        <div id="activity-history" class="activity-history-container">
+                            <!-- Activity updates will be added here with newest at the top -->
+                        </div>
+                    </div>
+
+                    <!-- Execution Progress Bar -->
+                    <div class="mb-6">
+                        <label class="block font-semibold text-foreground mb-2">Execution Progress</label>
+                        <div class="h-8 bg-gray-200 rounded-full overflow-hidden">
+                            <div id="query-progress-bar"
+                                 class="h-full bg-primary rounded-full transition-all duration-300 flex items-center justify-center text-sm font-medium text-primary-foreground animate-pulse"
+                                 role="progressbar"
+                                 data-testid="progress-bar"
+                                 style="width: 0%;"
+                                 aria-valuenow="0"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                <span id="progress-text">0/0 queries</span>
+                            </div>
+                        </div>
+                        <small class="text-muted-foreground mt-1 block text-xs">
+                            <i class="fas fa-info-circle"></i> Real-time query-by-query execution tracking
+                        </small>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div class="stat-card p-4 rounded-lg bg-muted/30">
+                            <h3 id="total-queries" class="text-2xl font-bold text-primary" data-testid="stat-total-queries">0</h3>
+                            <small class="text-muted-foreground">Total Queries</small>
+                        </div>
+                        <div class="stat-card p-4 rounded-lg bg-muted/30">
+                            <h3 id="completed-queries" class="text-2xl font-bold text-green-600" data-testid="stat-completed-queries">0</h3>
+                            <small class="text-muted-foreground">Completed</small>
+                        </div>
+                        <div class="stat-card p-4 rounded-lg bg-muted/30">
+                            <h3 id="running-queries" class="text-2xl font-bold text-yellow-600" data-testid="stat-running-queries">0</h3>
+                            <small class="text-muted-foreground">Running</small>
+                        </div>
+                        <div class="stat-card p-4 rounded-lg bg-muted/30">
+                            <h3 id="failed-queries" class="text-2xl font-bold text-red-600" data-testid="stat-failed-queries">0</h3>
+                            <small class="text-muted-foreground">Failed</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <!-- Controls -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-4">
+                <div class="px-4 py-3 border-b border-border bg-muted/50 rounded-t-lg">
+                    <h6 class="m-0 font-semibold text-sm">
+                        <i class="fas fa-cog"></i> Controls
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <!-- Auto-redirect Toggle -->
+                    <div class="flex items-center gap-2 mb-3">
+                        <input class="h-4 w-4 rounded border-gray-300"
+                               type="checkbox"
+                               id="auto-redirect-toggle"
+                               checked
+                               data-testid="auto-redirect-toggle">
+                        <label class="text-sm text-foreground" for="auto-redirect-toggle">
+                            Auto-redirect when complete
+                        </label>
+                    </div>
+
+                    <!-- Redirect Countdown -->
+                    <div id="redirect-countdown" class="hidden bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-3">
+                        <i class="fas fa-clock"></i>
+                        Redirecting in <span id="countdown-seconds">3</span> seconds...
+                        <button class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-secondary text-secondary-foreground hover:bg-secondary/90 float-right"
+                                onclick="window.sessionMonitor?.cancelRedirect()">
+                            Cancel
+                        </button>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col gap-2">
+                        {% if session.status == 'failed' or failed_executions %}
+                        <button class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-yellow-500 text-white hover:bg-yellow-600" onclick="retryFailed()" data-testid="retry-btn">
+                            <i class="fas fa-redo"></i> Retry Failed
+                        </button>
+                        {% endif %}
+
+                        {% if session.status == 'executing' %}
+                        <form method="post" action="{% url 'serp_execution:reconcile_state' session.id %}" style="margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-yellow-500 text-white hover:bg-yellow-600" data-testid="reconcile-state-btn">
+                                <i class="fas fa-sync-alt"></i> Reconcile State
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <a href="{% url 'search_strategy:strategy_form' session.id %}"
+                           class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-primary text-primary bg-white hover:bg-primary/10"
+                           data-testid="link-back-strategy">
+                            <i class="fas fa-arrow-left"></i> Back to Strategy
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Info -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-4">
+                <div class="px-4 py-3 border-b border-border bg-muted/50 rounded-t-lg">
+                    <h6 class="m-0 font-semibold text-sm">
+                        <i class="fas fa-info-circle"></i> Session Information
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <dl class="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                        <dt class="font-medium text-foreground">Created:</dt>
+                        <dd class="text-muted-foreground">{{ session.created_at|date:"M d, Y H:i" }}</dd>
+
+                        <dt class="font-medium text-foreground">Elapsed:</dt>
+                        <dd class="text-muted-foreground" id="elapsed-time">0:00</dd>
+
+                        <dt class="font-medium text-foreground">Total Results:</dt>
+                        <dd class="text-muted-foreground" id="total-results">0</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Error Container -->
+            <div id="error-messages"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Session Monitor Configuration -->
+<div id="session-monitor"
+     data-session-id="{{ session.id }}"
+     data-auto-redirect="true"
+     data-redirect-delay="3000"
+     data-review-url="{% url 'review_results:overview' session.id %}"
+     style="display: none;">
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Simple polling monitor (SSE removed) -->
+<script defer src="{% static 'serp_execution/js/simple_monitor.js' %}?v={{ VERSION|default:'2.0.0' }}"></script>
+<script>
+// Initialize simple polling monitor
+document.addEventListener('DOMContentLoaded', function() {
+    const sessionId = '{{ session.id }}';
+    const autoRedirect = document.getElementById('auto-redirect-toggle').checked;
+
+    // Initialize the simple session monitor with 2-second polling
+    window.sessionMonitor = new SimpleSessionMonitor(sessionId);
+
+    // Handle auto-redirect toggle
+    document.getElementById('auto-redirect-toggle').addEventListener('change', function(e) {
+        if (window.sessionMonitor) {
+            window.sessionMonitor.autoRedirect = e.target.checked;
+        }
+    });
+});
+</script>
+
+<script>
+// Additional helper functions
+function retryFailed() {
+    const sessionId = '{{ session.id }}';
+    fetch(`/api/session/${sessionId}/retry-failed/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    }).then(response => {
+        if (response.ok) {
+            window.location.reload();
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

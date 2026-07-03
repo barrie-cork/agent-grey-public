@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% load report_tags %}
+
+{% block title %}{{ report.title|default:"Report Details" }} - Agent Grey{% endblock %}
+
+{% block extra_css %}
+<style>
+    .progress-timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    .progress-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: hsl(var(--border));
+    }
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1rem;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -1.5rem;
+        top: 0.25rem;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background-color: hsl(var(--card));
+        border: 2px solid hsl(var(--primary));
+    }
+    .timeline-item.completed::before {
+        background-color: hsl(var(--primary));
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'reporting:dashboard' session_id=report.session.id %}" class="text-muted-foreground hover:text-primary">Reporting Dashboard</a>
+                </li>
+                <li class="text-muted-foreground/60">/</li>
+                <li>
+                    <a href="{% url 'reporting:report_list' %}" class="text-muted-foreground hover:text-primary">My Reports</a>
+                </li>
+                <li class="text-muted-foreground/60">/</li>
+                <li class="text-muted-foreground" aria-current="page">
+                    {{ report.title|default:"Report Details" }}
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6" data-testid="report-detail-container">
+        <!-- Report Details -->
+        <div class="lg:col-span-8 mb-4">
+            <div class="rounded-lg border border-border border-l-4 border-l-primary bg-card shadow-sm">
+                <div class="bg-muted px-6 py-4 rounded-t-lg">
+                    <h4 class="font-semibold text-foreground">{{ report.title|default:"Untitled Report" }}</h4>
+                </div>
+                <div class="p-6">
+                    {% if report.description %}
+                        <p class="text-muted-foreground">{{ report.description }}</p>
+                    {% endif %}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                        <div class="py-3 border-b border-border">
+                            <small class="block text-muted-foreground">Status</small>
+                            <div class="inline-flex items-center gap-2 mt-1" data-testid="report-status">
+                                {% if report.status == 'completed' %}
+                                    {% include 'components/badge.html' with text='Completed' variant='success' %}
+                                {% elif report.status == 'pending' %}
+                                    {% include 'components/badge.html' with text='Pending' variant='warning' %}
+                                {% elif report.status == 'generating' %}
+                                    {% include 'components/badge.html' with text='Generating' variant='info' %}
+                                {% elif report.status == 'failed' %}
+                                    {% include 'components/badge.html' with text='Failed' variant='danger' %}
+                                {% else %}
+                                    {% include 'components/badge.html' with text=report.status variant='secondary' %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="py-3 border-b border-border">
+                            <small class="block text-muted-foreground">Format</small>
+                            {% include 'components/badge.html' with text=report.export_format|upper variant='info' extra_classes='mt-1' %}
+                        </div>
+                        <div class="py-3 border-b border-border">
+                            <small class="block text-muted-foreground">Generated</small>
+                            <strong class="text-foreground">{{ report.created_at|date:"M d, Y g:i A" }}</strong>
+                        </div>
+                        <div class="py-3 border-b border-border">
+                            <small class="block text-muted-foreground">File Size</small>
+                            <strong class="text-foreground">
+                                {% if report.file_size_bytes %}
+                                    {% if report.file_size_bytes == 0 %}
+                                        0 bytes
+                                    {% else %}
+                                        {{ report.file_size_bytes|filesizeformat }}
+                                    {% endif %}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </strong>
+                        </div>
+                        {% if report.completed_at %}
+                        <div class="py-3 border-b border-border">
+                            <small class="block text-muted-foreground">Completed</small>
+                            <strong class="text-foreground">{{ report.completed_at|date:"M d, Y g:i A" }}</strong>
+                        </div>
+                        <div class="py-3 border-b border-border">
+                            <small class="block text-muted-foreground">Generation Time</small>
+                            <strong class="text-foreground">{{ report.generation_time }} seconds</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Generation Parameters -->
+                    <h5 class="mt-4 mb-3 font-semibold text-foreground">Generation Parameters</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                        <div>
+                            <ul class="list-none space-y-2">
+                                <li class="flex items-center">
+                                    {% if report.parameters.include_prisma_flow %}
+                                        <svg class="w-4 h-4 text-success mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/></svg>
+                                    {% else %}
+                                        <svg class="w-4 h-4 text-destructive mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                                    {% endif %}
+                                    <span class="text-foreground">PRISMA Flow Diagram</span>
+                                </li>
+                                <li class="flex items-center">
+                                    {% if report.parameters.include_checklist %}
+                                        <svg class="w-4 h-4 text-success mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/></svg>
+                                    {% else %}
+                                        <svg class="w-4 h-4 text-destructive mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                                    {% endif %}
+                                    <span class="text-foreground">PRISMA Checklist</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <ul class="list-none space-y-2">
+                                <li class="flex items-center">
+                                    {% if report.parameters.include_metadata %}
+                                        <svg class="w-4 h-4 text-success mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/></svg>
+                                    {% else %}
+                                        <svg class="w-4 h-4 text-destructive mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                                    {% endif %}
+                                    <span class="text-foreground">Study Metadata</span>
+                                </li>
+                                <li class="flex items-center">
+                                    {% if report.parameters.include_search_strategy %}
+                                        <svg class="w-4 h-4 text-success mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/></svg>
+                                    {% else %}
+                                        <svg class="w-4 h-4 text-destructive mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                                    {% endif %}
+                                    <span class="text-foreground">Search Strategy</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Report Statistics -->
+                    {% if report.status == 'completed' and report.metadata.statistics %}
+                    <h5 class="mt-4 mb-3 font-semibold text-foreground">Report Statistics</h5>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <h3 class="text-2xl font-bold text-primary">{{ report.metadata.statistics.total_records|default:0 }}</h3>
+                            <small class="text-muted-foreground">Total Records</small>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="text-2xl font-bold text-success">{{ report.metadata.statistics.included|default:0 }}</h3>
+                            <small class="text-muted-foreground">Included</small>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="text-2xl font-bold text-warning">{{ report.metadata.statistics.excluded|default:0 }}</h3>
+                            <small class="text-muted-foreground">Excluded</small>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="text-2xl font-bold text-info">{{ report.metadata.statistics.duplicates|default:0 }}</h3>
+                            <small class="text-muted-foreground">Duplicates</small>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Error Information -->
+                    {% if report.status == 'failed' and report.error_message %}
+                    <div class="mt-4">
+                        {% include 'components/alert.html' with variant='danger' title='Generation Failed' message=report.error_message %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Generation Log (if available) -->
+            {% if report.generation_log %}
+            <div class="rounded-lg border border-border bg-card shadow-sm mt-4">
+                <div class="bg-muted px-6 py-4 rounded-t-lg">
+                    <h5 class="font-semibold text-foreground">Generation Log</h5>
+                </div>
+                <div class="p-6">
+                    <div class="bg-muted rounded-md p-4 font-mono text-sm max-h-[300px] overflow-y-auto">
+                        {{ report.generation_log|linebreaks }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-4">
+            <!-- Download Section -->
+            {% if report.status == 'completed' and report.file_path %}
+            <div class="bg-muted rounded-lg p-6 mb-4">
+                <h5 class="font-semibold text-foreground mb-3">Download Report</h5>
+                <p class="text-muted-foreground text-sm mb-3">
+                    Your report is ready for download in {{ report.export_format|upper }} format.
+                </p>
+                <a href="{% url 'reporting:download_report' report.id %}" class="inline-flex items-center justify-center w-full px-4 py-2 mb-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90" data-testid="download-report-btn">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download {{ report.export_format|upper }}
+                </a>
+                <a href="{% url 'reporting:preview_report' report.id %}" class="inline-flex items-center justify-center w-full px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted" target="_blank" data-testid="preview-report-link">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Preview in Browser
+                </a>
+            </div>
+            {% elif report.status == 'pending' %}
+            <div class="mb-4">
+                {% include 'components/alert.html' with variant='info' title='Report Generation in Progress' message='Your report is being generated. This may take a few minutes depending on the size of your data.' %}
+                <div class="mt-3">
+                    {% include 'components/progress-bar.html' with percentage=50 height='h-5' bar_extra_classes='animate-pulse' %}
+                </div>
+                <p class="text-sm text-muted-foreground mt-2">This page will automatically refresh when generation is complete.</p>
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mb-4">
+                <div class="bg-muted px-6 py-4 rounded-t-lg">
+                    <h5 class="font-semibold text-foreground">Actions</h5>
+                </div>
+                <div class="p-6">
+                    <a href="{% url 'reporting:generate_report' session_id=report.session.id %}?clone={{ report.id }}" class="inline-flex items-center justify-center w-full px-4 py-2 mb-2 border border-primary text-primary rounded-md hover:bg-primary/10" data-testid="generate-similar-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> Generate Similar Report
+                    </a>
+                </div>
+            </div>
+
+            <!-- Generation Progress Timeline -->
+            {% if report.status == 'completed' %}
+            <div class="rounded-lg border border-border bg-card shadow-sm">
+                <div class="bg-muted px-6 py-4 rounded-t-lg">
+                    <h5 class="font-semibold text-foreground">Generation Timeline</h5>
+                </div>
+                <div class="p-6">
+                    <div class="progress-timeline">
+                        <div class="timeline-item completed">
+                            <strong class="text-foreground">Report Requested</strong>
+                            <br>
+                            <small class="text-muted-foreground">{{ report.created_at|date:"g:i:s A" }}</small>
+                        </div>
+                        <div class="timeline-item completed">
+                            <strong class="text-foreground">Data Collection</strong>
+                            <br>
+                            <small class="text-muted-foreground">{{ report.metadata.collection_time|default:"2" }} seconds</small>
+                        </div>
+                        <div class="timeline-item completed">
+                            <strong class="text-foreground">Processing</strong>
+                            <br>
+                            <small class="text-muted-foreground">{{ report.metadata.processing_time|default:"5" }} seconds</small>
+                        </div>
+                        <div class="timeline-item completed">
+                            <strong class="text-foreground">File Generation</strong>
+                            <br>
+                            <small class="text-muted-foreground">{{ report.metadata.file_generation_time|default:"3" }} seconds</small>
+                        </div>
+                        <div class="timeline-item completed">
+                            <strong class="text-foreground">Completed</strong>
+                            <br>
+                            <small class="text-muted-foreground">{{ report.completed_at|date:"g:i:s A" }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh for pending reports with exponential backoff
+    {% if report.status == 'pending' %}
+    (function() {
+        const reportId = '{{ report.id }}';
+        const refreshKey = `report-refresh-${reportId}`;
+        const maxDelay = 60000; // Max 60 seconds
+        const baseDelay = 5000; // Start with 5 seconds
+
+        // Get current refresh count from localStorage
+        let refreshCount = parseInt(localStorage.getItem(refreshKey) || '0');
+
+        // Calculate delay with exponential backoff (5s, 10s, 20s, 40s, 60s)
+        let delay = Math.min(baseDelay * Math.pow(2, refreshCount), maxDelay);
+
+        // Increment refresh count for next time
+        localStorage.setItem(refreshKey, (refreshCount + 1).toString());
+
+        // Schedule refresh
+        setTimeout(function() {
+            location.reload();
+        }, delay);
+
+        console.log(`Report status check scheduled in ${delay/1000} seconds`);
+    })();
+    {% else %}
+    // Clear refresh count if report is no longer pending
+    localStorage.removeItem(`report-refresh-{{ report.id }}`);
+    {% endif %}
+</script>
+{% endblock %}

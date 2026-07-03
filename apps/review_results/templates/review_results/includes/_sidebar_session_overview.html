@@ -1,0 +1,33 @@
+{% load simple_review_tags %}
+
+<!-- Session Overview -->
+<div class="rounded-lg border border-border bg-white shadow-sm mb-4" data-testid="session-overview-card">
+    <div class="px-3 py-2 bg-muted border-b border-border rounded-t-lg flex justify-between items-center">
+        <h5 class="font-semibold text-foreground text-sm truncate pr-2" data-testid="session-title">{{ session.title }}</h5>
+        <span
+            class="inline-flex items-center rounded bg-background px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border border-border whitespace-nowrap"
+            data-testid="session-status-badge">
+            {{ session.get_status_display|default:'Unknown' }}
+        </span>
+    </div>
+    <div class="p-3">
+        <div class="session-summary flex items-center justify-between gap-2 flex-wrap text-xs"
+            data-testid="review-progress-indicator">
+            {% review_completion_indicator session.id %}
+        </div>
+
+        <!-- Workflow #2: Blinding Indicator -->
+        {% if session.current_configuration.is_workflow_2 %}
+        <div class="rounded flex items-center gap-1.5 border-l-2 border-info bg-info/5 px-2.5 py-1.5 mt-3"
+            role="status" data-testid="blinding-indicator">
+            <svg class="w-3.5 h-3.5 text-info flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                    d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
+                    clip-rule="evenodd"></path>
+            </svg>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-info-dark">Blinded PRISMA Mode
+                Active</span>
+        </div>
+        {% endif %}
+    </div>
+</div>

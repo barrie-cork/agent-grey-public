@@ -1,0 +1,83 @@
+{
+  "name": "agent-grey-feedback-tests",
+  "version": "1.0.0",
+  "description": "Playwright tests for Agent Grey feedback system",
+  "main": "playwright.config.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:e2e:setup": "bash tests/e2e/setup-database.sh",
+    "test:e2e": "npm run test:e2e:setup && playwright test tests/e2e/",
+    "test:e2e:ui": "npm run test:e2e:setup && playwright test tests/e2e/ --ui",
+    "test:e2e:debug": "npm run test:e2e:setup && playwright test tests/e2e/ --debug",
+    "test:feedback-button": "playwright test test_feedback_button.py",
+    "test:modal": "playwright test test_feedback_modal.py",
+    "test:validation": "playwright test test_form_validation.py",
+    "test:submission": "playwright test test_feedback_submission.py",
+    "test:user-experience": "playwright test test_user_experiences.py",
+    "test:responsive": "playwright test test_responsive_design.py",
+    "test:accessibility": "playwright test test_accessibility.py",
+    "test:chromium": "playwright test --project=chromium-desktop",
+    "test:firefox": "playwright test --project=firefox-desktop",
+    "test:webkit": "playwright test --project=webkit-desktop",
+    "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:tablet": "playwright test --project=tablet",
+    "test:desktop": "playwright test --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
+    "test:all-devices": "playwright test --project=chromium-desktop --project=mobile-chrome --project=tablet",
+    "install": "playwright install",
+    "install-deps": "playwright install-deps",
+    "report": "playwright show-report",
+    "trace": "playwright show-trace",
+    "lighthouse": "node scripts/lighthouse_audit.js",
+    "lighthouse:work-queue": "lighthouse http://localhost:8000/work-queue/ --output=html --output-path=./lighthouse-reports/work-queue.html",
+    "lighthouse:dashboard": "lighthouse http://localhost:8000/dashboard/team/ --output=html --output-path=./lighthouse-reports/dashboard.html",
+    "benchmark": "python scripts/benchmark_api.py",
+    "smoke-tests": "bash scripts/production_smoke_tests.sh"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.55.0",
+    "chrome-launcher": "^1.1.2",
+    "lighthouse": "^12.2.1"
+  },
+  "keywords": [
+    "playwright",
+    "e2e-testing",
+    "feedback-system",
+    "ui-testing",
+    "accessibility",
+    "responsive-design",
+    "django"
+  ],
+  "author": "Agent Grey Development Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "playwright": {
+    "configFile": "playwright.config.js"
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "dependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/markdown-it": "^14.1.2",
+    "dompurify": "^3.3.0",
+    "markdown-it": "^14.1.0",
+    "playwright": "^1.55.0",
+    "playwright-core": "^1.55.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/barrie-cork/agent-grey.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/barrie-cork/agent-grey/issues"
+  },
+  "homepage": "https://github.com/barrie-cork/agent-grey#readme"
+}

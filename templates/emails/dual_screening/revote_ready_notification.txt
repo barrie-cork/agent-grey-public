@@ -1,0 +1,11 @@
+Hi {{ reviewer_name }},
+
+All reviewers have accepted the re-vote proposal for {{ session_title }}.
+
+Result: {{ result_title }}
+
+ACTION REQUIRED: Please submit your new decision.
+
+Submit Decision: {{ discussion_url }}
+
+This notification was sent by Agent Grey because you are a reviewer on this conflict.

@@ -1,0 +1,43 @@
+{
+  "servers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ],
+      "env": {}
+    },
+    "ref": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "ref-tools-mcp@latest"
+      ],
+      "env": {
+        "REF_API_KEY": "${REF_API_KEY}",
+        "REF_DIRS": "./docs,./PRPs,./apps,./templates,./static,./grey_lit_project,./scripts,./requirements",
+        "FILE_EXTENSIONS": ".py,.js,.html,.css,.md,.txt,.yml,.yaml,.json,.env.example,.dockerfile,.sql,.sh,.cfg,.ini",
+        "MAX_FILE_SIZE": "2097152"
+      }
+    },
+    "perplexity": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@perplexity-ai/mcp-server"
+      ],
+      "env": {
+        "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
+      }
+    },
+    "testsprite": {
+      "command": "npx",
+      "args": [
+        "@testsprite/testsprite-mcp@latest"
+      ],
+      "env": {
+        "API_KEY": "${TESTSPRITE_API_KEY}"
+      }
+    }
+  }
+}

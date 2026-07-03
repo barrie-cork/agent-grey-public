@@ -1,0 +1,131 @@
+<!-- Quick Actions Panel -->
+<div class="rounded-lg border border-border bg-white shadow-sm sticky top-5"
+    data-testid="quick-actions-panel">
+    <div class="px-3 py-2 bg-primary/10 border-b border-primary/20 rounded-t-lg">
+        <h5 class="text-xs font-bold uppercase tracking-widest text-primary-dark">Quick Actions</h5>
+    </div>
+    <div class="p-3">
+        <!-- Filter Results -->
+        <h6
+            class="text-muted-foreground text-[10px] uppercase font-bold tracking-widest mb-2 flex items-center">
+            <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                    d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                    clip-rule="evenodd"></path>
+            </svg>
+            Filter Results
+        </h6>
+        <div class="flex flex-col gap-0.5 mb-4">
+            <a href="{{ request.path }}"
+                class="flex justify-between items-center w-full px-2 py-1.5 text-xs text-left bg-transparent text-foreground hover:bg-muted/50 border-l-2 border-transparent hover:border-border transition-colors group font-semibold"
+                data-testid="filter-all-btn">
+                <span>All Results</span>
+                <span class="bg-muted group-hover:bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">{{ total_count|default:0 }}</span>
+            </a>
+            <button type="button"
+                class="flex justify-between items-center w-full px-2 py-1.5 text-xs text-left bg-transparent text-muted-foreground hover:bg-muted/50 border-l-2 border-transparent hover:border-border transition-colors group"
+                onclick="filterByStatus('pending')" data-testid="filter-pending-btn">
+                <span>Pending</span>
+                <span class="bg-muted group-hover:bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">{{ pending_count|default:0 }}</span>
+            </button>
+            <button type="button"
+                class="flex justify-between items-center w-full px-2 py-1.5 text-xs text-left bg-transparent text-success-dark hover:bg-success/5 border-l-2 border-transparent hover:border-success transition-colors group"
+                onclick="filterByStatus('include')" data-testid="filter-included-btn">
+                <span>Included</span>
+                <span
+                    class="bg-success/10 group-hover:bg-success/20 text-success-dark px-1.5 py-0.5 rounded font-mono text-[10px]">{{ included_count|default:0 }}</span>
+            </button>
+            <button type="button"
+                class="flex justify-between items-center w-full px-2 py-1.5 text-xs text-left bg-transparent text-destructive hover:bg-destructive/5 border-l-2 border-transparent hover:border-destructive transition-colors group"
+                onclick="filterByStatus('exclude')" data-testid="filter-excluded-btn">
+                <span>Excluded</span>
+                <span
+                    class="bg-destructive/10 group-hover:bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-mono text-[10px]">{{ excluded_count|default:0 }}</span>
+            </button>
+            <button type="button"
+                class="flex justify-between items-center w-full px-2 py-1.5 text-xs text-left bg-transparent text-warning-dark hover:bg-warning/10 border-l-2 border-transparent hover:border-warning transition-colors group"
+                onclick="filterByStatus('maybe')" data-testid="filter-maybe-btn">
+                <span>Maybe</span>
+                <span
+                    class="bg-warning/20 group-hover:bg-warning/30 text-warning-dark px-1.5 py-0.5 rounded font-mono text-[10px]">{{ maybe_count|default:0 }}</span>
+            </button>
+            <button type="button"
+                class="flex justify-between items-center w-full px-2 py-1.5 text-xs text-left bg-transparent text-info-dark hover:bg-info/10 border-l-2 border-transparent hover:border-info transition-colors group"
+                onclick="filterByStatus('retrieved')" data-testid="filter-retrieved-btn">
+                <span>Retrieved</span>
+                <span
+                    class="bg-info/10 group-hover:bg-info/20 text-info-dark px-1.5 py-0.5 rounded font-mono text-[10px]">{{ retrieved_count|default:0 }}</span>
+            </button>
+            <div class="h-px bg-border my-1"></div>
+            <button type="button"
+                class="flex justify-between items-center w-full px-2 py-1.5 text-xs text-left bg-transparent text-muted-foreground hover:bg-muted/50 border-l-2 border-transparent hover:border-border transition-colors group"
+                onclick="navigateToDuplicates('{{ session.id }}')" data-testid="review-duplicates-btn">
+                <span>Review Duplicates</span>
+                <span class="bg-muted group-hover:bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">{{ duplicate_groups_count|default:0 }}</span>
+            </button>
+        </div>
+
+        <!-- Session Insights -->
+        <div class="h-px bg-border my-2"></div>
+        <a href="{% url 'review_results:search_statistics' session.id %}{% if per_page != 25 %}?per_page={{ per_page }}{% endif %}"
+            class="flex justify-between items-center w-full px-2 py-1.5 text-xs text-left bg-transparent text-info-dark hover:bg-info/10 border-l-2 border-transparent hover:border-info transition-colors group"
+            data-testid="search-statistics-link">
+            <span class="flex items-center">
+                <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                Search Statistics
+            </span>
+        </a>
+
+        {% if request.GET.review_status %}
+        <div class="rounded border-l-2 border-info bg-info/10 p-2 text-[10px] mt-2"
+            data-testid="active-filter-indicator">
+            <span class="text-info-foreground">Showing: <strong>{{ request.GET.review_status|title }}</strong></span>
+            <a href="{{ request.path }}"
+                class="float-right text-info hover:text-info-foreground font-bold uppercase tracking-widest">Clear</a>
+        </div>
+        {% endif %}
+
+        <!-- Foldable Bulk Actions -->
+        <details id="bulkActionsContainer" data-testid="bulk-actions-container"
+            class="group mt-3 border border-border rounded shadow-sm bg-muted/20">
+            <summary
+                class="flex justify-between items-center px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground cursor-pointer hover:bg-muted/50 hover:text-foreground transition-colors list-none select-none">
+                <div class="flex items-center">
+                    <svg class="w-3.5 h-3.5 mr-1.5 transition-transform duration-200 ease-out group-open:rotate-90"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5l7 7-7 7"></path>
+                    </svg>
+                    Bulk Selection (<span id="selectedCount" class="font-mono ml-0.5">0</span>)
+                </div>
+            </summary>
+            <div class="p-2 border-t border-border flex flex-col gap-1.5 bg-card">
+                <div class="flex gap-1">
+                    <button type="button"
+                        class="flex-1 px-2 py-1 text-[10px] uppercase font-bold tracking-widest rounded-sm border border-border bg-muted/50 text-foreground hover:bg-muted"
+                        onclick="selectAll()" data-testid="select-all-btn">Select All</button>
+                    <button type="button"
+                        class="flex-1 px-2 py-1 text-[10px] uppercase font-bold tracking-widest rounded-sm border border-border bg-muted/50 text-foreground hover:bg-muted"
+                        onclick="deselectAll()" data-testid="deselect-all-btn">None</button>
+                </div>
+                <button type="button"
+                    class="w-full px-2 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm border border-success/30 bg-success/10 text-success-dark hover:bg-success/20 transition-colors"
+                    onclick="bulkDecision('include')" data-testid="bulk-include-btn">Include
+                    Selected</button>
+                <button type="button"
+                    class="w-full px-2 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm border border-destructive/30 bg-destructive/10 text-destructive-dark hover:bg-destructive/20 transition-colors"
+                    onclick="showBulkExclusionModal()" data-testid="bulk-exclude-btn">Exclude
+                    Selected</button>
+                <button type="button"
+                    class="w-full px-2 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm border border-warning/30 bg-warning/10 text-warning-dark hover:bg-warning/20 transition-colors"
+                    onclick="bulkDecision('maybe')" data-testid="bulk-maybe-btn">Maybe Selected</button>
+            </div>
+        </details>
+
+        {% include "review_results/includes/_sidebar_workflow_actions.html" %}
+    </div>
+</div>

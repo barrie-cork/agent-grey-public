@@ -1,0 +1,64 @@
+# Include base requirements
+-r base.txt
+
+# Celery Results Backend (needed for production settings compatibility)
+django-celery-results==2.6.0
+
+# Development Tools
+django-debug-toolbar==4.3.0
+django-extensions==4.1
+
+# Testing
+pytest==8.0.2
+pytest-django==4.8.0
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==22.7.0
+
+# Code Quality
+ruff==0.8.2
+pre-commit==4.0.1
+black==25.9.0  # Security: Updated from 24.2.0 (GHSA-fj7x-q9j7-g6q6)
+isort==5.13.2
+
+# Type checking
+# django-stubs powers mypy (plugin-based). django-types provides PEP 561
+# stubs that BasedPyright/pyright consume directly from site-packages (see
+# pyrightconfig.json). 0.20.0 supports Django 5.1 and Python >=3.8.
+django-stubs[compatible-mypy]==5.1.1
+django-types==0.20.0
+djangorestframework-stubs==3.15.1
+# celery-types provides PEP 561 stubs so pyright can model @shared_task /
+# .delay() / .apply_async() (celery analogue of django-types). See #208.
+celery-types==0.26.0
+mypy==1.13.0
+types-requests==2.32.0.20241016
+types-python-dateutil==2.9.0.20241003
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.11
+
+# Interactive Shell
+ipython==8.21.0
+
+# Development Server
+gunicorn==22.0.0  # Security: Updated from 21.2.0 (GHSA-w3h3-4rj7-4ph4, GHSA-hc5x-x2vx-497g)
+werkzeug==3.0.6  # Security: Updated from 3.0.1 (GHSA-2g68-c3qc-8985, GHSA-q34m-jh98-gwm2, GHSA-f9vj-2wh5-fj8j)
+
+# Debugging
+django-querycount==0.8.3
+nplusone==1.0.0
+
+# Enhanced Logging for Development
+colorlog==6.8.0  # Colored console output
+psutil>=6.1.0,<8.0  # System metrics for performance logging
+sqlparse==0.5.1  # Security: Updated from 0.4.4 (GHSA-2m57-hf25-phgg) - SQL query formatting
+pygments==2.17.2  # Syntax highlighting for SQL
+
+# Browser Testing
+playwright==1.55.0  # Security: Updated from 1.41.2 (includes Node.js 20.19.4+ with CVE fixes)
+pytest-playwright==0.4.4
+
+# WebSocket Testing
+websockets==12.0

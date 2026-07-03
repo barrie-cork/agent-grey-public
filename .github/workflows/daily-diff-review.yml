@@ -1,0 +1,315 @@
+name: 'Daily Diff Review'
+
+on:
+  schedule:
+    # 03:00 UTC daily (after security audits at 02:00)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: 'Hours to look back (default: 24)'
+        required: false
+        default: '24'
+        type: number
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  collect-diff:
+    name: Collect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.diff.outputs.has_changes }}
+      file_count: ${{ steps.diff.outputs.file_count }}
+      risk_score: ${{ steps.diff.outputs.risk_score }}
+      diff_stats: ${{ steps.diff.outputs.diff_stats }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Collect diff from last N hours
+        id: diff
+        run: |
+          HOURS=${{ inputs.hours || 24 }}
+          SINCE=$(date -u -d "${HOURS} hours ago" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u -v-${HOURS}H '+%Y-%m-%dT%H:%M:%SZ')
+
+          # Get commits in window
+          COMMITS=$(git log --since="$SINCE" --oneline --no-merges)
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -c . || true)
+
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No commits in the last ${HOURS}h"
+            exit 0
+          fi
+
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+
+          # Get the oldest commit in window
+          BASE=$(git log --since="$SINCE" --format='%H' --reverse | head -1)
+          BASE_PARENT=$(git rev-parse "${BASE}^" 2>/dev/null || echo "$BASE")
+
+          # Changed Python files only
+          CHANGED=$(git diff --name-only "$BASE_PARENT"..HEAD -- '*.py' | grep -v __pycache__ || true)
+          FILE_COUNT=$(echo "$CHANGED" | grep -c . || true)
+          echo "file_count=$FILE_COUNT" >> $GITHUB_OUTPUT
+
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No Python files changed"
+            exit 0
+          fi
+
+          # Risk scoring (matches copilot-code-review.yml patterns)
+          RISK=0
+          while IFS= read -r file; do
+            case "$file" in
+              */models.py)       RISK=$((RISK + 10)) ;;
+              */migrations/*)    RISK=$((RISK + 8)) ;;
+              */tasks.py)        RISK=$((RISK + 7)) ;;
+              */middleware/*.py)  RISK=$((RISK + 6)) ;;
+              */views.py|*/services/*.py) RISK=$((RISK + 5)) ;;
+              */tests/*)         RISK=$((RISK + 1)) ;;
+              *)                 RISK=$((RISK + 2)) ;;
+            esac
+          done <<< "$CHANGED"
+          echo "risk_score=$RISK" >> $GITHUB_OUTPUT
+
+          # Stats for the issue body
+          STATS=$(git diff --stat "$BASE_PARENT"..HEAD -- '*.py')
+          echo "diff_stats<<EOF" >> $GITHUB_OUTPUT
+          echo "$STATS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Save full diff and file list for review job
+          git diff "$BASE_PARENT"..HEAD -- '*.py' > /tmp/daily-diff.patch
+          echo "$CHANGED" > /tmp/changed-files.txt
+          echo "$COMMITS" > /tmp/commits.txt
+
+      - name: Upload diff artifacts
+        if: steps.diff.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-diff
+          path: |
+            /tmp/daily-diff.patch
+            /tmp/changed-files.txt
+            /tmp/commits.txt
+          retention-days: 3
+
+  review:
+    name: AI Review
+    needs: collect-diff
+    if: needs.collect-diff.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Check API quota
+        id: quota
+        run: |
+          python .github/scripts/rate_limit_tracker.py check low
+          if [ $? -eq 0 ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "::warning::API quota exhausted, skipping review"
+          fi
+
+      - name: Download diff artifacts
+        if: steps.quota.outputs.available == 'true'
+        uses: actions/download-artifact@v4.1.3
+        with:
+          name: daily-diff
+          path: /tmp/daily-diff
+
+      - name: Load review context
+        if: steps.quota.outputs.available == 'true'
+        id: context
+        run: |
+          pip install pyyaml
+          python << 'PYEOF'
+          import yaml, json
+
+          with open('.github/prompts/agent_grey_context.yml') as f:
+              ctx = yaml.safe_load(f)
+
+          # Write system prompt for the review
+          with open('/tmp/system-prompt.txt', 'w') as f:
+              f.write(ctx['system_prompt'])
+
+          print("Context loaded")
+          PYEOF
+
+      - name: Run AI review on diff
+        if: steps.quota.outputs.available == 'true'
+        id: review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          RISK_SCORE: ${{ needs.collect-diff.outputs.risk_score }}
+        run: |
+          python << 'PYEOF'
+          import json, os, subprocess, sys
+
+          # Read inputs from files (avoids shell escaping issues)
+          diff = open('/tmp/daily-diff/daily-diff.patch').read()
+          files = open('/tmp/daily-diff/changed-files.txt').read()
+          commits = open('/tmp/daily-diff/commits.txt').read()
+          system_prompt = open('/tmp/system-prompt.txt').read()
+          risk = os.environ['RISK_SCORE']
+          token = os.environ['MINIMAX_API_KEY']
+
+          # Budget: ~4 chars/token, reserve 2K for system prompt + response
+          MAX_DIFF_CHARS = 12000
+          MAX_PROMPT_CHARS = 16000
+
+          if len(diff) > MAX_DIFF_CHARS:
+              diff = diff[:MAX_DIFF_CHARS] + "\n\n... (diff truncated — full diff too large for free tier)"
+
+          user_prompt = f"""Review this daily diff (risk score: {risk}).
+
+          COMMITS:
+          {commits}
+
+          CHANGED FILES:
+          {files}
+
+          DIFF:
+          ```diff
+          {diff}
+          ```
+
+          Focus on: bugs, security (OWASP Top 10 Django), performance (N+1 queries),
+          state machine violations, missing tests. If clean, say so briefly. Do not invent issues."""
+
+          # Trim system prompt if total is still too large
+          total = len(system_prompt) + len(user_prompt)
+          if total > MAX_PROMPT_CHARS:
+              # Use a minimal system prompt
+              system_prompt = "You are a Django code reviewer. Flag bugs, security issues, and performance problems. Be concise."
+
+          payload = json.dumps({
+              "model": "MiniMax-M3",
+              "thinking": {"type": "disabled"},
+              "messages": [
+                  {"role": "system", "content": system_prompt},
+                  {"role": "user", "content": user_prompt}
+              ],
+              "temperature": 0.1,
+              "max_tokens": 2000
+          })
+
+          result = subprocess.run(
+              ["curl", "-s", "-X", "POST",
+               "https://api.minimax.io/v1/chat/completions",
+               "-H", f"Authorization: Bearer {token}",
+               "-H", "Content-Type: application/json",
+               "-d", payload],
+              capture_output=True, text=True, timeout=120
+          )
+
+          try:
+              response = json.loads(result.stdout)
+              review = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+          except (json.JSONDecodeError, IndexError, KeyError):
+              review = ""
+
+          if not review:
+              error = response.get("error", {}).get("message", "Unknown error") if 'response' in dir() else result.stderr[:500]
+              print(f"::error::Review failed: {error}")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("review_ok=false\n")
+                  f.write(f"error={error}\n")
+              sys.exit(1)
+
+          with open('/tmp/review-output.md', 'w') as f:
+              f.write(review)
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write("review_ok=true\n")
+
+          print(f"Review complete: {len(review)} chars")
+          PYEOF
+
+          # Track API usage
+          python .github/scripts/rate_limit_tracker.py record low || true
+
+      - name: Create issue with findings
+        if: steps.review.outputs.review_ok == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('/tmp/review-output.md', 'utf8');
+            const risk = '${{ needs.collect-diff.outputs.risk_score }}';
+            const fileCount = '${{ needs.collect-diff.outputs.file_count }}';
+            const stats = `${{ needs.collect-diff.outputs.diff_stats }}`;
+            const hours = '${{ inputs.hours || 24 }}';
+
+            const today = new Date().toISOString().split('T')[0];
+
+            // Determine severity label from risk score
+            let severity = 'low';
+            if (risk >= 20) severity = 'critical';
+            else if (risk >= 10) severity = 'high';
+            else if (risk >= 5) severity = 'medium';
+
+            // Only create issue if there are actual findings
+            const isClean = review.toLowerCase().includes('everything looks clean') ||
+                            review.toLowerCase().includes('no issues found') ||
+                            review.toLowerCase().includes('no bugs') ||
+                            review.toLowerCase().includes('no concerns');
+
+            if (isClean) {
+              console.log('Review clean — no issue created');
+              return;
+            }
+
+            const body = [
+              `## Daily Diff Review — ${today}`,
+              '',
+              `| Metric | Value |`,
+              `|--------|-------|`,
+              `| Period | Last ${hours}h |`,
+              `| Files changed | ${fileCount} |`,
+              `| Risk score | ${risk} (${severity}) |`,
+              '',
+              '### Changes',
+              '```',
+              stats,
+              '```',
+              '',
+              '### Review',
+              '',
+              review,
+              '',
+              '---',
+              `*Generated by Daily Diff Review workflow using MiniMax M3*`
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Daily Review] ${today} — ${fileCount} files, risk: ${severity}`,
+              body: body,
+              labels: ['ai-review', `risk:${severity}`]
+            });
+
+            console.log(`Issue created: ${today}, risk ${severity}`);
+
+      - name: Skip notice (quota exhausted)
+        if: steps.quota.outputs.available == 'false'
+        run: echo "::notice::Daily diff review skipped — API quota exhausted. Will retry tomorrow."

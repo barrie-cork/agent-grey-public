@@ -1,0 +1,417 @@
+<!-- Notes Modal (Native Dialog) -->
+<dialog id="notesModal" data-testid="notes-modal" class="rounded-lg shadow-xl p-0 max-w-md w-full backdrop:bg-black/50">
+    <div class="bg-white rounded-lg">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-border">
+            <h5 class="text-lg font-semibold text-foreground" id="notesModalLabel">Review Notes</h5>
+            <button type="button" onclick="document.getElementById('notesModal').close()"
+                class="text-muted-foreground hover:text-muted-foreground focus:outline-none" aria-label="Close">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <form id="notesForm">
+                <input type="hidden" id="resultId" name="result_id">
+                <div class="mb-4">
+                    <label for="resultTitle" class="block text-sm font-medium text-foreground mb-1">Result:</label>
+                    <input type="text" class="block w-full rounded-md border-input bg-muted shadow-sm sm:text-sm"
+                        id="resultTitle" readonly>
+                </div>
+                <div class="mb-4">
+                    <label for="reviewNotes" class="block text-sm font-medium text-foreground mb-1">Notes:</label>
+                    <textarea
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="reviewNotes" data-testid="review-notes-textarea" name="notes" rows="4"
+                        placeholder="Add your review notes here..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted rounded-b-lg">
+            <button type="button" onclick="document.getElementById('notesModal').close()"
+                class="inline-flex items-center justify-center rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Cancel</button>
+            <button type="button" onclick="saveNotes()" data-testid="save-notes-btn"
+                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Save
+                Notes</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Exclusion Reason Modal (Native Dialog) -->
+<dialog id="exclusionModal" data-testid="exclusion-modal"
+    class="rounded-lg shadow-xl p-0 max-w-md w-full backdrop:bg-black/50">
+    <div class="bg-white rounded-lg">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-border">
+            <h5 class="text-lg font-semibold text-foreground" id="exclusionModalLabel">Exclusion Reason</h5>
+            <button type="button" onclick="document.getElementById('exclusionModal').close()"
+                class="text-muted-foreground hover:text-muted-foreground focus:outline-none" aria-label="Close">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <form id="exclusionForm">
+                <input type="hidden" id="excludeResultId" name="result_id">
+                <div class="mb-4">
+                    <label for="exclusionReason" class="block text-sm font-medium text-foreground mb-1">Reason for
+                        exclusion:</label>
+                    <select
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="exclusionReason" data-testid="exclusion-reason-select" name="exclusion_reason" required>
+                        <option value="">Select a reason...</option>
+                        {% for value, label in exclusion_reasons %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="exclusionNotes" class="block text-sm font-medium text-foreground mb-1">Additional
+                        Notes:</label>
+                    <textarea
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="exclusionNotes" data-testid="exclusion-notes-textarea" name="notes" rows="3"
+                        placeholder="Optional additional details..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted rounded-b-lg">
+            <button type="button" onclick="document.getElementById('exclusionModal').close()"
+                class="inline-flex items-center justify-center rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Cancel</button>
+            <button type="button" onclick="confirmExclusion()" data-testid="confirm-exclusion-btn"
+                class="inline-flex items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2">Exclude</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Bulk Exclusion Modal (Native Dialog) -->
+<dialog id="bulkExclusionModal" data-testid="bulk-exclusion-modal"
+    class="rounded-lg shadow-xl p-0 max-w-md w-full backdrop:bg-black/50">
+    <div class="bg-white rounded-lg">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-border">
+            <h5 class="text-lg font-semibold text-foreground" id="bulkExclusionModalLabel">Bulk Exclusion</h5>
+            <button type="button" onclick="document.getElementById('bulkExclusionModal').close()"
+                class="text-muted-foreground hover:text-muted-foreground focus:outline-none" aria-label="Close">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <form id="bulkExclusionForm">
+                <div class="mb-4">
+                    <p class="text-muted-foreground">You are about to exclude <strong class="text-foreground"><span
+                                id="bulkExcludeCount">0</span></strong> results.</p>
+                </div>
+                <div class="mb-4">
+                    <label for="bulkExclusionReason" class="block text-sm font-medium text-foreground mb-1">Reason for
+                        exclusion:</label>
+                    <select
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="bulkExclusionReason" data-testid="bulk-exclusion-reason-select" name="exclusion_reason"
+                        required>
+                        <option value="">Select a reason...</option>
+                        {% for value, label in exclusion_reasons %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="bulkExclusionNotes" class="block text-sm font-medium text-foreground mb-1">Additional
+                        Notes (optional):</label>
+                    <textarea
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="bulkExclusionNotes" name="notes" rows="3"
+                        placeholder="These notes will be applied to all selected results..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted rounded-b-lg">
+            <button type="button" onclick="document.getElementById('bulkExclusionModal').close()"
+                class="inline-flex items-center justify-center rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Cancel</button>
+            <button type="button" onclick="confirmBulkExclusion()" data-testid="confirm-bulk-exclusion-btn"
+                class="inline-flex items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2">Exclude
+                All Selected</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Add Manual Result Modal (Native Dialog) -->
+<dialog id="addManualResultModal" data-testid="add-manual-result-modal"
+    class="rounded-lg shadow-xl p-0 max-w-md w-full backdrop:bg-black/50">
+    <div class="bg-white rounded-lg">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-border">
+            <h5 class="text-lg font-semibold text-foreground">Add Manual Result</h5>
+            <button type="button" onclick="document.getElementById('addManualResultModal').close()"
+                class="text-muted-foreground hover:text-muted-foreground focus:outline-none" aria-label="Close">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-sm text-muted-foreground mb-4">
+                Add a result you discovered while browsing source URLs. It will enter the screening queue for all reviewers.
+            </p>
+            <form id="addManualResultForm">
+                <div class="mb-4">
+                    <label for="manualResultUrl" class="block text-sm font-medium text-foreground mb-1">URL <span class="text-destructive">*</span></label>
+                    <input type="url"
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="manualResultUrl" data-testid="manual-result-url" name="url" required
+                        placeholder="https://example.com/resource">
+                </div>
+                <div class="mb-4">
+                    <label for="manualResultTitle" class="block text-sm font-medium text-foreground mb-1">Title <span class="text-destructive">*</span></label>
+                    <input type="text"
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="manualResultTitle" data-testid="manual-result-title" name="title" required maxlength="500"
+                        placeholder="Title of the resource">
+                </div>
+                <div class="mb-4">
+                    <label for="manualResultJustification" class="block text-sm font-medium text-foreground mb-1">Justification <span class="text-destructive">*</span></label>
+                    <textarea
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="manualResultJustification" data-testid="manual-result-justification" name="justification" rows="3" required
+                        maxlength="1000" placeholder="Why is this result relevant to the review?"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="manualResultSnippet" class="block text-sm font-medium text-foreground mb-1">Description (optional)</label>
+                    <textarea
+                        class="block w-full rounded-md border-input shadow-sm focus:border-info focus:ring-blue-500 sm:text-sm"
+                        id="manualResultSnippet" data-testid="manual-result-snippet" name="snippet" rows="2"
+                        maxlength="2000" placeholder="Brief description or snippet..."></textarea>
+                </div>
+            </form>
+            <!-- Error message (hidden initially) -->
+            <div id="addManualResultError" class="rounded-lg border-l-4 border-destructive bg-error-light p-4" role="alert"
+                style="display: none;">
+                <span id="addManualResultErrorMessage" class="text-error-foreground text-sm"></span>
+            </div>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted rounded-b-lg">
+            <button type="button" onclick="document.getElementById('addManualResultModal').close()"
+                class="inline-flex items-center justify-center rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Cancel</button>
+            <button type="button" onclick="addManualResult()" data-testid="confirm-add-manual-result-btn"
+                id="addManualResultBtn"
+                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Add Result</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Workflow #2: Completion Modal with Reviewer Progress (Native Dialog) -->
+{% if session.current_configuration.is_workflow_2 %}
+<dialog id="completionModal" data-testid="completion-modal"
+    class="rounded-lg shadow-xl p-0 max-w-lg w-full backdrop:bg-black/50">
+    <div class="bg-white rounded-lg">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-border">
+            <h5 class="text-lg font-semibold text-foreground" id="completionModalLabel">Mark Review Complete</h5>
+            <button type="button" onclick="document.getElementById('completionModal').close()"
+                class="text-muted-foreground hover:text-muted-foreground focus:outline-none" aria-label="Close">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <!-- Validation: Check if all results reviewed -->
+            {% if user_completion %}
+            {% if user_completion.reviewed_results < user_completion.total_results %} <div
+                class="rounded-lg border-l-4 border-warning bg-warning-light p-4 mb-4" role="alert"
+                data-testid="incomplete-warning">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-warning mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="text-warning-dark">
+                        <strong>Warning:</strong> You have only reviewed
+                        <strong>{{ user_completion.reviewed_results }}</strong> of
+                        <strong>{{ user_completion.total_results }}</strong> results.
+                    </div>
+                </div>
+        </div>
+        <p class="text-foreground mb-4">
+            Are you sure you want to mark your review as complete?
+            You will not be able to review additional results after this.
+        </p>
+        {% else %}
+        <div class="rounded-lg border-l-4 border-success bg-success-light p-4 mb-4" role="alert">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 text-success mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                <div class="text-success-foreground">
+                    You have reviewed all <strong>{{ user_completion.total_results }}</strong> results.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Show other reviewers' progress -->
+        <h6 class="text-sm font-semibold text-foreground mt-4 mb-2">Other Reviewers:</h6>
+        {% if all_completions %}
+        <ul class="divide-y divide-gray-200 border border-border rounded-lg mb-4" data-testid="reviewer-progress-list">
+            {% for completion in all_completions %}
+            {% if completion.reviewer != request.user %}
+            <li class="flex justify-between items-center px-4 py-3">
+                <div>
+                    <strong class="text-sm text-foreground">{{ completion.reviewer.get_full_name|default:completion.reviewer.username }}</strong>
+                    <div class="w-48 h-5 bg-muted rounded-full overflow-hidden mt-2">
+                        <div class="h-full rounded-full text-xs font-medium text-white flex items-center justify-center transition-all duration-300 {% if completion.completed_at %}bg-success{% else %}bg-primary{% endif %}"
+                            role="progressbar" style="width: {{ completion.progress_percentage }}%"
+                            aria-valuenow="{{ completion.progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ completion.progress_percentage }}%
+                        </div>
+                    </div>
+                </div>
+                <span
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {% if completion.completed_at %}bg-success-light text-success-foreground{% else %}bg-muted text-foreground{% endif %}">
+                    {% if completion.completed_at %}
+                    Complete
+                    {% else %}
+                    {{ completion.reviewed_results }}/{{ completion.total_results }}
+                    {% endif %}
+                </span>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-muted-foreground mb-4">No other reviewers assigned yet.</p>
+        {% endif %}
+
+        <div class="rounded-lg border-l-4 border-info bg-info-light p-4 mb-4" role="alert">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 text-info mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                <div class="text-info-foreground text-sm">
+                    After you mark complete, you will wait until all reviewers finish.
+                    Then conflicts will be detected automatically.
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading state (hidden initially) -->
+        <div id="completionLoading" class="text-center py-4" style="display: none;">
+            <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"
+                role="status">
+                <span class="sr-only">Processing...</span>
+            </div>
+            <p class="mt-2 text-muted-foreground">Marking review complete...</p>
+        </div>
+
+        <!-- Error message (hidden initially) -->
+        <div id="completionError" class="rounded-lg border-l-4 border-destructive bg-error-light p-4" role="alert"
+            style="display: none;">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 text-error mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                <span id="completionErrorMessage" class="text-error-foreground"></span>
+            </div>
+        </div>
+    </div>
+    <div class="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted rounded-b-lg">
+        <button type="button" onclick="document.getElementById('completionModal').close()"
+            class="inline-flex items-center justify-center rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Cancel</button>
+        <button type="button" id="confirmCompleteBtn" onclick="markReviewerComplete('{% url 'review_results:mark_reviewer_complete' session.id %}', '{% url 'review_results:overview' session.id %}')"
+            data-testid="confirm-complete-button"
+            class="inline-flex items-center justify-center rounded-md bg-success px-4 py-2 text-sm font-medium text-white hover:bg-success-dark focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            Yes, Mark Complete
+        </button>
+    </div>
+    </div>
+</dialog>
+{% endif %}
+
+<!-- Workflow #1: Single-Reviewer Completion Modal (In-page Dialog) -->
+{% if not session.current_configuration.is_workflow_2 %}
+<dialog id="wf1CompletionModal" data-testid="wf1-completion-modal"
+    class="rounded-lg shadow-xl p-0 max-w-md w-full backdrop:bg-black/50">
+    <div class="bg-white rounded-lg">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-border">
+            <h5 class="text-lg font-semibold text-foreground" id="wf1CompletionModalLabel">Complete Review</h5>
+            <button type="button" onclick="document.getElementById('wf1CompletionModal').close()"
+                class="text-muted-foreground hover:text-muted-foreground focus:outline-none" aria-label="Close">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            {% if total_count == 0 %}
+            <div class="rounded-lg border-l-4 border-info bg-info-light p-4 mb-4" role="alert">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-info mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="text-info-foreground">
+                        There are no results to review. You can proceed to the reporting stage.
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-foreground mb-4">
+                Are you sure you want to mark this review as complete? You will proceed to the reporting stage.
+            </p>
+            {% endif %}
+
+            <!-- Loading state (hidden initially) -->
+            <div id="wf1CompletionLoading" class="text-center py-4" style="display: none;">
+                <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"
+                    role="status">
+                    <span class="sr-only">Processing...</span>
+                </div>
+                <p class="mt-2 text-muted-foreground">Completing review...</p>
+            </div>
+
+            <!-- Error message (hidden initially) -->
+            <div id="wf1CompletionError" class="rounded-lg border-l-4 border-destructive bg-error-light p-4" role="alert"
+                style="display: none;">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-error mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    <span id="wf1CompletionErrorMessage" class="text-error-foreground"></span>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted rounded-b-lg">
+            <button type="button" onclick="document.getElementById('wf1CompletionModal').close()"
+                class="inline-flex items-center justify-center rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Cancel</button>
+            <button type="button" id="wf1ConfirmCompleteBtn"
+                onclick="submitWf1Completion()"
+                data-testid="wf1-confirm-complete-button"
+                class="inline-flex items-center justify-center rounded-md bg-success px-4 py-2 text-sm font-medium text-white hover:bg-success-dark focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                Yes, Complete Review
+            </button>
+        </div>
+    </div>
+</dialog>
+{% endif %}

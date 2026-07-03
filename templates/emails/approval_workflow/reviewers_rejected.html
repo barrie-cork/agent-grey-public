@@ -1,0 +1,62 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}External Reviewers Not Approved{% endblock %}
+
+{% block content %}
+<div class="greeting">Hi {{ owner_name }},</div>
+
+<div class="content">
+    <p>We wanted to inform you that the external reviewers you invited to your review session were not approved.</p>
+</div>
+
+<div class="alert-box danger">
+    <strong>Approval Rejected</strong><br>
+    {{ rejected_count }} external reviewer{{ rejected_count|pluralize }} {{ rejected_count|pluralize:"was,were" }} rejected by {{ rejected_by_name }} on {{ rejected_at|date:"F j, Y" }} at {{ rejected_at|time:"g:i A" }}.
+</div>
+
+<div class="highlight-box">
+    <h2>Session: {{ session_title }}</h2>
+    <p><span class="label">Rejected by:</span> {{ rejected_by_name }}</p>
+    <p><span class="label">Rejection Date:</span> {{ rejected_at|date:"F j, Y, g:i A" }}</p>
+</div>
+
+{% if rejection_reason %}
+<div class="alert-box">
+    <strong>Reason for Rejection:</strong><br>
+    {{ rejection_reason }}
+</div>
+{% endif %}
+
+<div class="highlight-box">
+    <h2>Rejected External Reviewers</h2>
+    {% for reviewer in external_reviewers %}
+    <p>✗ {{ reviewer.first_name }} {{ reviewer.last_name }} ({{ reviewer.email }})</p>
+    {% endfor %}
+</div>
+
+<div class="content">
+    <p><strong>What are your options?</strong></p>
+    <ul>
+        <li>Review the rejection reason and address any concerns</li>
+        <li>Invite different external reviewers who meet the requirements</li>
+        <li>Proceed with only internal reviewers from your organisation</li>
+        <li>Contact {{ rejected_by_name }} to discuss the rejection if you have questions</li>
+    </ul>
+</div>
+
+<div class="button-container">
+    <a href="{{ session_url }}" class="button">View Session Dashboard</a>
+</div>
+
+<div class="content">
+    <p>You can add new reviewers to your session at any time from the session dashboard. Internal reviewers from your organisation are invited immediately, while external reviewers will require approval.</p>
+</div>
+
+<div class="content">
+    <p>If you have questions about the rejection or need assistance, please contact your Information Specialist: {{ rejected_by_name }}.</p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+You're receiving this email because you are the owner of this review session and your external reviewer invitations have been processed.
+{% endblock %}

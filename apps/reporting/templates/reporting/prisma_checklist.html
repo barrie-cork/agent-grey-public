@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% load report_tags %}
+
+{% block title %}PRISMA 2020 Checklist - Agent Grey{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checklist-section {
+        margin-bottom: 2rem;
+    }
+    .checklist-item {
+        border-bottom: 1px solid hsl(var(--border));
+        padding: 1rem 0;
+        transition: background-color 0.2s ease;
+    }
+    .checklist-item:last-child {
+        border-bottom: none;
+    }
+    .checklist-item:hover {
+        background-color: hsl(var(--muted));
+    }
+    .checklist-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        background-color: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+    .completion-progress {
+        position: sticky;
+        top: 1rem;
+    }
+    .section-header {
+        background-color: hsl(var(--muted));
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid hsl(var(--primary));
+    }
+    .guidance-text {
+        background-color: hsl(var(--info-light));
+        border: 1px solid hsl(var(--info));
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .checklist-item {
+            page-break-inside: avoid;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'reporting:dashboard' session_id=session.id %}" class="text-muted-foreground hover:text-primary">Reporting Dashboard</a>
+                </li>
+                <li class="text-muted-foreground/60">/</li>
+                <li class="text-muted-foreground" aria-current="page">PRISMA Checklist</li>
+            </ol>
+        </nav>
+        <h1 class="text-2xl font-bold mt-2 text-foreground">PRISMA 2020 Checklist</h1>
+        <p class="text-muted-foreground">27-item checklist for systematic reviews and meta-analyses</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6" data-testid="prisma-checklist-container">
+        <!-- Main Checklist -->
+        <div class="lg:col-span-8">
+            <!-- Title and Abstract -->
+            <div class="rounded-lg border border-border bg-card shadow-sm checklist-section">
+                <div class="p-6">
+                    <div class="section-header">
+                        <h5 class="font-semibold text-foreground">Title and Abstract</h5>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">1</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Title</h6>
+                                <p class="text-muted-foreground mb-2">Identify the report as a systematic review, meta-analysis, or both.</p>
+                                <div class="guidance-text">
+                                    <strong>Guidance:</strong> Include "systematic review" or "meta-analysis" in the title
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item1" data-item="1">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">2</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Abstract</h6>
+                                <p class="text-muted-foreground mb-2">Provide a structured summary including objectives, methods, results, and conclusions.</p>
+                                <div class="guidance-text">
+                                    <strong>Guidance:</strong> Use structured abstract format with Background, Methods, Results, Conclusions
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item2" data-item="2">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Introduction -->
+            <div class="rounded-lg border border-border bg-card shadow-sm checklist-section">
+                <div class="p-6">
+                    <div class="section-header">
+                        <h5 class="font-semibold text-foreground">Introduction</h5>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">3</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Rationale</h6>
+                                <p class="text-muted-foreground mb-2">Describe the rationale for the review in the context of existing knowledge.</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item3" data-item="3">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">4</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Objectives</h6>
+                                <p class="text-muted-foreground mb-2">Provide an explicit statement of all objectives or questions the review addresses.</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item4" data-item="4">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Methods -->
+            <div class="rounded-lg border border-border bg-card shadow-sm checklist-section">
+                <div class="p-6">
+                    <div class="section-header">
+                        <h5 class="font-semibold text-foreground">Methods</h5>
+                    </div>
+
+                    <!-- Items 5-15 would continue in the same pattern -->
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">5</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Eligibility criteria</h6>
+                                <p class="text-muted-foreground mb-2">Specify inclusion and exclusion criteria for the review.</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item5" data-item="5">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">6</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Information sources</h6>
+                                <p class="text-muted-foreground mb-2">Specify all databases, registers, websites, and other sources searched or consulted.</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item6" data-item="6">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">7</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Search strategy</h6>
+                                <p class="text-muted-foreground mb-2">Present the full search strategies for all databases.</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item7" data-item="7">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Continue with remaining method items... -->
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="rounded-lg border border-border bg-card shadow-sm checklist-section">
+                <div class="p-6">
+                    <div class="section-header">
+                        <h5 class="font-semibold text-foreground">Results</h5>
+                    </div>
+
+                    <!-- Items 16-22 would continue in the same pattern -->
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">16</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Study selection</h6>
+                                <p class="text-muted-foreground mb-2">Give numbers of studies screened, assessed for eligibility, and included in the review.</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item16" data-item="16">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discussion -->
+            <div class="rounded-lg border border-border bg-card shadow-sm checklist-section">
+                <div class="p-6">
+                    <div class="section-header">
+                        <h5 class="font-semibold text-foreground">Discussion</h5>
+                    </div>
+
+                    <!-- Items 23-26 would continue in the same pattern -->
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">23</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Discussion</h6>
+                                <p class="text-muted-foreground mb-2">Provide a general interpretation of the results in the context of other evidence.</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item23" data-item="23">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Information -->
+            <div class="rounded-lg border border-border bg-card shadow-sm checklist-section">
+                <div class="p-6">
+                    <div class="section-header">
+                        <h5 class="font-semibold text-foreground">Other Information</h5>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="checklist-number">27</span>
+                            </div>
+                            <div class="flex-1">
+                                <h6 class="font-medium text-foreground mb-1">Registration and protocol</h6>
+                                <p class="text-muted-foreground mb-2">Provide registration information including registration number and registry name.</p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input class="h-4 w-4 rounded border-input text-primary focus:ring-ring checklist-checkbox" type="checkbox" data-testid="checklist-item" id="item27" data-item="27">
+                                    <span class="text-sm text-foreground">Complete</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-4">
+            <!-- Completion Progress -->
+            <div class="rounded-lg border border-border bg-card shadow-sm completion-progress mb-4 no-print">
+                <div class="bg-muted px-6 py-4 rounded-t-lg">
+                    <h5 class="font-semibold text-foreground">Completion Progress</h5>
+                </div>
+                <div class="p-6">
+                    <div class="mb-3">
+                        <h2 class="text-center text-2xl font-bold text-foreground mb-1">
+                            <span id="completedCount" data-testid="progress-completed-count">0</span> / 27
+                        </h2>
+                        <p class="text-center text-muted-foreground mb-3">Items Completed</p>
+                        <div class="w-full bg-muted rounded-full h-6 overflow-hidden">
+                            <div class="bg-primary h-full rounded-full transition-all duration-300 flex items-center justify-center text-xs font-medium text-primary-foreground" role="progressbar" id="progressBar" style="width: 0%" data-testid="progress-bar">
+                                <span id="progressText">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-border my-4">
+
+                    <h6 class="font-medium text-foreground mb-3">By Section</h6>
+                    <div class="text-sm space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-foreground">Title and Abstract:</span>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground" id="titleAbstractCount">0/2</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-foreground">Introduction:</span>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground" id="introductionCount">0/2</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-foreground">Methods:</span>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground" id="methodsCount">0/11</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-foreground">Results:</span>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground" id="resultsCount">0/7</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-foreground">Discussion:</span>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground" id="discussionCount">0/4</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-foreground">Other Information:</span>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground" id="otherCount">0/1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="rounded-lg border border-border bg-card shadow-sm no-print">
+                <div class="bg-muted px-6 py-4 rounded-t-lg">
+                    <h5 class="font-semibold text-foreground">Actions</h5>
+                </div>
+                <div class="p-6 space-y-2">
+                    <button class="inline-flex items-center justify-center w-full px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary/10" onclick="saveChecklist()" data-testid="save-checklist-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Save Progress
+                    </button>
+                    <button class="inline-flex items-center justify-center w-full px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted" onclick="exportChecklist()" data-testid="export-checklist-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export Checklist
+                    </button>
+                    <button class="inline-flex items-center justify-center w-full px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted" onclick="window.print()" data-testid="print-checklist-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Print Checklist
+                    </button>
+                    <button class="inline-flex items-center justify-center w-full px-4 py-2 border border-destructive text-destructive rounded-md hover:bg-destructive-light" onclick="resetChecklist()" data-testid="reset-checklist-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Reset All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resources -->
+            <div class="rounded-lg border border-border bg-card shadow-sm mt-4">
+                <div class="bg-muted px-6 py-4 rounded-t-lg">
+                    <h5 class="font-semibold text-foreground">Resources</h5>
+                </div>
+                <div class="p-6">
+                    <ul class="list-none space-y-2">
+                        <li>
+                            <a href="https://www.prisma-statement.org/" target="_blank" class="no-underline inline-flex items-center text-primary hover:text-primary/80">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg> PRISMA Statement Website
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="no-underline inline-flex items-center text-primary hover:text-primary/80">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg> Download PRISMA 2020 PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="no-underline inline-flex items-center text-primary hover:text-primary/80">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Checklist Guidelines
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Track completion status
+    let checklistData = JSON.parse(localStorage.getItem('prismaChecklist') || '{}');
+
+    // Section item counts
+    const sections = {
+        'titleAbstract': [1, 2],
+        'introduction': [3, 4],
+        'methods': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        'results': [16, 17, 18, 19, 20, 21, 22],
+        'discussion': [23, 24, 25, 26],
+        'other': [27]
+    };
+
+    // Initialize checklist
+    function initializeChecklist() {
+        // Restore saved state
+        Object.keys(checklistData).forEach(itemId => {
+            const checkbox = document.getElementById(`item${itemId}`);
+            if (checkbox && checklistData[itemId]) {
+                checkbox.checked = true;
+            }
+        });
+        updateProgress();
+    }
+
+    // Update progress
+    function updateProgress() {
+        const totalItems = 27;
+        const completedItems = Object.values(checklistData).filter(v => v).length;
+        const percentage = Math.round((completedItems / totalItems) * 100);
+
+        document.getElementById('completedCount').textContent = completedItems;
+        document.getElementById('progressBar').style.width = percentage + '%';
+        document.getElementById('progressText').textContent = percentage + '%';
+
+        // Update section counts
+        Object.keys(sections).forEach(section => {
+            const items = sections[section];
+            const completed = items.filter(id => checklistData[id]).length;
+            const badge = document.getElementById(`${section}Count`);
+            badge.textContent = `${completed}/${items.length}`;
+            badge.className = completed === items.length
+                ? 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-success-light text-success'
+                : 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground';
+        });
+    }
+
+    // Handle checkbox changes
+    document.querySelectorAll('.checklist-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const itemId = this.dataset.item;
+            checklistData[itemId] = this.checked;
+            localStorage.setItem('prismaChecklist', JSON.stringify(checklistData));
+            updateProgress();
+        });
+    });
+
+    // Save checklist
+    function saveChecklist() {
+        const data = {
+            checklist: checklistData,
+            timestamp: new Date().toISOString(),
+            completed: Object.values(checklistData).filter(v => v).length,
+            total: 27
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `prisma-checklist-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+    }
+
+    // Export checklist
+    function exportChecklist() {
+        // Would generate a formatted document
+        alert('Export functionality will be available in generated reports');
+    }
+
+    // Reset checklist
+    function resetChecklist() {
+        if (confirm('Are you sure you want to reset all checklist items?')) {
+            checklistData = {};
+            localStorage.removeItem('prismaChecklist');
+            document.querySelectorAll('.checklist-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateProgress();
+        }
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', initializeChecklist);
+</script>
+{% endblock %}

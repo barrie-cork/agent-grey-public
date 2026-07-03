@@ -1,0 +1,72 @@
+# Use the same base image as the main app
+FROM python:3.12-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies and configure timezone
+# Security: apt-get upgrade ensures all system packages are patched
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    build-essential \
+    postgresql-client \
+    libpq-dev \
+    # WeasyPrint dependencies for PDF generation
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    libglib2.0-0 \
+    libcairo2 \
+    libcairo-gobject2 \
+    libpangocairo-1.0-0 \
+    gir1.2-pango-1.0 \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/* \
+    # Set timezone to UTC
+    && ln -sf /usr/share/zoneinfo/UTC /etc/localtime \
+    && echo "UTC" > /etc/timezone \
+    && dpkg-reconfigure -f noninteractive tzdata
+
+# Install Python dependencies
+COPY requirements/base.txt requirements/production.txt ./
+RUN pip install --no-cache-dir -r production.txt
+
+# Copy project
+COPY . .
+
+# Ensure scripts are executable (includes Phase 1 refactored utilities)
+RUN chmod +x /app/scripts/*.sh /app/scripts/lib/*.py /app/docker/*.sh 2>/dev/null || true
+
+# Set Django settings module
+ENV DJANGO_SETTINGS_MODULE=grey_lit_project.settings.production
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+
+# Create directory for media with proper permissions (no logs needed for console logging)
+RUN mkdir -p /app/media && \
+    chown -R appuser:appuser /app/media
+
+# Create cache table for database cache fallback (idempotent operation)
+# Use dummy values for Django settings during build
+ENV DJANGO_SETTINGS_MODULE=grey_lit_project.settings.production
+ENV SECRET_KEY="dummy-key-for-build-only"
+ENV DATABASE_URL="sqlite:///db.sqlite3"
+RUN python manage.py createcachetable || true
+
+# IMPORTANT: Do NOT set DATABASE_URL here - let runtime environment provide it
+# Setting ENV DATABASE_URL="" creates an empty string that may not be overridden
+# See: docs/fixes/DATABASE-URL-EMPTY-STRING-RCA.md
+
+# Switch to non-root user
+USER appuser
+
+# Default to worker, can be overridden
+CMD ["/app/docker/celery_startup.sh"]

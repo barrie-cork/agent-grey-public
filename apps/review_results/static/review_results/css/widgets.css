@@ -1,0 +1,306 @@
+/**
+ * Review Results Widgets Styling
+ *
+ * Custom styles for sidebar widgets including Cohen's Kappa display.
+ * Designed to work with Bootstrap 5 and Agent Grey design system.
+ */
+
+/* ===========================
+   Kappa Widget Container
+   =========================== */
+
+.kappa-display {
+    padding: 0.5rem;
+}
+
+/* ===========================
+   Kappa Value Display
+   =========================== */
+
+.kappa-value-container {
+    text-align: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.kappa-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.kappa-value {
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin: 0.5rem 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Color-coded Kappa values */
+.kappa-value.success {
+    color: #198754;
+}
+
+.kappa-value.warning {
+    color: #ffc107;
+}
+
+.kappa-value.danger {
+    color: #dc3545;
+}
+
+.kappa-agreement {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* ===========================
+   Interpretation Alerts
+   =========================== */
+
+.kappa-display .alert {
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+}
+
+.kappa-display .alert strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.kappa-display .alert small {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+/* ===========================
+   Metrics Details
+   =========================== */
+
+.kappa-details {
+    padding-top: 1rem;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* ===========================
+   Refresh Button Animation
+   =========================== */
+
+#refresh-kappa-btn {
+    transition: transform 0.3s ease;
+}
+
+#refresh-kappa-btn:hover:not(:disabled) {
+    transform: rotate(90deg);
+}
+
+#refresh-kappa-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+#refresh-kappa-btn .spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===========================
+   Loading State
+   =========================== */
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3em;
+}
+
+/* ===========================
+   No Data State
+   =========================== */
+
+.kappa-display .bi-info-circle {
+    opacity: 0.5;
+}
+
+/* ===========================
+   Card Header Styling
+   =========================== */
+
+.card-header h6 {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===========================
+   Responsive Adjustments
+   =========================== */
+
+/* Mobile (portrait) */
+@media (max-width: 575.98px) {
+    .kappa-value {
+        font-size: 2.5rem;
+    }
+
+    .metric-value {
+        font-size: 1.25rem;
+    }
+
+    .kappa-details .row {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Tablet */
+@media (min-width: 576px) and (max-width: 991.98px) {
+    .kappa-value {
+        font-size: 3rem;
+    }
+}
+
+/* Desktop - sidebar layout */
+@media (min-width: 992px) {
+    /* Widget card sticky positioning on desktop */
+    .kappa-widget-card {
+        position: sticky;
+        top: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+    }
+
+    /* Scrollbar styling for widget */
+    .kappa-widget-card::-webkit-scrollbar {
+        width: 0.5rem;
+    }
+
+    .kappa-widget-card::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 0.25rem;
+    }
+
+    .kappa-widget-card::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 0.25rem;
+    }
+
+    .kappa-widget-card::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+}
+
+/* ===========================
+   Bootstrap Icon Enhancements
+   =========================== */
+
+.kappa-display .bi {
+    vertical-align: -0.125em;
+}
+
+.kappa-display .bi-check-circle-fill {
+    color: #198754;
+}
+
+.kappa-display .bi-exclamation-triangle-fill {
+    color: #ffc107;
+}
+
+/* ===========================
+   Print Styles
+   =========================== */
+
+@media print {
+    .kappa-widget-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    #refresh-kappa-btn {
+        display: none;
+    }
+
+    .kappa-value {
+        color: #000 !important;
+    }
+}
+
+/* ===========================
+   Dark Mode Support (Future)
+   =========================== */
+
+@media (prefers-color-scheme: dark) {
+    .kappa-value-container {
+        border-bottom-color: #495057;
+    }
+
+    .metric-label,
+    .kappa-label {
+        color: #adb5bd !important;
+    }
+
+    .kappa-display .alert {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* ===========================
+   Accessibility Enhancements
+   =========================== */
+
+/* Focus states */
+#refresh-kappa-btn:focus-visible {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    #refresh-kappa-btn {
+        transition: none;
+    }
+
+    #refresh-kappa-btn:hover {
+        transform: none;
+    }
+
+    .spinner {
+        animation: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .kappa-value {
+        font-weight: 900;
+    }
+
+    .kappa-display .alert {
+        border-width: 2px;
+    }
+}

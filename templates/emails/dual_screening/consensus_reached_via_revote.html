@@ -1,0 +1,47 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Consensus Reached - {{ session_title }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hi {{ reviewer_name }},
+</div>
+
+<div class="content">
+    <p>🎉 <strong>Congratulations!</strong> Consensus has been reached through the re-vote process:</p>
+</div>
+
+<div class="highlight-box">
+    <h2>{{ result_title }}</h2>
+    {% if result_url %}
+    <p><strong>URL:</strong> <a href="{{ result_url }}">{{ result_url|truncatechars:60 }}</a></p>
+    {% endif %}
+</div>
+
+<div class="alert-box success">
+    <p><strong>✅ Final Decision: {{ consensus_decision }}</strong></p>
+    <p style="margin-top: 10px;">All reviewers agreed on this decision after discussion and re-voting.</p>
+</div>
+
+<div class="content">
+    <p>The conflict has been automatically resolved and the final decision has been recorded.</p>
+    <p>This demonstrates the value of collaborative discussion in reaching agreement on challenging screening decisions.</p>
+</div>
+
+<div class="button-container">
+    <a href="{{ discussion_url }}" class="button">View Discussion History</a>
+</div>
+
+<div class="content">
+    <p style="font-size: 14px; color: #6c757d;">
+        <strong>PRISMA Compliance:</strong>
+        <br>• Complete audit trail preserved (initial votes + discussion + re-votes)
+        <br>• Resolution method: Consensus via re-vote
+        <br>• All decisions and comments are included in the final report
+    </p>
+</div>
+{% endblock %}
+
+{% block footer_text %}
+This notification was sent because you are a reviewer on this conflict and consensus has been reached.
+{% endblock %}

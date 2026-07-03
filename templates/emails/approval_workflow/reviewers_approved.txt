@@ -1,0 +1,37 @@
+Hi {{ owner_name }},
+
+Great news! The external reviewers you invited to your review session have been approved.
+
+APPROVAL CONFIRMED
+==================
+{{ approved_count }} external reviewer{{ approved_count|pluralize }} {{ approved_count|pluralize:"has,have" }} been approved by {{ approved_by_name }} on {{ approved_at|date:"F j, Y" }} at {{ approved_at|time:"g:i A" }}.
+
+SESSION: {{ session_title }}
+============================
+Approved by: {{ approved_by_name }}
+Approval Date: {{ approved_at|date:"F j, Y, g:i A" }}
+
+APPROVED EXTERNAL REVIEWERS
+============================
+{% for reviewer in external_reviewers %}✓ {{ reviewer.first_name }} {{ reviewer.last_name }} ({{ reviewer.email }})
+{% endfor %}
+
+WHAT HAPPENS NEXT?
+==================
+• Invitations have been automatically sent to the approved reviewers
+• Each reviewer will receive a magic link to join the review session
+• Links expire in 7 days from the original invitation date
+• You can track acceptance status in your session dashboard
+
+View Session Dashboard: {{ session_url }}
+
+If any of the approved reviewers don't accept their invitations within 7 days, you can resend invitations from the session dashboard.
+
+---
+This email was sent by Agent Grey
+
+You're receiving this email because you are the owner of this review session and your external reviewer invitations have been processed.
+
+Manage notification preferences: {{ preferences_url }}
+
+© {% now "Y" %} Agent Grey. All rights reserved.

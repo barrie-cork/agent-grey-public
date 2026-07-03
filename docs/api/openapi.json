@@ -1,0 +1,2397 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Agent Grey API",
+    "description": "# PRISMA 2020-Compliant Grey Literature Review API\n\nAgent Grey provides a comprehensive API for conducting systematic grey literature reviews\naligned with PRISMA 2020 guidelines.\n\n## Key Features\n\n- **Dual Review Workflows**:\n  - **Workflow #1: Work Distribution** - Single reviewer per result (efficiency)\n  - **Workflow #2: Independent Screening** - Multiple reviewers with conflict resolution (PRISMA compliance)\n\n- **PIC Framework**: Population, Interest, Context search strategy\n- **Automated Conflict Detection**: Identifies disagreements between reviewers\n- **Cohen's Kappa Calculation**: Inter-rater reliability metrics (≥0.70 threshold)\n- **PRISMA Reporting**: Publication-ready exports (PDF, Excel, HTML, JSON)\n\n## Authentication\n\nThe API uses Django session authentication (cookie-based). Include the `sessionid` cookie\nand `X-CSRFToken` header in requests.\n\n## Rate Limiting\n\nNo rate limiting currently enforced (development environment).\n\n## Versioning\n\nCurrent version: 1.0.0 (no API versioning implemented yet)\n",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Agent Grey Support",
+      "url": "https://github.com/barrie-cork/agent-grey",
+      "email": "support@agentgrey.example.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development"
+    },
+    {
+      "url": "https://staging.agentgrey.example.com",
+      "description": "Staging environment"
+    },
+    {
+      "url": "https://api.agentgrey.example.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User registration, login, and profile management"
+    },
+    {
+      "name": "Organisation",
+      "description": "Multi-tenant organisation management and metrics"
+    },
+    {
+      "name": "Sessions",
+      "description": "Search session CRUD and state management"
+    },
+    {
+      "name": "Search Strategy",
+      "description": "PIC Framework search query generation"
+    },
+    {
+      "name": "Search Execution",
+      "description": "Serper API integration with real-time monitoring"
+    },
+    {
+      "name": "Review - Core",
+      "description": "Work queue and decision submission (Workflow"
+    },
+    {
+      "name": "Review - Conflicts",
+      "description": "Conflict detection and resolution (Workflow"
+    },
+    {
+      "name": "Review - Dashboard",
+      "description": "Team metrics and IRR (Workflow"
+    },
+    {
+      "name": "Reporting",
+      "description": "PRISMA 2020-compliant report generation"
+    },
+    {
+      "name": "Health",
+      "description": "Health check and readiness probes"
+    },
+    {
+      "name": "Monitoring",
+      "description": "Internal monitoring and Prometheus metrics"
+    },
+    {
+      "name": "Feedback",
+      "description": "User feedback system"
+    }
+  ],
+  "security": [
+    {
+      "sessionAuth": []
+    },
+    {
+      "csrfToken": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sessionid",
+        "description": "Django session cookie (obtained via /accounts/login/)"
+      },
+      "csrfToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRFToken",
+        "description": "CSRF token (required for POST/PUT/PATCH/DELETE requests)"
+      }
+    },
+    "schemas": {
+      "UUID": {
+        "type": "string",
+        "format": "uuid",
+        "example": "550e8400-e29b-41d4-a716-446655440000"
+      },
+      "Timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "example": "2025-11-02T10:30:00Z"
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error code",
+            "example": "validation_error"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "Validation failed"
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Field-specific validation errors",
+            "example": {
+              "email": [
+                "Email address is required"
+              ]
+            }
+          }
+        }
+      },
+      "PaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Total number of results"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Current page number (1-indexed)"
+          },
+          "num_pages": {
+            "type": "integer",
+            "description": "Total number of pages"
+          },
+          "next": {
+            "type": "boolean",
+            "description": "Whether there is a next page"
+          },
+          "previous": {
+            "type": "boolean",
+            "description": "Whether there is a previous page"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Array of results for current page"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "username": {
+            "type": "string",
+            "example": "reviewer1"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "reviewer1@example.com"
+          },
+          "first_name": {
+            "type": "string",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "Doe"
+          }
+        }
+      },
+      "UserProfile": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "date_joined": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "last_login": {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            }
+          }
+        ]
+      },
+      "Organisation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string",
+            "example": "Research Institute"
+          },
+          "slug": {
+            "type": "string",
+            "example": "research-institute"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "OrganisationDashboard": {
+        "type": "object",
+        "properties": {
+          "organisation": {
+            "$ref": "#/components/schemas/Organisation"
+          },
+          "metrics": {
+            "type": "object",
+            "properties": {
+              "total_reviews": {
+                "type": "integer"
+              },
+              "active_reviews": {
+                "type": "integer"
+              },
+              "completed_reviews": {
+                "type": "integer"
+              },
+              "total_results_reviewed": {
+                "type": "integer"
+              },
+              "pending_conflicts": {
+                "type": "integer"
+              },
+              "avg_kappa_organisation": {
+                "type": "number",
+                "format": "float",
+                "minimum": -1,
+                "maximum": 1
+              },
+              "reviews_below_threshold": {
+                "type": "integer"
+              }
+            }
+          },
+          "recent_activity": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "review_id": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "review_title": {
+                  "type": "string"
+                },
+                "last_updated": {
+                  "$ref": "#/components/schemas/Timestamp"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "lead_reviewer": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "SearchSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "title": {
+            "type": "string",
+            "example": "Grey Literature Review: Telehealth Interventions"
+          },
+          "description": {
+            "type": "string",
+            "example": "Systematic review of telehealth interventions for elderly populations"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "defining_search",
+              "ready_to_execute",
+              "executing",
+              "processing_results",
+              "ready_for_review",
+              "under_review",
+              "completed",
+              "archived"
+            ]
+          },
+          "owner": {
+            "$ref": "#/components/schemas/User"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "total_results": {
+            "type": "integer",
+            "description": "Total results after deduplication"
+          },
+          "reviewed_results": {
+            "type": "integer",
+            "description": "Number of results reviewed"
+          }
+        }
+      },
+      "SessionStatus": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "results_count": {
+            "type": "integer"
+          },
+          "reviewed_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "SessionQuickStats": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "total_results": {
+            "type": "integer"
+          },
+          "reviewed_results": {
+            "type": "integer"
+          },
+          "included_results": {
+            "type": "integer"
+          },
+          "excluded_results": {
+            "type": "integer"
+          },
+          "pending_conflicts": {
+            "type": "integer"
+          },
+          "progress_percentage": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      },
+      "ProcessedResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "title": {
+            "type": "string",
+            "example": "Mobile health interventions for chronic disease management"
+          },
+          "snippet": {
+            "type": "string",
+            "example": "A systematic review examining mobile health applications..."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://example.com/research/mobile-health.pdf"
+          },
+          "source": {
+            "type": "string",
+            "example": "Google Search"
+          },
+          "date_accessed": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "min_reviewers_required": {
+            "type": "integer",
+            "description": "Minimum reviewers needed (1 = Workflow"
+          },
+          "reviewers_completed": {
+            "type": "integer",
+            "description": "Number of reviewers who have made a decision"
+          },
+          "consensus_reached": {
+            "type": "boolean",
+            "description": "Whether all reviewers agree"
+          },
+          "session": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/UUID"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "SimpleReviewDecision": {
+        "type": "object",
+        "description": "Workflow",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "result_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "reviewer": {
+            "$ref": "#/components/schemas/User"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "include",
+              "exclude",
+              "maybe"
+            ]
+          },
+          "exclusion_reason": {
+            "type": "string",
+            "description": "Required if decision is 'exclude'"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reviewed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "ReviewerDecision": {
+        "type": "object",
+        "description": "Workflow",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "result_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "reviewer": {
+            "$ref": "#/components/schemas/User"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "INCLUDE",
+              "EXCLUDE",
+              "MAYBE",
+              "ABSTAIN"
+            ]
+          },
+          "confidence_level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3,
+            "description": "1=Low, 2=Medium, 3=High"
+          },
+          "exclusion_reason": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "is_blinded": {
+            "type": "boolean",
+            "description": "True until all reviewers complete"
+          },
+          "is_final": {
+            "type": "boolean",
+            "default": true
+          },
+          "version": {
+            "type": "integer",
+            "description": "Optimistic locking version"
+          },
+          "is_revote": {
+            "type": "boolean",
+            "description": "Whether this is a re-vote decision"
+          },
+          "decided_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "DecisionSubmitRequest": {
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "INCLUDE",
+              "EXCLUDE",
+              "MAYBE",
+              "ABSTAIN"
+            ]
+          },
+          "exclusion_reason": {
+            "type": "string",
+            "description": "Required if decision is EXCLUDE"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "confidence_level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3,
+            "default": 2
+          },
+          "screening_stage": {
+            "type": "string",
+            "enum": [
+              "SCREENING",
+              "FULL_TEXT"
+            ],
+            "default": "SCREENING"
+          }
+        }
+      },
+      "DecisionSubmitResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "confidence_level": {
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "decided_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "awaiting_second_reviewer",
+              "consensus_reached",
+              "conflict_detected"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "example": "Both reviewers agree. Result will advance to next stage."
+          }
+        }
+      },
+      "ConflictResolution": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "conflict_type": {
+            "type": "string",
+            "enum": [
+              "INCLUDE_EXCLUDE",
+              "INCLUDE_MAYBE",
+              "EXCLUSION_REASON",
+              "LOW_CONFIDENCE"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "IN_DISCUSSION",
+              "ESCALATED",
+              "RESOLVED"
+            ]
+          },
+          "result": {
+            "$ref": "#/components/schemas/ProcessedResult"
+          },
+          "conflicting_decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewerDecision"
+            }
+          },
+          "detected_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "resolved_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "resolution_method": {
+            "type": "string",
+            "enum": [
+              "CONSENSUS",
+              "LEAD_ARBITRATION",
+              "DESIGNATED_ARBITRATOR",
+              "MAJORITY"
+            ]
+          },
+          "final_decision": {
+            "$ref": "#/components/schemas/ReviewerDecision"
+          },
+          "resolution_notes": {
+            "type": "string"
+          }
+        }
+      },
+      "ConflictComment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "author": {
+            "$ref": "#/components/schemas/User"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown-formatted comment"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "is_system_message": {
+            "type": "boolean"
+          },
+          "parent": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "replies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConflictComment"
+            }
+          }
+        }
+      },
+      "RevoteProposal": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "conflict": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "proposed_by": {
+            "$ref": "#/components/schemas/User"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "ACCEPTED",
+              "REJECTED",
+              "COMPLETED"
+            ]
+          },
+          "proposed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "accepted_by_count": {
+            "type": "integer"
+          },
+          "required_acceptances": {
+            "type": "integer"
+          }
+        }
+      },
+      "InterRaterReliability": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "search_session": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "reviewer1": {
+            "$ref": "#/components/schemas/User"
+          },
+          "reviewer2": {
+            "$ref": "#/components/schemas/User"
+          },
+          "cohens_kappa": {
+            "type": "number",
+            "format": "float",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "Cohen's Kappa coefficient"
+          },
+          "percent_agreement": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "samples_compared": {
+            "type": "integer",
+            "description": "Number of common results reviewed by both"
+          },
+          "interpretation": {
+            "type": "string",
+            "enum": [
+              "Almost perfect",
+              "Substantial",
+              "Moderate",
+              "Fair",
+              "Slight",
+              "Poor"
+            ]
+          },
+          "calculated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "IRRMetricsSummary": {
+        "type": "object",
+        "properties": {
+          "pairs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reviewer1": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "reviewer2": {
+                  "$ref": "#/components/schemas/UUID"
+                },
+                "cohens_kappa": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "interpretation": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TeamStats": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/UUID"
+              },
+              "title": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            }
+          },
+          "overview": {
+            "type": "object",
+            "properties": {
+              "total_results": {
+                "type": "integer"
+              },
+              "reviewed": {
+                "type": "integer"
+              },
+              "pending": {
+                "type": "integer"
+              },
+              "included": {
+                "type": "integer"
+              },
+              "excluded": {
+                "type": "integer"
+              },
+              "conflicts": {
+                "type": "integer"
+              },
+              "conflicts_resolved": {
+                "type": "integer"
+              },
+              "pending_conflicts": {
+                "type": "integer"
+              }
+            }
+          },
+          "progress": {
+            "type": "object",
+            "properties": {
+              "percentage_complete": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          },
+          "team_performance": {
+            "type": "object",
+            "properties": {
+              "active_reviewers": {
+                "type": "integer"
+              },
+              "reviews_today": {
+                "type": "integer"
+              },
+              "reviews_this_week": {
+                "type": "integer"
+              },
+              "average_time_per_review_seconds": {
+                "type": "integer"
+              },
+              "conflict_rate_percentage": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          },
+          "inter_rater_reliability": {
+            "type": "object",
+            "properties": {
+              "pairs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/InterRaterReliability"
+                }
+              }
+            }
+          },
+          "reviewer_breakdown": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reviewer": {
+                  "$ref": "#/components/schemas/User"
+                },
+                "total_reviews": {
+                  "type": "integer"
+                },
+                "reviews_today": {
+                  "type": "integer"
+                },
+                "average_time_seconds": {
+                  "type": "integer"
+                },
+                "inclusion_rate_percentage": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "current_status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "idle",
+                    "offline"
+                  ]
+                },
+                "last_activity": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request (validation error)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "validation_error",
+              "message": "Validation failed",
+              "errors": {
+                "decision": [
+                  "This field is required"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Authentication required",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "authentication_required",
+              "message": "Authentication credentials were not provided"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Permission denied",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "permission_denied",
+              "message": "You do not have permission to perform this action"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "not_found",
+              "message": "Resource not found"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Resource conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "conflict",
+              "message": "Resource already exists or state conflict"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "server_error",
+              "message": "An unexpected error occurred"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/accounts/login/": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "User login",
+        "description": "Authenticate user and obtain session cookie",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "Username or email address"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "next": {
+                    "type": "string",
+                    "description": "Redirect URL after successful login"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login page with error (invalid credentials)"
+          },
+          "302": {
+            "description": "Redirect to dashboard or 'next' parameter",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string",
+                  "example": "sessionid=abc123...; Path=/; HttpOnly"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/signup/": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "User registration",
+        "description": "Register new user account",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "email",
+                  "password1",
+                  "password2"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 150
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password1": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 8
+                  },
+                  "password2": {
+                    "type": "string",
+                    "format": "password",
+                    "description": "Password confirmation (must match password1)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signup page with validation errors"
+          },
+          "302": {
+            "description": "Redirect to session creation (auto-login successful)"
+          }
+        }
+      }
+    },
+    "/accounts/logout/": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "User logout",
+        "description": "End user session",
+        "responses": {
+          "302": {
+            "description": "Redirect to login page"
+          }
+        }
+      }
+    },
+    "/accounts/profile/": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get user profile",
+        "description": "Retrieve authenticated user's profile",
+        "responses": {
+          "200": {
+            "description": "User profile HTML page"
+          },
+          "302": {
+            "description": "Redirect to login (not authenticated)"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Update user profile",
+        "description": "Update user profile information",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "first_name": {
+                    "type": "string"
+                  },
+                  "last_name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile page with validation errors"
+          },
+          "302": {
+            "description": "Redirect to profile with success message"
+          }
+        }
+      }
+    },
+    "/api/organisation/{org_id}/dashboard/": {
+      "get": {
+        "tags": [
+          "Organisation"
+        ],
+        "summary": "Get organisation dashboard",
+        "description": "Retrieve organisation metrics and recent activity",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organisation dashboard data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationDashboard"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/review-manager/sessions/": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "List search sessions",
+        "description": "Retrieve all search sessions for authenticated user",
+        "responses": {
+          "200": {
+            "description": "List of search sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchSession"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Create search session",
+        "description": "Create a new search session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/sessions/{session_id}/stream/": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "SSE session status stream",
+        "description": "Server-Sent Events stream for real-time session updates",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "example": "event: status_update\ndata: {\"status\": \"executing\", \"progress\": 50}\n\nevent: complete\ndata: {\"status\": \"ready_for_review\", \"total_results\": 1234}\n"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/session/{session_id}/status/": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Get session status",
+        "description": "Retrieve current session status",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/session/{session_id}/quick-stats/": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Get session quick stats",
+        "description": "Retrieve session progress and statistics",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session quick stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionQuickStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/claim/": {
+      "post": {
+        "tags": [
+          "Review - Core"
+        ],
+        "summary": "Claim result for review",
+        "description": "Atomically claim next available result using SELECT FOR UPDATE SKIP LOCKED.\nReturns a single result to review.\n",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "session_id": {
+                    "$ref": "#/components/schemas/UUID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result claimed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "description": "No results available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "no_results_available"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "No results available for review"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/{result_id}/decide/": {
+      "post": {
+        "tags": [
+          "Review - Core"
+        ],
+        "summary": "Submit review decision",
+        "description": "Submit a review decision for a result.\n\n**Workflow #1 (min_reviewers=1)**: Creates SimpleReviewDecision (OneToOne)\n\n**Workflow #2 (min_reviewers≥2)**: Creates ReviewerDecision (many per result, immutable)\n",
+        "parameters": [
+          {
+            "name": "result_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Decision submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionSubmitResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "description": "Already decided by this reviewer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/{result_id}/release/": {
+      "post": {
+        "tags": [
+          "Review - Core"
+        ],
+        "summary": "Release claimed result",
+        "description": "Release a claimed result back to the work queue",
+        "parameters": [
+          {
+            "name": "result_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result released successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active claim found"
+          }
+        }
+      }
+    },
+    "/api/results/{result_id}/": {
+      "get": {
+        "tags": [
+          "Review - Core"
+        ],
+        "summary": "Get result details",
+        "description": "Retrieve detailed information about a result",
+        "parameters": [
+          {
+            "name": "result_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/queue/": {
+      "get": {
+        "tags": [
+          "Review - Core"
+        ],
+        "summary": "Get work queue",
+        "description": "Retrieve current user's assigned results",
+        "responses": {
+          "200": {
+            "description": "Work queue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "$ref": "#/components/schemas/UUID"
+                      },
+                      "result": {
+                        "$ref": "#/components/schemas/ProcessedResult"
+                      },
+                      "reviewer": {
+                        "$ref": "#/components/schemas/User"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "PRIMARY",
+                          "SECONDARY",
+                          "ARBITRATOR"
+                        ]
+                      },
+                      "assigned_at": {
+                        "$ref": "#/components/schemas/Timestamp"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{session_id}/blinding-status/": {
+      "get": {
+        "tags": [
+          "Review - Core"
+        ],
+        "summary": "Get blinding status",
+        "description": "Check if blinding is enforced for this session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blinding status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "is_blinded": {
+                      "type": "boolean"
+                    },
+                    "min_reviewers": {
+                      "type": "integer"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/conflicts/": {
+      "get": {
+        "tags": [
+          "Review - Conflicts"
+        ],
+        "summary": "List conflicts",
+        "description": "Retrieve conflicts for a session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "IN_DISCUSSION",
+                "ESCALATED",
+                "RESOLVED"
+              ]
+            }
+          },
+          {
+            "name": "conflict_type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INCLUDE_EXCLUDE",
+                "INCLUDE_MAYBE",
+                "EXCLUSION_REASON",
+                "LOW_CONFIDENCE"
+              ]
+            }
+          },
+          {
+            "name": "assigned_to_me",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated conflict list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ConflictResolution"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/conflicts/{conflict_id}/": {
+      "get": {
+        "tags": [
+          "Review - Conflicts"
+        ],
+        "summary": "Get conflict details",
+        "description": "Retrieve detailed information about a conflict",
+        "parameters": [
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conflict details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResolution"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/conflicts/{conflict_id}/resolve/": {
+      "post": {
+        "tags": [
+          "Review - Conflicts"
+        ],
+        "summary": "Resolve conflict",
+        "description": "Resolve a conflict with final decision.\n\nRequires arbitrator or admin permissions.\n",
+        "parameters": [
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resolution_method",
+                  "decision"
+                ],
+                "properties": {
+                  "resolution_method": {
+                    "type": "string",
+                    "enum": [
+                      "CONSENSUS",
+                      "LEAD_ARBITRATION",
+                      "DESIGNATED_ARBITRATOR",
+                      "MAJORITY"
+                    ]
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "INCLUDE",
+                      "EXCLUDE",
+                      "MAYBE"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "exclusion_reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conflict resolved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "#/components/schemas/UUID"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "RESOLVED"
+                      ]
+                    },
+                    "resolution_method": {
+                      "type": "string"
+                    },
+                    "final_decision": {
+                      "$ref": "#/components/schemas/ReviewerDecision"
+                    },
+                    "resolved_at": {
+                      "$ref": "#/components/schemas/Timestamp"
+                    },
+                    "resolved_by": {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "description": "Already resolved"
+          }
+        }
+      }
+    },
+    "/api/conflicts/{conflict_id}/discuss/": {
+      "post": {
+        "tags": [
+          "Review - Conflicts"
+        ],
+        "summary": "Add discussion comment",
+        "description": "Add a comment to conflict discussion (deprecated, use /comments/ instead)",
+        "parameters": [
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "comment"
+                ],
+                "properties": {
+                  "comment": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comment added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "#/components/schemas/UUID"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "resolution_notes": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/conflicts/{conflict_id}/details/": {
+      "get": {
+        "tags": [
+          "Review - Conflicts"
+        ],
+        "summary": "Get conflict details with comments",
+        "description": "Retrieve conflict with threaded comments and permissions",
+        "parameters": [
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conflict details with comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conflict": {
+                      "$ref": "#/components/schemas/ConflictResolution"
+                    },
+                    "comments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConflictComment"
+                      }
+                    },
+                    "active_revote_proposal": {
+                      "$ref": "#/components/schemas/RevoteProposal"
+                    },
+                    "permissions": {
+                      "type": "object",
+                      "properties": {
+                        "can_comment": {
+                          "type": "boolean"
+                        },
+                        "can_propose_revote": {
+                          "type": "boolean"
+                        },
+                        "can_accept_revote": {
+                          "type": "boolean"
+                        },
+                        "can_resolve": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/conflicts/{conflict_id}/comments/": {
+      "post": {
+        "tags": [
+          "Review - Conflicts"
+        ],
+        "summary": "Create comment",
+        "description": "Add a threaded comment to conflict discussion",
+        "parameters": [
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "Markdown-formatted comment"
+                  },
+                  "parent_id": {
+                    "$ref": "#/components/schemas/UUID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictComment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/conflicts/{conflict_id}/propose-revote/": {
+      "post": {
+        "tags": [
+          "Review - Conflicts"
+        ],
+        "summary": "Propose re-vote",
+        "description": "Propose a re-vote to resolve conflict via consensus",
+        "parameters": [
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "rationale"
+                ],
+                "properties": {
+                  "rationale": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Re-vote proposal created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevoteProposal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/conflicts/{conflict_id}/stream/": {
+      "get": {
+        "tags": [
+          "Review - Conflicts"
+        ],
+        "summary": "SSE conflict updates",
+        "description": "Server-Sent Events stream for real-time conflict updates",
+        "parameters": [
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "example": "event: comment_added\ndata: {\"comment_id\": \"uuid\", \"author\": \"reviewer1\"}\n\nevent: status_change\ndata: {\"status\": \"RESOLVED\"}\n"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/stats/": {
+      "get": {
+        "tags": [
+          "Review - Dashboard"
+        ],
+        "summary": "Get team statistics",
+        "description": "Retrieve comprehensive team performance metrics",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "week",
+                "month",
+                "all"
+              ],
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamStats"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/dashboard/irr/": {
+      "get": {
+        "tags": [
+          "Review - Dashboard"
+        ],
+        "summary": "Get IRR metrics",
+        "description": "Retrieve Cohen's Kappa for all reviewer pairs",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "IRR metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InterRaterReliability"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{session_id}/irr-metrics/": {
+      "get": {
+        "tags": [
+          "Review - Dashboard"
+        ],
+        "summary": "Get session IRR metrics",
+        "description": "Retrieve IRR summary for session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "IRR metrics summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IRRMetricsSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Comprehensive health check for all services",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "All checks passed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "healthy",
+                        "degraded"
+                      ]
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "database": {
+                          "type": "string"
+                        },
+                        "cache": {
+                          "type": "string"
+                        },
+                        "redis": {
+                          "type": "string"
+                        },
+                        "celery": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "$ref": "#/components/schemas/Timestamp"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more checks failed"
+          }
+        }
+      }
+    },
+    "/health/ready/": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Readiness probe",
+        "description": "Kubernetes readiness probe",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ready"
+                      ]
+                    },
+                    "timestamp": {
+                      "$ref": "#/components/schemas/Timestamp"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

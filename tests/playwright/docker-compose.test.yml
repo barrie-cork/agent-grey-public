@@ -1,0 +1,117 @@
+# Docker Compose configuration for Playwright testing
+version: '3.8'
+
+services:
+  playwright-test:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.dev
+    environment:
+      - DJANGO_SETTINGS_MODULE=grey_lit_project.settings.test
+      - DATABASE_URL=postgresql://postgres:postgres@test-db:5432/test_grey_lit
+      - REDIS_URL=redis://test-redis:6379/0
+      - SERPER_API_KEY=${SERPER_API_KEY}
+      - HEADLESS=true
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+      test-web:
+        condition: service_healthy
+    volumes:
+      - ../../tests:/app/tests
+      - ../../tests/playwright/videos:/app/tests/playwright/videos
+      - ../../tests/playwright/screenshots:/app/tests/playwright/screenshots
+      - ../../tests/playwright/reports:/app/tests/playwright/reports
+    command: >
+      bash -c "
+        echo 'Installing Playwright browsers...' &&
+        playwright install chromium &&
+        playwright install-deps &&
+        echo 'Running Playwright tests...' &&
+        pytest tests/playwright/ -v -m playwright --tb=short
+      "
+    networks:
+      - test-network
+
+  test-web:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.dev
+    environment:
+      - DJANGO_SETTINGS_MODULE=grey_lit_project.settings.test
+      - DATABASE_URL=postgresql://postgres:postgres@test-db:5432/test_grey_lit
+      - REDIS_URL=redis://test-redis:6379/0
+      - SERPER_API_KEY=${SERPER_API_KEY}
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: >
+      bash -c "
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - test-network
+
+  test-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=test_grey_lit
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - test-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - test-network
+
+  test-celery:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.celery
+    environment:
+      - DJANGO_SETTINGS_MODULE=grey_lit_project.settings.test
+      - DATABASE_URL=postgresql://postgres:postgres@test-db:5432/test_grey_lit
+      - REDIS_URL=redis://test-redis:6379/0
+      - SERPER_API_KEY=${SERPER_API_KEY}
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - test-network
+
+volumes:
+  test-db-data:
+
+networks:
+  test-network:
+    driver: bridge

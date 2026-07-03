@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Filtered Results - {{ session.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.filtered-result {
+    @apply border border-border rounded-lg p-4 mb-4 bg-muted;
+}
+
+.filtered-result.filtered {
+    @apply border-l-4 border-l-warning;
+}
+
+.filtered-result.error {
+    @apply border-l-4 border-l-destructive;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" data-testid="filtered-results-container">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <h1 class="text-2xl font-bold text-foreground">Filtered Results</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li><a href="{% url 'review_manager:dashboard' %}" class="text-muted-foreground hover:text-foreground">Dashboard</a></li>
+                <li class="text-muted-foreground/60">/</li>
+                <li><a href="{% url 'review_manager:session_detail' session.id %}" class="text-muted-foreground hover:text-foreground">{{ session.title }}</a></li>
+                <li class="text-muted-foreground/60">/</li>
+                <li><a href="{% url 'review_results:overview' session.id %}{% if current_per_page != 25 %}?per_page={{ current_per_page }}{% endif %}" class="text-muted-foreground hover:text-foreground">Review</a></li>
+                <li class="text-muted-foreground/60">/</li>
+                <li class="text-foreground font-medium">Filtered Results</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="rounded-lg border border-info bg-info-light p-4 mb-6">
+        <h5 class="text-base font-semibold text-info-dark flex items-center gap-2 mb-2">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Result Processing Transparency
+        </h5>
+        <p class="text-sm text-info">
+            This page shows results that were filtered out during processing. This provides complete transparency
+            into what happened to your {{ processing_stats.total_results }} search results.
+            You can review these filtered results and include them in your review if appropriate.
+        </p>
+    </div>
+
+    <!-- Processing Summary -->
+    <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+        <div class="border-b border-border px-4 py-3">
+            <h5 class="text-base font-semibold text-foreground">Processing Summary</h5>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <div class="text-2xl font-bold text-success">{{ processing_stats.successful }}</div>
+                    <div class="text-sm text-muted-foreground">Successfully Processed</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-warning">{{ processing_stats.filtered_duplicates }}</div>
+                    <div class="text-sm text-muted-foreground">Filtered (Duplicates)</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-destructive">{{ processing_stats.processing_errors }}</div>
+                    <div class="text-sm text-muted-foreground">Processing Errors</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-primary">{{ processing_stats.total_results }}</div>
+                    <div class="text-sm text-muted-foreground">Total Results</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="rounded-lg border border-border bg-card shadow-sm mb-6">
+        <div class="p-4">
+            <form method="get" class="flex flex-wrap gap-4 items-end">
+                <div class="flex-1 min-w-[200px]">
+                    <label for="filter_type" class="block text-sm font-medium text-foreground mb-1">Filter Type</label>
+                    <select name="filter_type" id="filter_type" class="block w-full rounded-md border-input shadow-sm focus:border-primary focus:ring-ring sm:text-sm" data-testid="filter-type-select">
+                        <option value="" {% if not filter_type %}selected{% endif %}>All Filtered Results</option>
+                        <option value="duplicate" {% if filter_type == "duplicate" %}selected{% endif %}>Duplicates Only ({{ duplicate_count }})</option>
+                        <option value="error" {% if filter_type == "error" %}selected{% endif %}>Errors Only ({{ error_count }})</option>
+                    </select>
+                </div>
+                <div class="w-32">
+                    <label for="per_page" class="block text-sm font-medium text-foreground mb-1">Per Page</label>
+                    <select name="per_page" id="per_page" class="block w-full rounded-md border-input shadow-sm focus:border-primary focus:ring-ring sm:text-sm" data-testid="per-page-select">
+                        <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                        <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring" data-testid="submit-filter-btn">
+                        Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Count -->
+    <div class="flex justify-between items-center mb-4">
+        <p class="text-sm text-muted-foreground">
+            Showing {{ filtered_results.start_index }} to {{ filtered_results.end_index }} of {{ filtered_results.paginator.count }} filtered results
+        </p>
+    </div>
+
+    <!-- Filtered Results -->
+    {% if filtered_results %}
+        {% for result in filtered_results %}
+            <div class="filtered-result {{ result.processing_status }}" data-testid="filtered-result-item">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <!-- Status Badge -->
+                        <div class="mb-2 flex flex-wrap gap-1">
+                            {% if result.processing_status == "filtered" %}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium bg-warning-light text-warning-dark">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                                    Duplicate
+                                </span>
+                            {% elif result.processing_status == "error" %}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium bg-error-light text-error-dark">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                    Processing Error
+                                </span>
+                            {% endif %}
+
+                            {% if result.processing_error_category %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-muted text-foreground">
+                                    {{ result.processing_error_category|title }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Title -->
+                        <h6 class="font-medium text-foreground mb-2">
+                            {% if result.url|slice:":9" == "duplicate" or result.url|slice:":5" == "error" %}
+                                {{ result.title|slice:"12:" }}
+                            {% else %}
+                                {{ result.title }}
+                            {% endif %}
+                        </h6>
+
+                        <!-- URL -->
+                        <p class="mb-2">
+                            <span class="text-sm text-muted-foreground">
+                                {% if result.raw_result and result.raw_result.link %}
+                                    <a href="{{ result.raw_result.link }}" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary/80 inline-flex items-center gap-1">
+                                        {{ result.raw_result.link|truncatechars:80 }}
+                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                    </a>
+                                {% else %}
+                                    {{ result.url|slice:"10:"|truncatechars:70 }}
+                                {% endif %}
+                            </span>
+                        </p>
+
+                        <!-- Snippet -->
+                        {% if result.snippet %}
+                            <p class="text-sm text-muted-foreground mb-2">{{ result.snippet|truncatewords:30 }}</p>
+                        {% endif %}
+
+                        <!-- Error Message -->
+                        {% if result.processing_error_message %}
+                            <div class="rounded-md p-3 mb-2 {% if result.processing_status == 'filtered' %}bg-warning-light border border-warning{% else %}bg-error-light border border-destructive{% endif %}">
+                                <p class="text-sm {% if result.processing_status == 'filtered' %}text-warning-dark{% else %}text-error-dark{% endif %}">
+                                    <strong>Reason:</strong> {{ result.processing_error_message }}
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Metadata -->
+                        <div class="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                            {% if result.document_type and result.document_type != "filtered" and result.document_type != "error" %}
+                                <span class="inline-flex items-center gap-1">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                    {{ result.document_type|upper }}
+                                </span>
+                            {% endif %}
+                            {% if result.processed_at %}
+                                <span class="inline-flex items-center gap-1">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    {{ result.processed_at|date:"M j, Y g:i A" }}
+                                </span>
+                            {% endif %}
+                            {% if result.source_organization %}
+                                <span class="inline-flex items-center gap-1">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                    {{ result.source_organization }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <!-- Include Anyway Button -->
+                        <button type="button" class="include-anyway-btn inline-flex items-center gap-1 px-3 py-2 border border-success/50 text-sm font-medium rounded-md text-success-dark bg-white hover:bg-success-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success" data-testid="include-anyway-btn"
+                                data-result-id="{{ result.id }}"
+                                title="Include this result in the review despite being filtered">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Include Anyway
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center py-12">
+            <div class="mb-4">
+                <svg class="mx-auto h-12 w-12 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h4 class="text-lg font-medium text-foreground mb-2">No Filtered Results</h4>
+            <p class="text-muted-foreground mb-4">
+                All {{ processing_stats.total_results }} results were successfully processed with no filtering applied.
+                This means you received the complete set of search results.
+            </p>
+            <a href="{% url 'review_results:overview' session.id %}{% if current_per_page != 25 %}?per_page={{ current_per_page }}{% endif %}" class="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90" data-testid="link-back-review">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Back to Review
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if filtered_results.has_other_pages %}
+        <nav aria-label="Filtered results pagination" class="mt-6 flex justify-center">
+            <ul class="inline-flex items-center -space-x-px">
+                {% if filtered_results.has_previous %}
+                    <li>
+                        <a class="px-3 py-2 ml-0 leading-tight text-muted-foreground bg-card border border-border rounded-l-lg hover:bg-muted hover:text-foreground" href="?page={{ filtered_results.previous_page_number }}{% if filter_type %}&filter_type={{ filter_type }}{% endif %}&per_page={{ per_page }}">Previous</a>
+                    </li>
+                {% endif %}
+
+                {% for num in filtered_results.paginator.page_range %}
+                    {% if filtered_results.number == num %}
+                        <li>
+                            <span class="px-3 py-2 leading-tight text-primary border border-border bg-primary/10 font-medium">{{ num }}</span>
+                        </li>
+                    {% elif num > filtered_results.number|add:'-3' and num < filtered_results.number|add:'3' %}
+                        <li>
+                            <a class="px-3 py-2 leading-tight text-muted-foreground bg-card border border-border hover:bg-muted hover:text-foreground" href="?page={{ num }}{% if filter_type %}&filter_type={{ filter_type }}{% endif %}&per_page={{ per_page }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if filtered_results.has_next %}
+                    <li>
+                        <a class="px-3 py-2 leading-tight text-muted-foreground bg-card border border-border rounded-r-lg hover:bg-muted hover:text-foreground" href="?page={{ filtered_results.next_page_number }}{% if filter_type %}&filter_type={{ filter_type }}{% endif %}&per_page={{ per_page }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle "Include Anyway" functionality
+    document.querySelectorAll('.include-anyway-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const resultId = this.getAttribute('data-result-id');
+            const sessionId = '{{ session.id }}';
+
+            if (confirm('Are you sure you want to include this filtered result in your review? It will be added to your review queue.')) {
+                // Disable button and show loading state
+                const originalHTML = this.innerHTML;
+                this.innerHTML = '<svg class="animate-spin h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Including...';
+                this.disabled = true;
+
+                // Make AJAX call to include the filtered result
+                fetch(`/review-results/api/${sessionId}/include-filtered/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                    body: JSON.stringify({
+                        result_id: resultId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Success - update button appearance
+                        this.innerHTML = '<svg class="h-4 w-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Added';
+                        this.classList.remove('border-success/50', 'text-success-dark', 'hover:bg-success-light');
+                        this.classList.add('border-success', 'bg-success', 'text-white');
+
+                        // Show success message to user
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'rounded-md bg-success-light border border-success p-3 mt-2';
+                        alertDiv.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <svg class="h-5 w-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <span class="text-sm text-success-dark">Result successfully included! It will now appear in your review queue.</span>
+                                </div>
+                                <button type="button" class="text-success hover:text-success-dark" onclick="this.closest('.rounded-md').remove()">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                        `;
+                        this.closest('.filtered-result').appendChild(alertDiv);
+
+                        // Auto-dismiss after 5 seconds
+                        setTimeout(() => {
+                            if (alertDiv.parentNode) {
+                                alertDiv.remove();
+                            }
+                        }, 5000);
+                    } else {
+                        // Error - restore button and show error
+                        this.innerHTML = originalHTML;
+                        this.disabled = false;
+                        alert('Error: ' + (data.message || 'Failed to include result. Please try again.'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Restore button state
+                    this.innerHTML = originalHTML;
+                    this.disabled = false;
+                    alert('An error occurred while including the result. Please check your connection and try again.');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% comment %}
+Reusable statistics card component
+
+Usage:
+{% include 'serp_execution/components/stats_card.html' with value=10 label="Total Queries" color_class="text-primary" element_id="total-queries" %}
+
+Parameters:
+- value: The numeric value to display
+- label: The label text below the number
+- color_class: CSS color class (e.g., "text-primary", "text-success")
+- element_id: HTML element ID for JavaScript updates
+{% endcomment %}
+
+<div class="execution-stats-card">
+    <div class="stats-number {{ color_class }}" id="{{ element_id }}">
+        {{ value|default:0 }}
+    </div>
+    <div class="stats-label text-muted">{{ label }}</div>
+</div>

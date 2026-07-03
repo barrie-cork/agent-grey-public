@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Organisation - Agent Grey{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-xl px-4 sm:px-6 lg:px-8 py-8">
+    <div class="rounded-lg border border-border bg-card shadow-sm">
+        <div class="border-b border-border px-6 py-4">
+            <h3 class="text-lg font-semibold text-foreground">Create Organisation</h3>
+            <p class="mt-1 text-sm text-muted-foreground">
+                Set up an organisation to collaborate with other reviewers. You will be the Information Specialist (owner) and can invite team members.
+            </p>
+        </div>
+        <div class="px-6 py-4">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    {% include 'components/alert.html' with variant='danger' message=form.non_field_errors|join:', ' %}
+                {% endif %}
+
+                {% for field in form %}
+                    {% include 'components/form-field.html' with field=field %}
+                {% endfor %}
+
+                <div class="flex gap-2 mt-4">
+                    <button type="submit" data-testid="submit-create-org-btn"
+                            class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        Create Organisation
+                    </button>
+                    <a href="{% url 'accounts:profile' %}" data-testid="cancel-create-org-btn"
+                       class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

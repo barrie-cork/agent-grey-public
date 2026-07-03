@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ report.title }} - Systematic Review Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm;
+        }
+        body {
+            font-family: 'DejaVu Serif', 'Liberation Serif', serif;
+            font-size: 12pt;
+            line-height: 1.8;
+            color: #333;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'DejaVu Sans', 'Liberation Sans', sans-serif;
+            page-break-after: avoid;
+        }
+        h1 {
+            font-size: 24pt;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+        h2 {
+            font-size: 18pt;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #34495e;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 0.5rem;
+        }
+        h3 {
+            font-size: 14pt;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #34495e;
+        }
+        .title-page {
+            text-align: center;
+            page-break-after: always;
+            padding-top: 25%;
+        }
+        .metadata {
+            margin-top: 4rem;
+            color: #666;
+        }
+        .table-of-contents {
+            page-break-after: always;
+        }
+        .toc-item {
+            margin-bottom: 0.5rem;
+        }
+        .toc-item.level-2 {
+            margin-left: 2rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 11pt;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .statistics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .stat-box {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .stat-value {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 10pt;
+        }
+        .chart-container {
+            margin: 2rem 0;
+            text-align: center;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 1rem;
+            border-left: 4px solid #ffc107;
+            margin: 1rem 0;
+        }
+        .footer {
+            position: fixed;
+            bottom: 1cm;
+            right: 1cm;
+            color: #666;
+            font-size: 10pt;
+        }
+
+        /* PDF Bookmarks using WeasyPrint CSS */
+        .bookmark-1 {
+            bookmark-level: 1;
+        }
+        .bookmark-2 {
+            bookmark-level: 2;
+        }
+    </style>
+</head>
+<body>
+    <!-- Title Page -->
+    <div class="title-page">
+        <h1>{{ report.title }}</h1>
+        <h2 style="text-align: center; font-size: 16pt; border: none;">Systematic Literature Review Report</h2>
+
+        <div class="metadata">
+            <p><strong>Search Session:</strong> {{ data.session.title }}</p>
+            <p><strong>Author:</strong> {{ data.session.owner.get_full_name|default:data.session.owner.email }}</p>
+            <p><strong>Date:</strong> {{ generated_at|date:"F j, Y" }}</p>
+            <p><strong>Status:</strong> {{ data.session.get_status_display }}</p>
+        </div>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="table-of-contents">
+        <h2>Table of Contents</h2>
+        <div class="toc-item">1. Search Strategy</div>
+        <div class="toc-item level-2">1.1 PIC Framework</div>
+        <div class="toc-item level-2">1.2 Search Terms</div>
+        <div class="toc-item level-2">1.3 Databases and Sources</div>
+        <div class="toc-item">2. Results</div>
+        <div class="toc-item level-2">2.1 Summary Statistics</div>
+        <div class="toc-item level-2">2.2 Exclusion Analysis</div>
+        <div class="toc-item">3. PRISMA Flow Diagram</div>
+    </div>
+
+    <!-- Search Strategy -->
+    <div class="page-break">
+        <h2 class="bookmark-1">1. Search Strategy</h2>
+
+        <h3>1.1 PIC Framework</h3>
+        <table>
+            <tr>
+                <th>Component</th>
+                <th>Terms</th>
+                <th>Count</th>
+            </tr>
+            <tr>
+                <td><strong>Population</strong></td>
+                <td>{{ data.search_strategy.pic_analysis.population_terms|join:", " }}</td>
+                <td>{{ data.search_strategy.pic_analysis.population_count }}</td>
+            </tr>
+            <tr>
+                <td><strong>Interest</strong></td>
+                <td>{{ data.search_strategy.pic_analysis.interest_terms|join:", " }}</td>
+                <td>{{ data.search_strategy.pic_analysis.interest_count }}</td>
+            </tr>
+            <tr>
+                <td><strong>Context</strong></td>
+                <td>{{ data.search_strategy.pic_analysis.context_terms|join:", " }}</td>
+                <td>{{ data.search_strategy.pic_analysis.context_count }}</td>
+            </tr>
+        </table>
+
+        <h3>1.2 Search Terms</h3>
+        <p>The following search queries were generated and executed:</p>
+        <ol>
+            {% for query in data.search_queries %}
+            <li>
+                <strong>{{ query.get_display_query }}</strong><br>
+                Target: {{ query.target_domain|default:"General search" }}<br>
+                Results: {{ query.total_results|default:"0" }}
+            </li>
+            {% endfor %}
+        </ol>
+
+        <h3>1.3 Databases and Sources</h3>
+        <p>Searches were conducted through the Serper API accessing Google Search with the following parameters:</p>
+        <ul>
+            <li>Date range: {{ data.search_strategy.date_range|default:"All dates" }}</li>
+            <li>Language: {{ data.search_strategy.language|default:"English" }}</li>
+            <li>File types: {{ data.search_strategy.file_types|join:", "|default:"All types" }}</li>
+        </ul>
+    </div>
+
+    <!-- Results Analysis -->
+    <div class="page-break">
+        <h2 class="bookmark-1">2. Results</h2>
+
+        <div class="statistics-grid">
+            <div class="stat-box">
+                <div class="stat-value">{{ data.prisma_flow.identification.total|default:0 }}</div>
+                <div class="stat-label">Records Identified</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ data.prisma_flow.retrieval.reports_sought|default:0 }}</div>
+                <div class="stat-label">Reports Sought for Retrieval</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ data.prisma_flow.eligibility.reports_assessed|default:0 }}</div>
+                <div class="stat-label">Reports Assessed</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ data.prisma_flow.included.total|default:0 }}</div>
+                <div class="stat-label">Studies Included</div>
+            </div>
+        </div>
+
+        <h3>2.1 Summary Statistics</h3>
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+                <th>Percentage</th>
+            </tr>
+            <tr>
+                <td>Total Results</td>
+                <td>{{ data.result_statistics.total_results }}</td>
+                <td>100%</td>
+            </tr>
+            <tr>
+                <td>Reports Sought for Retrieval</td>
+                <td>{{ data.prisma_flow.retrieval.reports_sought|default:0 }}</td>
+                <td>{{ data.prisma_flow.summary.retrieval_rate|default:0|floatformat:0 }}%</td>
+            </tr>
+            <tr>
+                <td>Reports Retrieved</td>
+                <td>{{ data.prisma_flow.retrieval.reports_retrieved|default:0 }}</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>Reports Not Retrieved</td>
+                <td>{{ data.prisma_flow.retrieval.reports_not_retrieved|default:0 }}</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>Included</td>
+                <td>{{ data.result_statistics.included_count }}</td>
+                <td>{{ data.result_statistics.included_percentage|floatformat:0 }}%</td>
+            </tr>
+            <tr>
+                <td>Excluded</td>
+                <td>{{ data.result_statistics.excluded_count }}</td>
+                <td>{{ data.result_statistics.excluded_percentage|floatformat:0 }}%</td>
+            </tr>
+            <tr>
+                <td>Pending Review</td>
+                <td>{{ data.result_statistics.pending_count }}</td>
+                <td>{{ data.result_statistics.pending_percentage|floatformat:0 }}%</td>
+            </tr>
+        </table>
+
+        <h3>2.2 Exclusion Analysis</h3>
+        {% if data.exclusion_analysis.reasons %}
+        <table>
+            <tr>
+                <th>Exclusion Reason</th>
+                <th>Count</th>
+                <th>Percentage</th>
+            </tr>
+            {% for reason_data in data.exclusion_analysis.reasons %}
+            <tr>
+                <td>{{ reason_data.reason }}</td>
+                <td>{{ reason_data.count }}</td>
+                <td>{{ reason_data.percentage|floatformat:1 }}%</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>No exclusion reasons have been recorded yet.</p>
+        {% endif %}
+
+        <!-- Inter-Rater Reliability Section (Dual-Screening) -->
+        {% if data.irr_metrics.exists %}
+        <div style="page-break-inside: avoid; margin-top: 2cm;">
+            <h3>2.3 Inter-Rater Reliability</h3>
+
+            <div style="background-color: #f8f9fa; padding: 0.5cm; border-radius: 5px; margin-bottom: 0.5cm;">
+                <p style="margin: 0.2cm 0;"><strong>Dual-Reviewer Screening:</strong> This systematic review employed independent dual-reviewer screening to ensure rigour and minimise bias.</p>
+                <p style="margin: 0.2cm 0;"><strong>Standard:</strong> Cochrane minimum standard κ ≥ 0.70 for systematic reviews.</p>
+                <p style="margin: 0.2cm 0;"><strong>Metric:</strong> Cohen's Kappa (κ) measures inter-rater agreement whilst accounting for agreement expected by chance.</p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reviewer Pair</th>
+                        <th style="text-align: center;">Cohen's Kappa (κ)</th>
+                        <th style="text-align: center;">Agreement %</th>
+                        <th style="text-align: center;">Comparisons</th>
+                        <th>Interpretation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric in data.irr_metrics %}
+                    <tr>
+                        <td>{{ metric.reviewer_a.get_full_name|default:metric.reviewer_a.username }} × {{ metric.reviewer_b.get_full_name|default:metric.reviewer_b.username }}</td>
+                        <td style="text-align: center; font-weight: bold; {% if metric.cohens_kappa >= 0.70 %}color: green;{% else %}color: red;{% endif %}">
+                            {{ metric.cohens_kappa|floatformat:3 }}
+                            {% if metric.cohens_kappa >= 0.70 %}✓{% else %}⚠{% endif %}
+                        </td>
+                        <td style="text-align: center;">{% widthratio metric.agreements metric.total_comparisons 100 %}%</td>
+                        <td style="text-align: center;">{{ metric.total_comparisons }}<br><small>({{ metric.agreements }} agree, {{ metric.disagreements }} conflict)</small></td>
+                        <td>
+                            {% if metric.cohens_kappa >= 0.80 %}
+                                <strong>Almost Perfect Agreement</strong>
+                            {% elif metric.cohens_kappa >= 0.60 %}
+                                <strong>Substantial Agreement</strong>
+                            {% elif metric.cohens_kappa >= 0.40 %}
+                                <strong>Moderate Agreement</strong>
+                            {% elif metric.cohens_kappa >= 0.20 %}
+                                <strong>Fair Agreement</strong>
+                            {% else %}
+                                <strong>Slight Agreement</strong>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <p style="font-size: 10pt; color: #666; margin-top: 0.5cm;"><strong>Reference:</strong> Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for categorical data. <em>Biometrics, 33</em>(1), 159-174.</p>
+        </div>
+
+        <!-- Conflict Resolution Summary (Dual-Screening) -->
+        {% if data.conflict_summary and data.conflict_summary.total_conflicts > 0 %}
+        <div style="page-break-inside: avoid; margin-top: 1cm;">
+            <h3>2.4 Conflict Resolution Summary</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th style="text-align: center;">Count</th>
+                        <th style="text-align: center;">Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Total Conflicts Detected</strong></td>
+                        <td style="text-align: center;"><strong>{{ data.conflict_summary.total_conflicts }}</strong></td>
+                        <td style="text-align: center;">100%</td>
+                    </tr>
+                    <tr>
+                        <td>Resolved Through Discussion</td>
+                        <td style="text-align: center;">{{ data.conflict_summary.resolved_by_discussion }}</td>
+                        <td style="text-align: center;">{% widthratio data.conflict_summary.resolved_by_discussion data.conflict_summary.total_conflicts 100 %}%</td>
+                    </tr>
+                    <tr>
+                        <td>Resolved Through Re-Vote</td>
+                        <td style="text-align: center;">{{ data.conflict_summary.resolved_by_revote }}</td>
+                        <td style="text-align: center;">{% widthratio data.conflict_summary.resolved_by_revote data.conflict_summary.total_conflicts 100 %}%</td>
+                    </tr>
+                    <tr>
+                        <td>Resolved Through Arbitration</td>
+                        <td style="text-align: center;">{{ data.conflict_summary.resolved_by_arbitration }}</td>
+                        <td style="text-align: center;">{% widthratio data.conflict_summary.resolved_by_arbitration data.conflict_summary.total_conflicts 100 %}%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pending Conflicts</strong></td>
+                        <td style="text-align: center; {% if data.conflict_summary.pending_conflicts > 0 %}color: red; font-weight: bold;{% endif %}">{{ data.conflict_summary.pending_conflicts }}</td>
+                        <td style="text-align: center; {% if data.conflict_summary.pending_conflicts > 0 %}color: red; font-weight: bold;{% endif %}">{% widthratio data.conflict_summary.pending_conflicts data.conflict_summary.total_conflicts 100 %}%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            {% if data.conflict_summary.pending_conflicts > 0 %}
+            <p style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 0.5cm; margin: 0.5cm 0;"><strong>⚠ Warning:</strong> {{ data.conflict_summary.pending_conflicts }} conflict(s) remain unresolved. PRISMA 2020 requires all conflicts to be resolved before finalising the review.</p>
+            {% endif %}
+
+            <p style="font-size: 10pt; color: #666; margin-top: 0.5cm;"><strong>PRISMA 2020 Recommendation:</strong> Conflicts should be documented with resolution methods clearly stated. Discussion is preferred for consensus building.</p>
+        </div>
+        {% endif %}
+
+        <!-- Configuration Deviation Log (Dual-Screening) -->
+        {% if data.configuration_changes %}
+        <div style="page-break-inside: avoid; margin-top: 1cm;">
+            <h3>2.5 Configuration Deviation Log</h3>
+
+            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 0.5cm; margin-bottom: 0.5cm;">
+                <p style="margin: 0;"><strong>PRISMA 2020 Requirement:</strong> Any deviations from the pre-registered protocol must be documented with justification.</p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Version Change</th>
+                        <th>Changed By</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for change in data.configuration_changes %}
+                    <tr>
+                        <td>{{ change.changed_at|date:"d M Y H:i" }}</td>
+                        <td>v{{ change.from_configuration.version }} → v{{ change.to_configuration.version }}</td>
+                        <td>{{ change.changed_by.get_full_name|default:change.changed_by.username }}</td>
+                        <td>{{ change.change_reason|default:"No reason provided" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% elif data.irr_metrics.exists %}
+        <div style="page-break-inside: avoid; margin-top: 1cm;">
+            <h3>2.5 Configuration Deviation Log</h3>
+            <p style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 0.5cm;"><strong>✓ No Protocol Deviations:</strong> All screening was conducted according to the pre-registered protocol without deviations.</p>
+        </div>
+        {% endif %}
+
+        {% endif %}
+        <!-- End of IRR Section -->
+    </div>
+
+    <!-- PRISMA Flow Diagram -->
+    <div class="page-break">
+        <h2 class="bookmark-1">3. PRISMA Flow Diagram</h2>
+
+        <h3>PRISMA 2020 Flow Summary</h3>
+        <ol>
+            <li><strong>Identification:</strong> {{ data.prisma_flow.identification.total|default:0 }} records identified through web searching</li>
+            <li><strong>Screening:</strong> {{ data.prisma_flow.screening.records_screened }} records screened after {{ data.summary.duplicate_count }} duplicates removed</li>
+            <li><strong>Retrieval:</strong> {{ data.prisma_flow.retrieval.reports_sought|default:0 }} reports sought for retrieval
+                {% if data.prisma_flow.retrieval.reports_not_retrieved %}
+                ({{ data.prisma_flow.retrieval.reports_not_retrieved }} could not be retrieved)
+                {% endif %}
+            </li>
+            <li><strong>Eligibility:</strong> {{ data.prisma_flow.eligibility.reports_assessed|default:0 }} reports assessed for eligibility
+                {% if data.prisma_flow.eligibility.excluded %}
+                ({{ data.prisma_flow.eligibility.excluded }} excluded)
+                {% endif %}
+            </li>
+            <li><strong>Included:</strong> {{ data.prisma_flow.included.total|default:0 }} studies included in final review</li>
+        </ol>
+
+        {% if data.prisma_flow.retrieval.failure_reasons %}
+        <h3>Retrieval Issues</h3>
+        <table>
+            <tr>
+                <th>Reason</th>
+                <th>Count</th>
+            </tr>
+            {% for reason, count in data.prisma_flow.retrieval.failure_reasons.items %}
+            <tr>
+                <td>{{ reason }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+
+
+    <div class="footer">
+        Page <span class="page"></span>
+    </div>
+</body>
+</html>
