@@ -126,9 +126,9 @@ For developers who want to modify the code or contribute:
 
 2. **Set up environment**:
    ```bash
-   cp .env.example .env.local
-   # Edit .env.local and add your Serper API key
-   nano .env.local
+   cp .env.example .env.dev.local
+   # Edit .env.dev.local and add your Serper API key
+   nano .env.dev.local
    ```
 
 3. **Start the application**:
@@ -417,7 +417,7 @@ curl http://localhost:8000/prometheus/metrics      # Custom application metrics 
 | **Port 8000 in use** | `docker compose down && docker compose up -d` |
 | **Database connection error** | `docker compose restart db && sleep 10` |
 | **Celery not working** | `docker compose restart web celery_worker` |
-| **Search API error** | Check SERPER_API_KEY in .env.local |
+| **Search API error** | Check SERPER_API_KEY in .env.dev.local |
 | **Permission denied** | `chmod +x docker/dev-entrypoint.sh` |
 | **Pre-built images not found** | Check [latest release](https://github.com/barrie-cork/agent-grey/releases/latest) |
 | **/prometheus/metrics 403/404** | Authenticate as staff (or run with DEBUG); ensure `PROMETHEUS_METRICS_ENABLED=True` |
